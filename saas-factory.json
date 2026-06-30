@@ -1,0 +1,81 @@
+{
+  "name": "rcn-crm-saas",
+  "version": "1.0.0",
+  "type": "saas",
+  "product": "CRM",
+  "description": "CRM SaaS Platform con Next.js, TypeScript y Neon PostgreSQL",
+  "tech-stack": {
+    "frontend": {
+      "framework": "Next.js 15",
+      "language": "TypeScript",
+      "styling": "Tailwind CSS",
+      "ui-components": "shadcn/ui",
+      "state-management": "Zustand",
+      "http-client": "axios",
+      "form-handling": "React Hook Form",
+      "validation": "Zod"
+    },
+    "backend": {
+      "framework": "Next.js API Routes",
+      "orm": "Prisma",
+      "database": "Neon PostgreSQL",
+      "authentication": "NextAuth.js v5",
+      "api-validation": "Zod"
+    },
+    "database": {
+      "type": "PostgreSQL",
+      "provider": "Neon",
+      "migrations": "Prisma",
+      "connection": "postgresql://neondb_owner:npg_mMZ7yAgbls1o@ep-small-forest-atxytwvd-pooler.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+    },
+    "deployment": {
+      "platform": "Vercel",
+      "environment": "Node.js 20+"
+    },
+    "devTools": {
+      "linting": "ESLint",
+      "formatting": "Prettier",
+      "testing": "Jest + React Testing Library",
+      "type-checking": "TypeScript"
+    }
+  },
+  "modules": {
+    "authentication": {
+      "enabled": true,
+      "provider": "NextAuth.js",
+      "features": ["Email/Password", "OAuth", "Two-Factor Auth"]
+    },
+    "dashboard": {
+      "enabled": true,
+      "features": ["Analytics", "Charts", "KPIs", "Widgets"]
+    },
+    "contacts": {
+      "enabled": true,
+      "features": ["CRUD", "Import/Export", "Segmentation", "Tags"]
+    },
+    "deals": {
+      "enabled": true,
+      "features": ["Pipeline", "Stages", "Forecasting", "History"]
+    },
+    "companies": {
+      "enabled": true,
+      "features": ["Management", "Relationships", "Custom Fields"]
+    },
+    "tasks": {
+      "enabled": true,
+      "features": ["Task Management", "Reminders", "Assignment", "Tracking"]
+    },
+    "email": {
+      "enabled": true,
+      "features": ["Email Integration", "Tracking", "Templates"]
+    },
+    "reports": {
+      "enabled": true,
+      "features": ["Custom Reports", "Exports", "Scheduling"]
+    },
+    "settings": {
+      "enabled": true,
+      "features": ["User Management", "Roles & Permissions", "Organization Settings"]
+    }
+  }
+}

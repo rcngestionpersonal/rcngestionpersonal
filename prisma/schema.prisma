@@ -1,0 +1,228 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Management
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String?
+  password  String?
+  phone     String?
+  avatar    String?
+  role      String     @default("user")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  organization   Organization? @relation("UserOrganization", fields: [organizationId], references: [id])
+  organizationId String?
+
+  contacts   Contact[]
+  companies  Company[]
+  deals      Deal[]
+  tasks      Task[]
+  emails     Email[]
+  activities Activity[]
+
+  @@index([organizationId])
+}
+
+// Organization/Workspace
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logo      String?
+  domain    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner   User   @relation("UserOrganization", fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String @unique
+
+  users      User[]
+  contacts   Contact[]
+  companies  Company[]
+  deals      Deal[]
+  tasks      Task[]
+  emails     Email[]
+  activities Activity[]
+}
+
+// Contacts/Leads
+model Contact {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  mobile    String?
+  title     String?
+  source    String?
+  status    String   @default("lead")
+  tags      String[] @default([])
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  company        Company?   @relation(fields: [companyId], references: [id])
+  companyId      String?
+
+  deals      Deal[]
+  tasks      Task[]
+  emails     Email[]
+  activities Activity[]
+
+  @@index([userId, organizationId, companyId])
+}
+
+// Companies
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  industry  String?
+  website   String?
+  phone     String?
+  email     String?
+  address   String?
+  city      String?
+  state     String?
+  country   String?
+  zipCode   String?
+  employees Int?
+  revenue   Float?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+
+  contacts Contact[]
+  deals    Deal[]
+  tasks    Task[]
+  emails   Email[]
+  activities Activity[]
+
+  @@index([userId, organizationId])
+}
+
+// Deals/Opportunities
+model Deal {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  amount        Float
+  currency      String   @default("USD")
+  stage         String   @default("new")
+  probability   Int      @default(0)
+  expectedClose DateTime?
+  closedAt      DateTime?
+  lostReason    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  contact        Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId      String
+  company        Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId      String
+
+  tasks      Task[]
+  emails     Email[]
+  activities Activity[]
+
+  @@index([userId, organizationId, contactId, companyId, stage])
+}
+
+// Tasks
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  priority    String    @default("medium")
+  status      String    @default("todo")
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  contact        Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  contactId      String?
+  company        Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  companyId      String?
+  deal           Deal?      @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  dealId         String?
+
+  @@index([userId, organizationId, status, dueDate])
+}
+
+// Emails
+model Email {
+  id        String   @id @default(cuid())
+  subject   String
+  body      String
+  from      String
+  to        String[]
+  cc        String[] @default([])
+  bcc       String[] @default([])
+  openedAt  DateTime?
+  createdAt DateTime @default(now())
+
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  contact        Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId      String
+  company        Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId      String
+  deal           Deal?      @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  dealId         String?
+
+  @@index([userId, organizationId, contactId])
+}
+
+// Activities/Timeline
+model Activity {
+  id        String   @id @default(cuid())
+  type      String   // call, email, meeting, note, etc.
+  title     String
+  description String?
+  createdAt DateTime @default(now())
+
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  contact        Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId      String
+  company        Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId      String
+  deal           Deal?      @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  dealId         String?
+
+  @@index([userId, organizationId, contactId, type])
+}
