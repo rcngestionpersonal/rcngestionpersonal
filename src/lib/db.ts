@@ -9,6 +9,9 @@ const pool = new Pool({
   ssl: {
     rejectUnauthorized: false,
   },
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
 });
 
 export async function query(text: string, params?: any[]) {

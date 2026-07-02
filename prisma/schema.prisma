@@ -1,5 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// This is your Prisma schema file.
 
 generator client {
   provider = "prisma-client-js"
@@ -10,219 +9,140 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User Management
-model User {
-  id        String     @id @default(cuid())
-  email     String     @unique
-  name      String?
-  password  String?
-  phone     String?
-  avatar    String?
-  role      String     @default("user")
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  organization   Organization? @relation("UserOrganization", fields: [organizationId], references: [id])
-  organizationId String?
-
-  contacts   Contact[]
-  companies  Company[]
-  deals      Deal[]
-  tasks      Task[]
-  emails     Email[]
-  activities Activity[]
-
-  @@index([organizationId])
-}
-
-// Organization/Workspace
-model Organization {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  logo      String?
-  domain    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  owner   User   @relation("UserOrganization", fields: [ownerId], references: [id], onDelete: Cascade)
-  ownerId String @unique
-
-  users      User[]
-  contacts   Contact[]
-  companies  Company[]
-  deals      Deal[]
-  tasks      Task[]
-  emails     Email[]
-  activities Activity[]
-}
-
-// Contacts/Leads
-model Contact {
-  id        String   @id @default(cuid())
-  firstName String
-  lastName  String
-  email     String?
-  phone     String?
-  mobile    String?
-  title     String?
-  source    String?
-  status    String   @default("lead")
-  tags      String[] @default([])
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  organizationId String
-  company        Company?   @relation(fields: [companyId], references: [id])
-  companyId      String?
-
-  deals      Deal[]
-  tasks      Task[]
-  emails     Email[]
-  activities Activity[]
-
-  @@index([userId, organizationId, companyId])
-}
-
-// Companies
-model Company {
-  id        String   @id @default(cuid())
-  name      String
-  industry  String?
-  website   String?
-  phone     String?
-  email     String?
-  address   String?
-  city      String?
-  state     String?
-  country   String?
-  zipCode   String?
-  employees Int?
-  revenue   Float?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  organizationId String
-
-  contacts Contact[]
-  deals    Deal[]
-  tasks    Task[]
-  emails   Email[]
-  activities Activity[]
-
-  @@index([userId, organizationId])
-}
-
-// Deals/Opportunities
-model Deal {
-  id            String   @id @default(cuid())
-  title         String
-  description   String?
-  amount        Float
-  currency      String   @default("USD")
-  stage         String   @default("new")
-  probability   Int      @default(0)
-  expectedClose DateTime?
-  closedAt      DateTime?
-  lostReason    String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  organizationId String
-  contact        Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  contactId      String
-  company        Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  companyId      String
-
-  tasks      Task[]
-  emails     Email[]
-  activities Activity[]
-
-  @@index([userId, organizationId, contactId, companyId, stage])
-}
-
-// Tasks
-model Task {
+model Branch {
   id          String    @id @default(cuid())
-  title       String
-  description String?
-  dueDate     DateTime?
-  priority    String    @default("medium")
-  status      String    @default("todo")
-  completed   Boolean   @default(false)
-  completedAt DateTime?
+  name        String
+  city        String
+  address     String?
+  phone       String?
+  coach       String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
-  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  organizationId String
-  contact        Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  contactId      String?
-  company        Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  companyId      String?
-  deal           Deal?      @relation(fields: [dealId], references: [id], onDelete: SetNull)
-  dealId         String?
-
-  @@index([userId, organizationId, status, dueDate])
+  students    Student[]
+  charges     Charge[]
+  attendances Attendance[]
 }
 
-// Emails
-model Email {
-  id        String   @id @default(cuid())
-  subject   String
-  body      String
-  from      String
-  to        String[]
-  cc        String[] @default([])
-  bcc       String[] @default([])
-  openedAt  DateTime?
-  createdAt DateTime @default(now())
-
-  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  organizationId String
-  contact        Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  contactId      String
-  company        Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  companyId      String
-  deal           Deal?      @relation(fields: [dealId], references: [id], onDelete: SetNull)
-  dealId         String?
-
-  @@index([userId, organizationId, contactId])
+model Guardian {
+  id          String    @id @default(cuid())
+  name        String
+  whatsapp    String
+  email       String?
+  phone       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  students    Student[]
+  charges     Charge[]
+  notifications Notification[]
 }
 
-// Activities/Timeline
-model Activity {
-  id        String   @id @default(cuid())
-  type      String   // call, email, meeting, note, etc.
-  title     String
-  description String?
-  createdAt DateTime @default(now())
-
-  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  organizationId String
-  contact        Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  contactId      String
-  company        Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  companyId      String
-  deal           Deal?      @relation(fields: [dealId], references: [id], onDelete: SetNull)
-  dealId         String?
-
-  @@index([userId, organizationId, contactId, type])
+model Student {
+  id            String    @id @default(cuid())
+  firstName     String
+  lastName      String
+  birthDate     DateTime?
+  category      String
+  active        Boolean   @default(true)
+  disabledAt    DateTime?
+  branch        Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branchId      String
+  guardian      Guardian  @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+  guardianId    String
+  enrollments   Enrollment[]
+  attendances   Attendance[]
+  charges       Charge[]
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
+
+model Plan {
+  id           String    @id @default(cuid())
+  name         String
+  description  String?
+  type         String    @default("monthly")
+  amount       Float
+  currency     String    @default("USD")
+  interval     String    @default("monthly")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  enrollments  Enrollment[]
+  charges      Charge[]
+}
+
+model Enrollment {
+  id         String   @id @default(cuid())
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId  String
+  plan       Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  planId     String
+  startDate  DateTime
+  endDate    DateTime?
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Charge {
+  id           String    @id @default(cuid())
+  branch       Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branchId     String
+  student      Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId    String
+  guardian     Guardian  @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+  guardianId   String
+  plan         Plan?     @relation(fields: [planId], references: [id], onDelete: SetNull)
+  planId       String?
+  description  String
+  amount       Float
+  currency     String    @default("USD")
+  dueDate      DateTime
+  status       String    @default("pending")
+  daysLate     Int       @default(0)
+  paidAt       DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  payments     Payment[]
+}
+
+model Payment {
+  id          String    @id @default(cuid())
+  charge      Charge    @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+  chargeId    String
+  amount      Float
+  currency    String    @default("USD")
+  method      String    @default("manual")
+  reference   String?
+  recordedBy  String?
+  recordedAt  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Attendance {
+  id          String    @id @default(cuid())
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId   String
+  branch      Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branchId    String
+  date        DateTime
+  status      String    @default("present")
+  note        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Notification {
+  id          String    @id @default(cuid())
+  guardian    Guardian  @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+  guardianId  String
+  channel     String    @default("email")
+  type        String
+  subject     String
+  body        String
+  sentAt      DateTime?
+  status      String    @default("pending")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
