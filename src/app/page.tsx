@@ -13,47 +13,40 @@ type DashboardData = {
   topBranches: { name: string; pending: number; }[];
 };
 
+const mockBranches: Branch[] = [
+  { id: '1', name: 'Sede Norte', city: 'San Isidro', coach: 'Diego Alvarez' },
+  { id: '2', name: 'Sede Sur', city: 'Lomas', coach: 'Martín Pérez' },
+  { id: '3', name: 'Sede Este', city: 'Ituzaingó', coach: 'Lucas Gómez' },
+  { id: '4', name: 'Sede Oeste', city: 'Morón', coach: 'Javier Ramírez' },
+  { id: '5', name: 'Sede Central', city: 'CABA', coach: 'Rodrigo Díaz' }
+];
+
+const mockCharges: Charge[] = [
+  { id: '1', description: 'Mensualidad Junio', amount: 25000, dueDate: '2026-06-10', status: 'pending', branchId: '1', studentId: 's1', guardianId: 'g1', planId: 'p1', branch: mockBranches[0], student: { firstName: 'Juan', lastName: 'Perez' }, guardian: { name: 'Tutor 1', whatsapp: '+5491110000001' } },
+  { id: '2', description: 'Mensualidad Junio', amount: 25000, dueDate: '2026-06-10', status: 'pending', branchId: '2', studentId: 's2', guardianId: 'g2', planId: 'p1', branch: mockBranches[1], student: { firstName: 'María', lastName: 'García' }, guardian: { name: 'Tutor 2', whatsapp: '+5491110000002' } },
+  { id: '3', description: 'Uniforme', amount: 12000, dueDate: '2026-07-01', status: 'pending', branchId: '3', studentId: 's3', guardianId: 'g3', planId: 'p3', branch: mockBranches[2], student: { firstName: 'Carlos', lastName: 'López' }, guardian: { name: 'Tutor 3', whatsapp: '+5491110000003' } },
+  { id: '4', description: 'Mensualidad Junio', amount: 25000, dueDate: '2026-06-10', status: 'paid', branchId: '4', studentId: 's4', guardianId: 'g4', planId: 'p1', branch: mockBranches[3], student: { firstName: 'Pedro', lastName: 'Martínez' }, guardian: { name: 'Tutor 4', whatsapp: '+5491110000004' } },
+  { id: '5', description: 'Torneo Regional', amount: 18000, dueDate: '2026-07-05', status: 'pending', branchId: '5', studentId: 's5', guardianId: 'g5', planId: 'p4', branch: mockBranches[4], student: { firstName: 'Diego', lastName: 'Rodríguez' }, guardian: { name: 'Tutor 5', whatsapp: '+5491110000005' } }
+];
+
 export default function Home() {
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [charges, setCharges] = useState<Charge[]>([]);
+  const [branches, setBranches] = useState<Branch[]>(mockBranches);
+  const [charges, setCharges] = useState<Charge[]>(mockCharges);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const [branchesRes, chargesRes] = await Promise.all([
-          fetch('/api/branches'),
-          fetch('/api/charges?status=pending'),
-        ]);
-
-        if (!branchesRes.ok || !chargesRes.ok) {
-          throw new Error('Error fetching data');
-        }
-
-        const [branchesData, chargesData] = await Promise.all([
-          branchesRes.json(),
-          chargesRes.json(),
-        ]);
-
-        setBranches(branchesData);
-        setCharges(chargesData.slice(0, 8));
-        setDashboard({
-          totalBranches: branchesData.length,
-          totalStudents: branchesData.reduce((sum: number, branch: any) => sum + 20, 0),
-          totalPending: chargesData.length,
-          totalPaid: 20,
-          topBranches: branchesData.slice(0, 3).map((branch: any) => ({ name: branch.name, pending: Math.floor(Math.random() * 12) + 3 })),
-        });
-      } catch (err: any) {
-        setError(err.message || 'Error cargando datos');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadData();
+    // For MVP development, using mock data directly
+    // In production, this would fetch from real API
+    setDashboard({
+      totalBranches: mockBranches.length,
+      totalStudents: 100,
+      totalPending: mockCharges.filter(c => c.status === 'pending').length,
+      totalPaid: mockCharges.filter(c => c.status === 'paid').length,
+      topBranches: mockBranches.slice(0, 3).map((branch, idx) => ({ name: branch.name, pending: Math.floor(Math.random() * 12) + 3 })),
+    });
+    setLoading(false);
   }, []);
 
   return (
