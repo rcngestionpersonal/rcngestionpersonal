@@ -1,0 +1,304 @@
+'use client';
+
+import { Suspense, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Camera } from 'lucide-react';
+import { compressImage } from '@/lib/real-estate/image-compress';
+
+const PROPERTY_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: 'HOUSE', label: 'Casas' },
+  { value: 'APARTMENT', label: 'Departamentos' },
+  { value: 'SUITE', label: 'Suites' },
+  { value: 'OFFICE', label: 'Oficinas' },
+  { value: 'LAND', label: 'Terrenos' },
+  { value: 'COMMERCIAL', label: 'Locales comerciales' },
+  { value: 'WAREHOUSE', label: 'Bodegas/Galpones' },
+  { value: 'FARM', label: 'Quintas/Haciendas' },
+  { value: 'OTHER', label: 'Otros' },
+];
+
+const COUNTRY_CODES: Array<{ code: string; label: string }> = [
+  { code: '+593', label: '🇪🇨 Ecuador +593' },
+  { code: '+57', label: '🇨🇴 Colombia +57' },
+  { code: '+51', label: '🇵🇪 Perú +51' },
+  { code: '+1', label: '🇺🇸 EE. UU./Canadá +1' },
+  { code: '+34', label: '🇪🇸 España +34' },
+  { code: '+52', label: '🇲🇽 México +52' },
+  { code: '+58', label: '🇻🇪 Venezuela +58' },
+  { code: '+506', label: '🇨🇷 Costa Rica +506' },
+];
+
+export default function AgentRegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <AgentRegisterForm />
+    </Suspense>
+  );
+}
+
+function AgentRegisterForm() {
+  const router = useRouter();
+  const referralCode = useSearchParams().get('ref') ?? undefined;
+  const [fullName, setFullName] = useState('');
+  const [countryCode, setCountryCode] = useState('+593');
+  const [phoneLocal, setPhoneLocal] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [company, setCompany] = useState('');
+  const [idNumber, setIdNumber] = useState('');
+  const [licenseNumber, setLicenseNumber] = useState('');
+  const [zonesText, setZonesText] = useState('');
+  const [specialty, setSpecialty] = useState<'SALE' | 'RENT' | 'BOTH'>('BOTH');
+  const [propertyTypesInterest, setPropertyTypesInterest] = useState<string[]>([]);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+
+  function toggleProperty(value: string) {
+    setPropertyTypesInterest((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
+  }
+
+  function onPickPhoto(file: File | undefined) {
+    if (!file) return;
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  }
+
+  async function submit() {
+    setLoading(true);
+    setError('');
+    try {
+      const phone = `${countryCode}${phoneLocal.trim()}`;
+      const res = await fetch('/api/real-estate/agents/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName,
+          phone,
+          email: email || undefined,
+          password,
+          company: company || undefined,
+          idNumber,
+          licenseNumber: licenseNumber || undefined,
+          zones: zonesText
+            .split(',')
+            .map((z) => z.trim())
+            .filter(Boolean),
+          propertyTypesInterest,
+          specialty,
+          referralCode,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'No se pudo registrar el agente.');
+
+      // La foto es opcional y no debe bloquear el registro si falla la subida:
+      // el registro exitoso ya dejo la sesion activa (la ruta de registro
+      // pone la cookie), asi que /agents/me/photo ya puede identificarnos.
+      if (photoFile) {
+        try {
+          const compressed = await compressImage(photoFile, 500, 0.85);
+          const photoForm = new FormData();
+          photoForm.append('photo', compressed, 'perfil.jpg');
+          await fetch('/api/real-estate/agents/me/photo', { method: 'POST', body: photoForm });
+        } catch {
+          // No critico: el agente puede agregar su foto despues desde su perfil.
+        }
+      }
+
+      router.replace('/agentes/verificar-telefono');
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error de registro');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="violet-ambient-bg min-h-screen px-4 py-8 text-white sm:py-10">
+      <div className="mx-auto max-w-2xl">
+        <section className="grain-overlay relative mb-6 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+          <div className="absolute -right-10 top-0 h-40 w-40 rounded-full bg-violet-600/25 blur-2xl" />
+          <div className="relative z-10 space-y-3">
+            <p className="inline-flex rounded-full border border-violet-400/40 bg-violet-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-violet-200">
+              Redinmo
+            </p>
+            <h1 className="gradient-text text-3xl font-bold leading-tight sm:text-4xl">Regístrate como agente</h1>
+            <p className="max-w-xl text-sm text-white/70">
+              Activa tu prueba gratuita de 7 días y empieza a recibir matches de tus colegas hoy
+            </p>
+          </div>
+        </section>
+
+        <section className="glass-card rounded-3xl p-5 sm:p-6">
+          <div className="space-y-3">
+            <div className="flex flex-col items-center gap-2 pb-1">
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => onPickPhoto(e.target.files?.[0])}
+              />
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                aria-label={photoPreview ? 'Cambiar foto de perfil' : 'Agregar foto de perfil'}
+                className="group relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-violet-400/40 bg-white/5 transition-colors hover:border-violet-400/70"
+              >
+                {photoPreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={photoPreview} alt="Vista previa de tu foto de perfil" className="h-full w-full object-cover" />
+                ) : (
+                  <Camera className="h-6 w-6 text-violet-300/70" strokeWidth={1.8} />
+                )}
+              </button>
+              <p className="text-xs text-white/45">{photoPreview ? 'Foto lista' : 'Foto de perfil (opcional)'}</p>
+            </div>
+
+            <input
+              className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-violet-400"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Nombre completo"
+            />
+            <div className="flex gap-2">
+              <select
+                className="w-[45%] shrink-0 rounded-xl border border-white/15 bg-white/5 px-2 py-3 text-sm text-white outline-none transition focus:border-violet-400 sm:w-[38%]"
+                value={countryCode}
+                onChange={(e) => setCountryCode(e.target.value)}
+              >
+                {COUNTRY_CODES.map((c) => (
+                  <option key={c.code} className="bg-[#0b0f1a]" value={c.code}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-violet-400"
+                value={phoneLocal}
+                onChange={(e) => setPhoneLocal(e.target.value)}
+                placeholder="9XXXXXXXX"
+                inputMode="tel"
+              />
+            </div>
+            <input
+              className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-violet-400"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email (opcional)"
+            />
+            <input
+              className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-violet-400"
+              value={password}
+              type="password"
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Contrasena (minimo 6 caracteres)"
+            />
+            <input
+              className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-violet-400"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              placeholder="Empresa / inmobiliaria (opcional)"
+            />
+
+            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/5 p-3">
+              <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-emerald-300">
+                🔒 Tu información está protegida y es privada
+              </p>
+              <div className="space-y-2">
+                <input
+                  className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-violet-400"
+                  value={idNumber}
+                  onChange={(e) => setIdNumber(e.target.value)}
+                  placeholder="Cédula de identidad (obligatorio)"
+                />
+                <input
+                  className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-violet-400"
+                  value={licenseNumber}
+                  onChange={(e) => setLicenseNumber(e.target.value)}
+                  placeholder="Número de licencia inmobiliaria (opcional)"
+                />
+              </div>
+              <p className="mt-2 text-xs text-white/50">
+                Tus datos se usan solo para verificar tu identidad y se tratan conforme a la LOPDP (Ley Orgánica de
+                Protección de Datos Personales del Ecuador). No se comparten con otros agentes ni terceros, y puedes
+                solicitar su acceso, corrección o eliminación cuando quieras.
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-white/60">Zonas donde operas</p>
+              <input
+                className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-violet-400"
+                value={zonesText}
+                onChange={(e) => setZonesText(e.target.value)}
+                placeholder="Separadas por coma (ej: Quito, Cumbayá)"
+              />
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-white/60">Tu especialidad</p>
+              <div className="flex flex-wrap gap-2">
+                {(['SALE', 'RENT', 'BOTH'] as const).map((value) => (
+                  <button
+                    key={value}
+                    onClick={() => setSpecialty(value)}
+                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                      specialty === value
+                        ? 'gradient-btn border-transparent text-white'
+                        : 'border-white/15 text-white/70 hover:bg-white/10'
+                    }`}
+                  >
+                    {value === 'SALE' ? 'Venta' : value === 'RENT' ? 'Alquiler' : 'Ambas'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-white/60">Tipos de propiedades que manejas</p>
+              <div className="flex flex-wrap gap-2">
+                {PROPERTY_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => toggleProperty(option.value)}
+                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                      propertyTypesInterest.includes(option.value)
+                        ? 'gradient-btn border-transparent text-white'
+                        : 'border-white/15 text-white/70 hover:bg-white/10'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={submit}
+              disabled={loading || !fullName.trim() || !phoneLocal.trim() || password.length < 6 || !idNumber.trim()}
+              className="gradient-btn w-full rounded-xl px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? 'Registrando...' : 'Crear cuenta, prueba gratuita por 7 días'}
+            </button>
+            <p className="text-center text-xs text-white/45">Luego de tu prueba gratuita: $8,99/mes + IVA. Cancela cuando quieras.</p>
+
+            <a href="/login" className="block text-center text-xs font-semibold text-white/60 underline-offset-4 hover:underline">
+              ¿Ya tienes cuenta? Ingresa aquí
+            </a>
+          </div>
+        </section>
+
+        {error ? (
+          <div className="mt-6 rounded-2xl border border-pink-400/30 bg-pink-500/10 px-4 py-3 text-sm text-pink-200">
+            {error}
+          </div>
+        ) : null}
+      </div>
+    </main>
+  );
+}

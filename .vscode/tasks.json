@@ -1,0 +1,45 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "rbac-check-once",
+			"type": "shell",
+			"command": "powershell -NoProfile -NonInteractive -Command \"$ErrorActionPreference='Stop'; $base='http://localhost:3000'; $admin=New-Object Microsoft.PowerShell.Commands.WebRequestSession; Invoke-RestMethod -Uri \\\"$base/api/auth/login\\\" -Method POST -WebSession $admin -ContentType 'application/json' -Body (@{email='admin@brokerhub.local';password='admin1234'}|ConvertTo-Json) | Out-Null; $boot=Invoke-WebRequest -UseBasicParsing -Uri \\\"$base/api/real-estate/bootstrap\\\" -Method POST -WebSession $admin; $opp=((Invoke-RestMethod -Uri \\\"$base/api/real-estate/opportunities?limit=1\\\" -WebSession $admin).opportunities|Select-Object -First 1); $agents=(Invoke-RestMethod -Uri \\\"$base/api/real-estate/agents?onlyActive=true\\\" -WebSession $admin).agents; $agent=New-Object Microsoft.PowerShell.Commands.WebRequestSession; Invoke-RestMethod -Uri \\\"$base/api/auth/agent-login\\\" -Method POST -WebSession $agent -ContentType 'application/json' -Body (@{phone=$agents[0].phone}|ConvertTo-Json) | Out-Null; $denyBootstrap=(Invoke-WebRequest -UseBasicParsing -Uri \\\"$base/api/real-estate/bootstrap\\\" -Method POST -WebSession $agent -SkipHttpErrorCheck).StatusCode; $denyOther=(Invoke-WebRequest -UseBasicParsing -Uri (\\\"$base/api/real-estate/opportunities/{0}/claim\\\" -f $opp.id) -Method POST -WebSession $agent -ContentType 'application/json' -Body (@{agentId=$agents[1].id}|ConvertTo-Json) -SkipHttpErrorCheck).StatusCode; $allowOwn=(Invoke-WebRequest -UseBasicParsing -Uri (\\\"$base/api/real-estate/opportunities/{0}/claim\\\" -f $opp.id) -Method POST -WebSession $agent -ContentType 'application/json' -Body (@{agentId=$agents[0].id}|ConvertTo-Json) -SkipHttpErrorCheck).StatusCode; Write-Output \\\"RBAC admin_bootstrap=$($boot.StatusCode) agent_bootstrap=$denyBootstrap deny_other_claim=$denyOther allow_own_claim=$allowOwn opp=$($opp.id) agent0=$($agents[0].id) agent1=$($agents[1].id)\\\"\""
+		},
+		{
+			"label": "rbac-check-status-clean",
+			"type": "shell",
+			"command": "powershell -NoProfile -NonInteractive -Command \"`$base='http://localhost:3000'; function PostStatus([string]`$uri, [Microsoft.PowerShell.Commands.WebRequestSession]`$session, [string]`$jsonBody){ try { if([string]::IsNullOrEmpty(`$jsonBody)){ Invoke-RestMethod -Uri `$uri -Method POST -WebSession `$session -TimeoutSec 20 | Out-Null } else { Invoke-RestMethod -Uri `$uri -Method POST -WebSession `$session -ContentType 'application/json' -Body `$jsonBody -TimeoutSec 20 | Out-Null }; return 200 } catch { if(`$_.Exception.Response){ return [int]`$_.Exception.Response.StatusCode }; throw } }; `$admin=New-Object Microsoft.PowerShell.Commands.WebRequestSession; Invoke-RestMethod -Uri \\\"`$base/api/auth/login\\\" -Method POST -WebSession `$admin -ContentType 'application/json' -Body (@{email='admin@brokerhub.local';password='admin1234'}|ConvertTo-Json) -TimeoutSec 20 | Out-Null; `$adminBootstrap=PostStatus \\\"`$base/api/real-estate/bootstrap\\\" `$admin `$null; `$opp=((Invoke-RestMethod -Uri \\\"`$base/api/real-estate/opportunities?limit=1\\\" -WebSession `$admin -TimeoutSec 20).opportunities|Select-Object -First 1); `$agents=(Invoke-RestMethod -Uri \\\"`$base/api/real-estate/agents?onlyActive=true\\\" -WebSession `$admin -TimeoutSec 20).agents; `$agent=New-Object Microsoft.PowerShell.Commands.WebRequestSession; Invoke-RestMethod -Uri \\\"`$base/api/auth/agent-login\\\" -Method POST -WebSession `$agent -ContentType 'application/json' -Body (@{phone=`$agents[0].phone}|ConvertTo-Json) -TimeoutSec 20 | Out-Null; `$agentBootstrap=PostStatus \\\"`$base/api/real-estate/bootstrap\\\" `$agent `$null; `$denyOther=PostStatus (\\\"`$base/api/real-estate/opportunities/{0}/claim\\\" -f `$opp.id) `$agent (@{agentId=`$agents[1].id}|ConvertTo-Json); `$allowOwn=PostStatus (\\\"`$base/api/real-estate/opportunities/{0}/claim\\\" -f `$opp.id) `$agent (@{agentId=`$agents[0].id}|ConvertTo-Json); Write-Output \\\"RBAC admin_bootstrap=`$adminBootstrap agent_bootstrap=`$agentBootstrap deny_other_claim=`$denyOther allow_own_claim=`$allowOwn opp=`$(`$opp.id) agent0=`$(`$agents[0].id) agent1=`$(`$agents[1].id)\\\"\""
+		},
+		{
+			"label": "rbac-check-node",
+			"type": "shell",
+			"command": "node scripts/rbac-check.mjs"
+		},
+		{
+			"label": "rbac-check-node-repeat",
+			"type": "shell",
+			"command": "node scripts/rbac-check.mjs"
+		},
+		{
+			"label": "rbac-check-node-roleview",
+			"type": "shell",
+			"command": "node scripts/rbac-check.mjs"
+		},
+		{
+			"label": "rbac-check-node-agent-kpis",
+			"type": "shell",
+			"command": "node scripts/rbac-check.mjs"
+		},
+		{
+			"label": "rbac-check-after-mobile-ui",
+			"type": "shell",
+			"command": "node scripts/rbac-check.mjs"
+		},
+		{
+			"label": "rbac-check-compact-agent-ui",
+			"type": "shell",
+			"command": "node scripts/rbac-check.mjs"
+		}
+	]
+}

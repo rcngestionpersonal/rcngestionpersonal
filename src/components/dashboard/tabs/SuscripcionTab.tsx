@@ -1,0 +1,149 @@
+'use client';
+
+import { useLanguage } from '@/lib/i18n/LanguageProvider';
+import PayPalSubscribeButton, { isPaypalButtonConfigured } from '../PayPalSubscribeButton';
+import { isAgentVerified, type AgentItem } from '../types';
+
+function daysRemaining(trialEndsAt?: string): number {
+  if (!trialEndsAt) return 0;
+  const ms = new Date(trialEndsAt).getTime() - Date.now();
+  return Math.max(0, Math.ceil(ms / (24 * 60 * 60 * 1000)));
+}
+
+export default function SuscripcionTab({
+  isAdmin,
+  agents,
+  myAgentId,
+  activateSubscription,
+  activating,
+  onSubscriptionConfirmed,
+}: {
+  isAdmin: boolean;
+  agents: AgentItem[];
+  myAgentId?: string;
+  activateSubscription: (agentId: string) => void;
+  activating: string | null;
+  onSubscriptionConfirmed: () => void | Promise<void>;
+}) {
+  const { t, tSubscriptionStatus } = useLanguage();
+
+  if (!isAdmin) {
+    const myAgent = agents.find((a) => a.id === myAgentId);
+    const verified = isAgentVerified(myAgent);
+
+    return (
+      <div className="space-y-10">
+        <section className="glass-card rounded-[1.8rem] p-4 fade-up sm:p-6">
+          <h2 className="text-xl font-bold text-white">{t('suscripcion.title.agent')}</h2>
+          <p className="mt-1 text-sm text-white/60">{t('suscripcion.plan')}</p>
+
+          {myAgent ? (
+            <article className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-sm font-semibold text-white">{myAgent.fullName}</p>
+              <p className="text-xs text-white/60">
+                {myAgent.company ?? t('suscripcion.sinEmpresa')} | {myAgent.phone}
+              </p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <span className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-xs font-semibold text-white/80">
+                  {tSubscriptionStatus(myAgent.subscriptionStatus)}
+                </span>
+                {myAgent.subscriptionStatus !== 'ACTIVE' && !isPaypalButtonConfigured() ? (
+                  <button
+                    onClick={() => activateSubscription(myAgent.id)}
+                    disabled={activating === myAgent.id}
+                    className="gradient-btn w-full rounded-full px-3 py-2 text-xs font-semibold transition-transform duration-200 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:py-1.5"
+                  >
+                    {activating === myAgent.id ? (
+                      t('suscripcion.activando')
+                    ) : (
+                      <span className="flex flex-col items-center leading-tight">
+                        <span>{t('suscripcion.activar')}</span>
+                        <span className="text-[10px] font-normal opacity-80">{t('suscripcion.masIva')}</span>
+                      </span>
+                    )}
+                  </button>
+                ) : myAgent.subscriptionStatus === 'ACTIVE' ? (
+                  <span className="text-xs font-semibold text-emerald-400">{t('suscripcion.pagoActivo')}</span>
+                ) : null}
+              </div>
+              {myAgent.subscriptionStatus === 'TRIAL' ? (
+                <p className="mt-2 text-xs text-white/50">
+                  {t('suscripcion.diasRestantes')} <span className="font-semibold text-white">{daysRemaining(myAgent.trialEndsAt)}</span>
+                </p>
+              ) : null}
+              {!verified ? (
+                <a href="/agentes/verificar-telefono" className="mt-2 inline-block text-xs font-semibold text-violet-300 hover:underline">
+                  {t('suscripcion.verificarPendiente')} →
+                </a>
+              ) : null}
+            </article>
+          ) : (
+            <p className="mt-4 text-sm text-white/60">{t('suscripcion.sinRegistro')}</p>
+          )}
+
+          {myAgent && myAgent.subscriptionStatus !== 'ACTIVE' ? (
+            <div className="mt-4">
+              <PayPalSubscribeButton onSuccess={onSubscriptionConfirmed} />
+            </div>
+          ) : null}
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <section className="glass-card rounded-[1.8rem] p-4 fade-up sm:p-6">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-xl font-bold text-white">{t('suscripcion.title.admin')}</h2>
+        <p className="text-sm text-white/60">{t('suscripcion.planShort')}</p>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {agents.map((agent) => (
+          <article
+            key={agent.id}
+            className="rounded-2xl border border-white/10 bg-white/5 p-4 transition-transform duration-200 hover:-translate-y-0.5"
+          >
+            <p className="text-sm font-semibold text-white">
+              {agent.fullName}
+              {isAgentVerified(agent) ? (
+                <span className="ml-1.5 inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-500/10 px-1.5 py-0.5 align-middle text-[10px] font-semibold text-emerald-300">
+                  ✓
+                </span>
+              ) : null}
+            </p>
+            <p className="text-xs text-white/60">
+              {agent.company ?? t('suscripcion.sinEmpresa')} | {agent.phone}
+            </p>
+            <p className="mt-2 text-xs text-white/50">
+              {t('suscripcion.zonas')} {agent.zones.join(', ') || t('suscripcion.noDefinidas')}
+            </p>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <span className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-xs font-semibold text-white/80">
+                {tSubscriptionStatus(agent.subscriptionStatus)}
+              </span>
+              {agent.subscriptionStatus !== 'ACTIVE' ? (
+                <button
+                  onClick={() => activateSubscription(agent.id)}
+                  disabled={activating === agent.id}
+                  className="gradient-btn w-full rounded-full px-3 py-2 text-xs font-semibold transition-transform duration-200 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:py-1.5"
+                >
+                  {activating === agent.id ? (
+                    t('suscripcion.activando')
+                  ) : (
+                    <span className="flex flex-col items-center leading-tight">
+                      <span>{t('suscripcion.activar')}</span>
+                      <span className="text-[10px] font-normal opacity-80">{t('suscripcion.masIva')}</span>
+                    </span>
+                  )}
+                </button>
+              ) : (
+                <span className="text-xs font-semibold text-emerald-400">{t('suscripcion.pagoActivo')}</span>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}

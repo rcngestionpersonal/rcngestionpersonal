@@ -1,3 +1,155 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+	--bg-base: #0d0b18;
+	--bg-panel: #171429;
+	--ink: #f0f1f7;
+	--ink-muted: #9296b0;
+	--ink-faint: #62667f;
+	--violet: #b7a5ff;
+	--violet-strong: #8b5cf6;
+	--violet-deep: #6d28d9;
+	--violet-border: rgba(167, 139, 250, 0.42);
+	--violet-dim: rgba(167, 139, 250, 0.13);
+	/* Teal se conserva solo como acento deliberado del "momento match" (badge de
+	   match, palabra "match", chips de score en Matches) - ya no es el color
+	   primario de la marca. */
+	--teal: #2dd4bf;
+	--input-bg: #14111f;
+	--input-border: rgba(255, 255, 255, 0.08);
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	min-height: 100%;
+}
+
+body {
+	color: var(--ink);
+	background: var(--bg-base);
+}
+
+.grain-overlay {
+	position: relative;
+}
+
+.grain-overlay::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	opacity: 0.12;
+	background-image: radial-gradient(rgba(255, 255, 255, 0.5) 0.7px, transparent 0.7px);
+	background-size: 4px 4px;
+}
+
+/* Fondo ambiente violeta: textura punteada + resplandor de esquina, pensado para
+   envolver una pagina completa (DashboardShell, login, flujo de registro) en vez
+   de quedar limitado a una sola tarjeta - asi el purpura se siente predominante
+   en toda la app, no un acento aislado. */
+.violet-ambient-bg {
+	position: relative;
+	isolation: isolate;
+	overflow-x: clip;
+}
+
+.violet-ambient-bg::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	z-index: -2;
+	pointer-events: none;
+	opacity: 0.12;
+	background-image: radial-gradient(rgba(255, 255, 255, 0.5) 0.7px, transparent 0.7px);
+	background-size: 4px 4px;
+}
+
+.violet-ambient-bg::after {
+	content: '';
+	position: absolute;
+	top: -120px;
+	right: -120px;
+	z-index: -1;
+	pointer-events: none;
+	width: 480px;
+	height: 480px;
+	border-radius: 9999px;
+	background: rgba(139, 92, 246, 0.22);
+	filter: blur(90px);
+}
+
+.fade-up {
+	animation: fade-up 460ms ease-out both;
+}
+
+.glass-card {
+	background: transparent;
+	border: none;
+}
+
+.gradient-text {
+	color: var(--ink);
+}
+
+.gradient-btn {
+	background: linear-gradient(135deg, var(--violet-strong), var(--violet-deep));
+	color: #ffffff;
+}
+
+.gradient-btn:hover {
+	filter: brightness(1.08);
+}
+
+@keyframes fade-up {
+	from {
+		opacity: 0;
+		transform: translateY(14px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.icon-bounce {
+	display: inline-block;
+	animation: icon-bounce 2.4s ease-in-out infinite;
+}
+
+@keyframes icon-bounce {
+	0%, 100% {
+		transform: translateY(0) rotate(0deg);
+	}
+	50% {
+		transform: translateY(-3px) rotate(-6deg);
+	}
+}
+
+/* Transicion breve al saltar de un match en linea (Inmuebles/Pedidos) hacia
+   Matches - enmascara el cambio instantaneo de tab con un fundido/escala. */
+body.match-jump-transition {
+	transition: opacity 160ms ease, transform 160ms ease;
+	opacity: 0.4;
+	transform: scale(0.992);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	body.match-jump-transition {
+		transition: none;
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.icon-bounce {
+		animation: none;
+	}
+}

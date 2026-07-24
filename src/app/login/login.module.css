@@ -1,0 +1,585 @@
+.root {
+  /* Tokens literales de esta pagina - panel de historia + riel de acceso. */
+  --bg-page: #0b0d14;
+  --bg-rail: #10121b;
+  --surface-card: #141722;
+  --surface-input: #0c0e15;
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-card-top: rgba(255, 255, 255, 0.13);
+  --text-primary: #f0f1f7;
+  --text-secondary: #9296b0;
+  --text-tertiary: #62667f;
+  --teal: #2dd4bf;
+  --teal-ink: #04201c;
+  --teal-bright: #3ee8d2;
+  --teal-dim: rgba(45, 212, 191, 0.12);
+  --teal-border: rgba(45, 212, 191, 0.35);
+  --violet: #b7a5ff;
+  --violet-border: rgba(167, 139, 250, 0.42);
+  --violet-dim: rgba(167, 139, 250, 0.13);
+  --violet-surface: linear-gradient(160deg, #1d1a33, #171429);
+  --input-border: rgba(255, 255, 255, 0.08);
+  --focus-glow: 0 0 0 3px rgba(45, 212, 191, 0.15);
+
+  min-height: 100vh;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-feature-settings: "cv01", "cv03";
+}
+
+.split {
+  display: block;
+}
+
+@media (min-width: 1024px) {
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 58fr) minmax(0, 42fr);
+    min-height: 100vh;
+  }
+}
+
+/* ================= Panel izquierdo: la historia ================= */
+
+.storyPanel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 32px 20px 28px;
+}
+
+@media (min-width: 1024px) {
+  .storyPanel {
+    padding: 30px 64px 34px;
+  }
+}
+
+.storyGlow {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+  top: -180px;
+  left: -160px;
+  width: 640px;
+  height: 640px;
+  background: radial-gradient(ellipse, rgba(45, 212, 191, 0.12), transparent 62%);
+}
+
+.brandMark {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 32px;
+}
+
+@media (min-width: 1024px) {
+  .brandMark {
+    margin-bottom: 56px;
+  }
+}
+
+.brandStar {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--teal);
+  line-height: 1;
+}
+
+.brandWord {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.storyCenter {
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 1024px) {
+  .storyCenter {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 640px;
+  }
+}
+
+.headline {
+  font-size: 33px;
+  font-weight: 800;
+  line-height: 1.16;
+  letter-spacing: -0.025em;
+}
+
+@media (min-width: 1024px) {
+  .headline {
+    font-size: 46px;
+    line-height: 1.14;
+  }
+}
+
+.gradientText {
+  background: linear-gradient(180deg, #f7f8f8, #b9bfd1);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.subtitle {
+  margin-top: 16px;
+  margin-bottom: 32px;
+  max-width: 460px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+@media (min-width: 1024px) {
+  .subtitle {
+    font-size: 16.5px;
+    margin-bottom: 40px;
+  }
+}
+
+.subtitle b {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+/* ---- Tarjeta de match demo ---- */
+
+.matchCardWrap {
+  position: relative;
+  max-width: 470px;
+  display: flex;
+  flex-direction: column;
+  gap: 38px;
+}
+
+.matchHalf {
+  position: relative;
+  background: var(--violet-surface);
+  border-left: 1px solid rgba(147, 127, 247, 0.24);
+  border-right: 1px solid rgba(147, 127, 247, 0.24);
+  border-bottom: 1px solid rgba(147, 127, 247, 0.24);
+  border-top: 1px solid rgba(167, 139, 250, 0.38);
+  border-radius: 14px;
+  padding: 17px 18px 18px;
+}
+
+.halfTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 11px;
+}
+
+.halfLabel {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--teal-bright);
+  text-shadow: 0 0 12px rgba(62, 232, 210, 0.35);
+}
+
+.halfAgent {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.halfAgentName {
+  font-size: 11.5px;
+  color: #8d84b8;
+  white-space: nowrap;
+}
+
+.levelBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid var(--violet-border);
+  background: var(--violet-dim);
+  color: var(--violet);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 3px 7px;
+  white-space: nowrap;
+}
+
+.matchTitle {
+  font-size: 15.5px;
+  font-weight: 700;
+  line-height: 1.45;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+
+@media (min-width: 1024px) {
+  .matchTitle {
+    white-space: nowrap;
+  }
+}
+
+.matchPrice {
+  color: var(--teal);
+  font-weight: 800;
+}
+
+.matchZone {
+  font-size: 12.5px;
+  color: #a49cc9;
+}
+
+.matchBadge {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  background: var(--teal);
+  color: var(--teal-ink);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 14px;
+  white-space: nowrap;
+  box-shadow: 0 0 0 8px var(--bg-page), 0 0 26px rgba(45, 212, 191, 0.45);
+}
+
+/* ---- Chips de confianza ---- */
+
+.trustRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 32px;
+}
+
+@media (min-width: 1024px) {
+  .trustRow {
+    margin-top: 44px;
+  }
+}
+
+.trustChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  padding: 7px 12px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.trustMobileOnly {
+  margin-top: 28px;
+  padding: 0 20px 32px;
+}
+
+@media (min-width: 1024px) {
+  .trustMobileOnly {
+    display: none;
+  }
+}
+
+.trustDesktopOnly {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .trustDesktopOnly {
+    display: block;
+  }
+}
+
+/* ================= Panel derecho: riel de acceso ================= */
+
+.accessRail {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+@media (min-width: 1024px) {
+  .accessRail {
+    background: var(--bg-rail);
+    border-left: 1px solid var(--border-subtle);
+    padding: 40px 56px;
+  }
+}
+
+.railAdminLink {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  text-align: right;
+  margin-bottom: 16px;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  transition: color 120ms ease;
+}
+
+@media (min-width: 1024px) {
+  .railAdminLink {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    width: auto;
+    margin-bottom: 0;
+  }
+}
+
+.railAdminLink:hover {
+  color: var(--text-secondary);
+}
+
+.adminPanel {
+  width: 100%;
+  max-width: 360px;
+  margin-bottom: 20px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-card);
+}
+
+.authBlock {
+  width: 100%;
+  max-width: 360px;
+}
+
+.eyebrow {
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--teal);
+  margin-bottom: 8px;
+}
+
+.authTitle {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.authSubtitle {
+  margin-top: 6px;
+  margin-bottom: 26px;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+}
+
+.fieldLabel {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.input {
+  width: 100%;
+  background: var(--surface-input);
+  border: 1px solid var(--input-border);
+  border-radius: 10px;
+  height: 47px;
+  padding: 0 14px;
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.input::placeholder {
+  color: #4a4e63;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: var(--focus-glow);
+}
+
+/* El navegador tinta de amarillo los campos autocompletados (guardados en el
+   gestor de contrasenas). Sin esto, el input se ve "en amarillo" apenas el
+   usuario escribe, sin relacion alguna con el estado de carga real. */
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text-primary);
+  -webkit-box-shadow: 0 0 0px 1000px var(--surface-input) inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+.forgotLink {
+  display: block;
+  text-align: right;
+  margin-top: 8px;
+  margin-bottom: 18px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  transition: color 120ms ease;
+}
+
+.forgotLink:hover {
+  color: var(--text-secondary);
+}
+
+.primaryButton {
+  width: 100%;
+  height: 48px;
+  background: var(--teal);
+  color: var(--teal-ink);
+  font-weight: 800;
+  font-size: 14.5px;
+  border-radius: 10px;
+  transition: filter 150ms ease;
+}
+
+.primaryButton:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.primaryButton:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loadingBarTrack {
+  margin-top: 10px;
+  height: 3px;
+  width: 100%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.loadingBarFill {
+  height: 100%;
+  width: 40%;
+  border-radius: 999px;
+  background: var(--teal);
+  animation: loadingSlide 1.1s ease-in-out infinite;
+}
+
+@keyframes loadingSlide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loadingBarFill {
+    animation: none;
+    width: 100%;
+  }
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+.dividerText {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.inviteCard {
+  background: var(--surface-card);
+  border: 1px dashed var(--teal-border);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.inviteTitle {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.inviteText {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.inviteText a {
+  color: var(--teal);
+  font-weight: 700;
+}
+
+.footerNote {
+  margin-top: 22px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.footerNote a {
+  color: var(--teal);
+  font-weight: 700;
+}
+
+.demoLink {
+  display: block;
+  margin-top: 10px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  transition: color 120ms ease;
+}
+
+.demoLink:hover {
+  color: var(--text-secondary);
+}
+
+.linkHover {
+  transition: color 120ms ease;
+}

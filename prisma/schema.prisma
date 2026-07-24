@@ -9,140 +9,316 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Branch {
-  id          String    @id @default(cuid())
-  name        String
-  city        String
-  address     String?
-  phone       String?
-  coach       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  students    Student[]
-  charges     Charge[]
-  attendances Attendance[]
+enum OperationType {
+  SALE
+  RENT
+  BOTH
 }
 
-model Guardian {
-  id          String    @id @default(cuid())
-  name        String
-  whatsapp    String
-  email       String?
-  phone       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  students    Student[]
-  charges     Charge[]
-  notifications Notification[]
+enum PropertyType {
+  HOUSE
+  APARTMENT
+  SUITE
+  OFFICE
+  LAND
+  COMMERCIAL
+  WAREHOUSE
+  FARM
+  OTHER
 }
 
-model Student {
-  id            String    @id @default(cuid())
-  firstName     String
-  lastName      String
-  birthDate     DateTime?
-  category      String
-  active        Boolean   @default(true)
-  disabledAt    DateTime?
-  branch        Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  branchId      String
-  guardian      Guardian  @relation(fields: [guardianId], references: [id], onDelete: Cascade)
-  guardianId    String
-  enrollments   Enrollment[]
-  attendances   Attendance[]
-  charges       Charge[]
-  notes         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+enum LeadStage {
+  NEW
+  PROCESSING
+  ACTIVE_MATCH
+  CLOSED
+  DISCARDED
 }
 
-model Plan {
-  id           String    @id @default(cuid())
-  name         String
-  description  String?
-  type         String    @default("monthly")
-  amount       Float
-  currency     String    @default("USD")
-  interval     String    @default("monthly")
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  enrollments  Enrollment[]
-  charges      Charge[]
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INACTIVE
 }
 
-model Enrollment {
+enum MatchStatus {
+  PENDING
+  CONTACTED
+  INTERESTED
+  REJECTED
+  WON
+  LOST
+}
+
+enum DeliveryStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum ListingStatus {
+  ACTIVE
+  RESERVED
+  SOLD
+  RENTED
+  INACTIVE
+}
+
+model Agent {
+  id                    String             @id @default(cuid())
+  fullName              String
+  phone                 String             @unique
+  email                 String?            @unique
+  passwordHash          String?
+  // Cuentas de prueba (QA) creadas durante desarrollo: se excluyen del ranking publico
+  // y de los contadores, pero no se borran (conservan el historial de pruebas).
+  isTestUser            Boolean            @default(false)
+  photoUrl              String?
+  company               String?
+  idNumber              String?
+  licenseNumber         String?
+  phoneVerifiedAt       DateTime?
+  otpCode               String?
+  otpExpiresAt          DateTime?
+  zones                 String[]
+  propertyTypesInterest PropertyType[]
+  minBudget             Float?
+  maxBudget             Float?
+  specialty             OperationType      @default(BOTH)
+  isActive              Boolean            @default(true)
+  trialEndsAt           DateTime
+  subscriptionStatus    SubscriptionStatus @default(TRIAL)
+  paypalSubscriptionId  String?
+  paypalPayerId         String?
+  referredByAgentId     String?
+  rankingAlias          String?
+  useRankingAlias       Boolean            @default(false)
+  // Carnet de Agente: zonas de especializacion (max 3, validado en el endpoint,
+  // catalogo de src/lib/real-estate/quito-zones.ts), mensaje de WhatsApp
+  // precargado en el QR del carnet, y slug unico para la pagina publica de
+  // verificacion en vivo (redinmo.io/v/[slug]).
+  specializationZones   String[]           @default([])
+  carnetMessage         String?
+  carnetSlug            String?            @unique
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  matches               AgentMatch[]
+  claimedOpportunities  Opportunity[]      @relation("OpportunityClaimedBy")
+  referredOpportunities Opportunity[]      @relation("OpportunityReferredBy")
+  createdOpportunities  Opportunity[]      @relation("OpportunityCreatedBy")
+  listingsManaged       Listing[]          @relation("ListingManagedBy")
+  listingsReferred      Listing[]          @relation("ListingReferredBy")
+  notificationLogs      NotificationLog[]
+  interactions          InteractionLog[]
+}
+
+model Listing {
+  id                     String        @id @default(cuid())
+  title                  String
+  operationType          OperationType
+  propertyType           PropertyType
+  city                   String
+  zone                   String?
+  address                String?
+  price                  Float
+  currency               String        @default("USD")
+  areaM2                 Float?
+  bedrooms               Int?
+  bathrooms              Int?
+  parkingSpaces          Int?
+  description            String?
+  // Datos del cliente propietario/arrendador: estrictamente privados, solo el agente
+  // que gestiona el inmueble puede verlos (ver src/lib/real-estate/privacy.ts).
+  ownerName              String?
+  ownerPhone             String?
+  // URL en Vercel Blob (nunca la imagen en si) de la foto de portada del inmueble.
+  coverPhotoUrl          String?
+  commissionSharePercent Float         @default(0)
+  status                 ListingStatus @default(ACTIVE)
+  managingAgent          Agent         @relation("ListingManagedBy", fields: [managingAgentId], references: [id], onDelete: Cascade)
+  managingAgentId        String
+  referredByAgent        Agent?        @relation("ListingReferredBy", fields: [referredByAgentId], references: [id], onDelete: SetNull)
+  referredByAgentId      String?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  matches                ListingMatch[]
+
+  @@index([city, propertyType, operationType])
+  @@index([status])
+}
+
+model Opportunity {
+  id               String          @id @default(cuid())
+  contactName      String?
+  contactPhone     String?
+  operationType    OperationType
+  propertyType     PropertyType
+  city             String
+  zone             String?
+  address          String?
+  budgetMin        Float?
+  budgetMax        Float?
+  areaM2           Float?
+  bedrooms         Int?
+  bathrooms        Int?
+  parkingSpaces    Int?
+  summary          String
+  extractedData    Json?
+  stage            LeadStage       @default(NEW)
+  claimedByAgent   Agent?          @relation("OpportunityClaimedBy", fields: [claimedByAgentId], references: [id], onDelete: SetNull)
+  claimedByAgentId String?
+  referredByAgent  Agent?          @relation("OpportunityReferredBy", fields: [referredByAgentId], references: [id], onDelete: SetNull)
+  referredByAgentId String?
+  referralCommissionPercent Float?
+  createdByAgent   Agent?          @relation("OpportunityCreatedBy", fields: [createdByAgentId], references: [id], onDelete: SetNull)
+  createdByAgentId String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  matches          AgentMatch[]
+  listingMatches   ListingMatch[]
+  notifications    NotificationLog[]
+  interactions     InteractionLog[]
+
+  @@index([city, propertyType, operationType])
+  @@index([stage])
+}
+
+model ListingMatch {
+  id            String      @id @default(cuid())
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunityId String
+  listing       Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId     String
+  score         Float
+  reasons       String[]
+  status        MatchStatus @default(PENDING)
+  contactedAt   DateTime?
+  infoSentAt        DateTime?
+  visitFollowUpAt   DateTime?
+  visitScheduledFor DateTime?
+  visitCompletedAt  DateTime?
+  visitOutcome      String?
+  offerInProgressAt DateTime?
+  closedWon     Boolean?
+  closedAt      DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  notifications NotificationLog[]
+
+  @@unique([opportunityId, listingId])
+  @@index([score])
+}
+
+model AgentMatch {
+  id            String            @id @default(cuid())
+  opportunity   Opportunity       @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunityId String
+  agent         Agent             @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentId       String
+  score         Float
+  reasons       String[]
+  status        MatchStatus       @default(PENDING)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  notifications NotificationLog[]
+
+  @@unique([opportunityId, agentId])
+  @@index([score])
+}
+
+model NotificationLog {
+  id                String         @id @default(cuid())
+  channel           String
+  content           String
+  status            DeliveryStatus @default(QUEUED)
+  providerMessageId String?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  readAt            DateTime?
+  errorDetail       String?
+  createdAt         DateTime       @default(now())
+  agent             Agent?         @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  agentId           String?
+  opportunity       Opportunity?   @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  opportunityId     String?
+  match             AgentMatch?    @relation(fields: [matchId], references: [id], onDelete: SetNull)
+  matchId           String?
+  listingMatch      ListingMatch?  @relation(fields: [listingMatchId], references: [id], onDelete: SetNull)
+  listingMatchId    String?
+
+  @@index([status])
+}
+
+model InteractionLog {
+  id            String       @id @default(cuid())
+  type          String
+  detail        String?
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+  opportunity   Opportunity  @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunityId String
+  agent         Agent?       @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  agentId       String?
+
+  @@index([type])
+  @@index([createdAt])
+}
+
+model EventLog {
   id         String   @id @default(cuid())
-  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  studentId  String
-  plan       Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
-  planId     String
-  startDate  DateTime
-  endDate    DateTime?
-  active     Boolean  @default(true)
+  entityType String
+  entityId   String
+  eventType  String
+  payload    Json?
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+
+  @@index([entityType, entityId])
+  @@index([eventType])
 }
 
-model Charge {
-  id           String    @id @default(cuid())
-  branch       Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  branchId     String
-  student      Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  studentId    String
-  guardian     Guardian  @relation(fields: [guardianId], references: [id], onDelete: Cascade)
-  guardianId   String
-  plan         Plan?     @relation(fields: [planId], references: [id], onDelete: SetNull)
-  planId       String?
-  description  String
-  amount       Float
-  currency     String    @default("USD")
-  dueDate      DateTime
-  status       String    @default("pending")
-  daysLate     Int       @default(0)
-  paidAt       DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  payments     Payment[]
-}
+// Registro de cierres (venta/alquiler concretado). El campo createdByAgentId nunca
+// se expone en las respuestas de la API (solo se usa para calcular "canEdit" del
+// propio agente): el objetivo publico es la data de precios sectorizados, no la autoria.
+// "details" guarda los campos condicionales de la Seccion B (segun tipo de inmueble:
+// independiente/conjunto, piso, ascensor, uso de suelo, etc.) - se mantienen en JSON
+// porque varian por tipo y así se evita una explosion de columnas nulas.
+model ClosedDeal {
+  id               String        @id @default(cuid())
+  operationType    OperationType
+  propertyType     PropertyType
+  city             String        @default("Quito")
+  zone             String?
+  sector           String?
+  microzona        String?
+  antiguedad       String?
+  estadoInmueble   String?
+  details          Json?
+  latitude         Float?
+  longitude        Float?
+  price            Float
+  publicationPrice Float?
+  currency         String        @default("USD")
+  areaM2           Float?
+  landAreaM2       Float?
+  bedrooms         Int?
+  bathrooms        Int?
+  parkingSpaces    Int?
+  ageYears         Int?
+  timeOnMarket     String?
+  paymentMethod    String?
+  financialEntity  String?
+  approvalDelayed  Boolean?
+  declaredAccurate Boolean       @default(true)
+  createdByAgentId String?
+  closedAt         DateTime      @default(now())
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-model Payment {
-  id          String    @id @default(cuid())
-  charge      Charge    @relation(fields: [chargeId], references: [id], onDelete: Cascade)
-  chargeId    String
-  amount      Float
-  currency    String    @default("USD")
-  method      String    @default("manual")
-  reference   String?
-  recordedBy  String?
-  recordedAt  DateTime  @default(now())
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-}
-
-model Attendance {
-  id          String    @id @default(cuid())
-  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  studentId   String
-  branch      Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  branchId    String
-  date        DateTime
-  status      String    @default("present")
-  note        String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-}
-
-model Notification {
-  id          String    @id @default(cuid())
-  guardian    Guardian  @relation(fields: [guardianId], references: [id], onDelete: Cascade)
-  guardianId  String
-  channel     String    @default("email")
-  type        String
-  subject     String
-  body        String
-  sentAt      DateTime?
-  status      String    @default("pending")
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  @@index([city, propertyType, operationType])
+  @@index([zone])
 }
 
