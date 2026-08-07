@@ -6,15 +6,13 @@ import { prisma } from '@/lib/prisma';
 import { buildWelcomeEmail } from '@/lib/real-estate/email-templates';
 import { sendEmailNotification } from '@/lib/real-estate/email';
 import { createAgent, findAgentById, findAgentByPhone, shouldUseMockStore } from '@/lib/real-estate/mock-store';
-import { getAppUrl } from '@/lib/real-estate/paypal';
+import { getAppUrl, TRIAL_DAYS } from '@/lib/real-estate/paypal';
 import { awardReferralSignup } from '@/lib/real-estate/points-log';
-
-const TRIAL_DAYS = 7;
 
 const registerSchema = z.object({
   fullName: z.string().trim().min(2, 'El nombre es obligatorio.'),
   phone: z.string().trim().min(6, 'El telefono es obligatorio.'),
-  email: z.string().trim().email().optional(),
+  email: z.string().trim().email('Ingresa un correo electrónico válido.'),
   password: z.string().min(6, 'La contrasena debe tener al menos 6 caracteres.'),
   company: z.string().trim().optional(),
   idNumber: z.string().trim().min(5, 'La cedula o RUC es obligatoria.'),

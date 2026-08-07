@@ -1,7 +1,10 @@
+import { Resend } from 'resend';
+
 type SendEmailInput = {
   to: string;
   subject: string;
   text: string;
+  html?: string;
 };
 
 export type SendEmailResult = {
@@ -11,37 +14,30 @@ export type SendEmailResult = {
 };
 
 export function isEmailConfigured(): boolean {
-  return Boolean(process.env.SENDGRID_API_KEY);
+  return Boolean(process.env.RESEND_API_KEY);
 }
 
 export async function sendEmailNotification(input: SendEmailInput): Promise<SendEmailResult> {
-  const apiKey = process.env.SENDGRID_API_KEY;
+  const apiKey = process.env.RESEND_API_KEY;
 
   if (!apiKey) {
     return { attempted: false, delivered: false };
   }
 
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL ?? 'notificaciones@redinmo.io';
-  const fromName = 'Redinmo | Broker Hub';
+  const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'notificaciones@redinmo.io';
 
   try {
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email: input.to }] }],
-        from: { email: fromEmail, name: fromName },
-        subject: input.subject,
-        content: [{ type: 'text/plain', value: input.text }],
-      }),
+    const resend = new Resend(apiKey);
+    const { error } = await resend.emails.send({
+      from: `Redinmo <${fromEmail}>`,
+      to: input.to,
+      subject: input.subject,
+      text: input.text,
+      html: input.html,
     });
 
-    if (!response.ok) {
-      const detail = await response.text().catch(() => '');
-      return { attempted: true, delivered: false, error: `SendGrid ${response.status}: ${detail.slice(0, 200)}` };
+    if (error) {
+      return { attempted: true, delivered: false, error: `Resend: ${error.message}` };
     }
 
     return { attempted: true, delivered: true };

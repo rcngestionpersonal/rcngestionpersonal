@@ -13,6 +13,7 @@ import CierresTab, { type NewClosedDealInput } from '@/components/dashboard/tabs
 import InvitarTab from '@/components/dashboard/tabs/InvitarTab';
 import MetricasTab from '@/components/dashboard/tabs/MetricasTab';
 import LevelUpCelebrationModal from '@/components/dashboard/LevelUpCelebrationModal';
+import NoEmailBanner from '@/components/dashboard/NoEmailBanner';
 import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageProvider';
 import type { NextPlayInput } from '@/lib/real-estate/next-play';
 import {
@@ -752,6 +753,9 @@ function DashboardPage() {
       photoUrl={myAgent?.photoUrl}
       onLogout={logout}
     >
+      {isAgent && myAgent && !myAgent.email && user?.agentId ? (
+        <NoEmailBanner agentId={user.agentId} onSaved={() => loadData(false)} />
+      ) : null}
       {activeTab === 'resumen' && (
         <GestionTab
           isAdmin={isAdmin}

@@ -3,7 +3,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import { ProgressRing } from '../CardKit';
-import { IconClipboard, IconHouse, IconPhoneCheck, IconStar, IconTarget } from '../icons';
+import { IconBell, IconClipboard, IconHouse, IconPhoneCheck, IconStar, IconTarget, IconTrophy } from '../icons';
 import { evaluateNextPlay, type NextPlayInput, type NextPlayState } from '@/lib/real-estate/next-play';
 import { POINT_ACTIONS, levelColorFor, levelForPoints, nextLevelForPoints, progressWithinLevel, type PointActionKey } from '@/lib/real-estate/points';
 import type {
@@ -80,13 +80,14 @@ function RecentAchievements({ deals, myAgentId, t, lang }: { deals: RecentClosed
   return (
     <section className="fade-up glass-card rounded-[1.8rem] p-4 sm:p-6">
       <h2 className="flex items-center gap-2 text-xl font-bold text-white">
-        🔔 {t('gestion.logros.title')}
+        <IconBell className="h-[18px] w-[18px] text-amber-300" strokeWidth={2} />
+        {t('gestion.logros.title')}
       </h2>
       <div className="mt-4 space-y-1.5">
         {visible.map((deal) => (
           <div key={deal.id} className="flex items-center justify-between gap-2 rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-sm">
             <span className="flex min-w-0 items-center gap-2 text-amber-100">
-              <span className="shrink-0">🏆</span>
+              <IconTrophy className="h-[15px] w-[15px] shrink-0" strokeWidth={2} />
               <span className="truncate">
                 {t('matches.negociacionConcretada')} {deal.agentNames.length > 0 ? `— ${deal.agentNames.join(' ↔ ')}` : ''}
               </span>

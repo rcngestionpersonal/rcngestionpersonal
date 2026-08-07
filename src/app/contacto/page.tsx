@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import LeadChatWidget from '@/components/chat/LeadChatWidget';
 
 export const metadata: Metadata = {
-  title: 'Cuéntanos qué propiedad buscas | BrokerHub AI',
+  title: 'Cuéntanos qué propiedad buscas | Redinmo',
   description: 'Cuéntale a nuestro asistente qué propiedad buscas y te conectamos con el agente inmobiliario indicado para ti.',
 };
 
@@ -15,7 +15,7 @@ export default function ContactoPage() {
           <div className="absolute -left-12 bottom-0 h-36 w-36 rounded-full bg-cyan-500/20 blur-2xl" />
           <div className="relative z-10 space-y-3">
             <p className="inline-flex rounded-full border border-violet-400/40 bg-violet-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-violet-200">
-              BrokerHub AI
+              Redinmo
             </p>
             <h1 className="gradient-text text-3xl font-bold leading-tight sm:text-4xl">Cuéntanos qué propiedad buscas</h1>
             <p className="max-w-2xl text-sm text-white/70">

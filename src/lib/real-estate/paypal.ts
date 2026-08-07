@@ -6,6 +6,10 @@ export function getPriceAmountUsd(): number {
   return 8.99;
 }
 
+// Fuente unica de verdad para la duracion del trial gratuito - nunca hardcodear
+// el numero de dias en otro archivo, siempre importar de aqui.
+export const TRIAL_DAYS = 30;
+
 function getPaypalBaseUrl(): string {
   return process.env.PAYPAL_MODE === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PayPalSubscribeButton, { isPaypalButtonConfigured } from '@/components/dashboard/PayPalSubscribeButton';
 import { LanguageProvider } from '@/lib/i18n/LanguageProvider';
+import { TRIAL_DAYS } from '@/lib/real-estate/paypal';
 
 type MeAgent = {
   id: string;
@@ -81,7 +82,7 @@ function SuscripcionOnboardingContent() {
             <p className="max-w-xl text-sm text-white/70">
               {agent.subscriptionStatus === 'ACTIVE'
                 ? 'Tu suscripción ya está activa.'
-                : `Tu prueba gratuita de 7 días está activa${days > 0 ? ` (te quedan ${days} día${days === 1 ? '' : 's'})` : ''}. Suscríbete ahora o continúa disfrutando tu trial.`}
+                : `Tu prueba gratuita de ${TRIAL_DAYS} días está activa${days > 0 ? ` (te quedan ${days} día${days === 1 ? '' : 's'})` : ''}. Suscríbete ahora o continúa disfrutando tu trial.`}
             </p>
           </div>
         </section>

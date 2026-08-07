@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Heart, Trophy } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import MatchTimeline from '../MatchTimeline';
 import { Card, DataBlock, ModuleHeader, firstName, pedidoBrief, relativeLabel } from '../CardKit';
+import { IconStar, IconWhatsapp } from '../icons';
 import { pointsForMilestoneKey } from '@/lib/real-estate/ranking';
 import { isAgentVerified, type AgentItem, type ListingMatchItem, type OpportunityItem, type ProgressPatch } from '../types';
 
@@ -133,7 +134,7 @@ export default function MatchesTab({
     <div className="space-y-10">
       <section>
         <ModuleHeader
-          icon={<Heart className="h-[19px] w-[19px]" strokeWidth={2} />}
+          icon={<IconStar className="h-[19px] w-[19px]" strokeWidth={2} />}
           title={isAdmin ? t('admin.matches.title') : t('matches.title')}
           subtitle={t('matches.subtitle')}
         />
@@ -250,16 +251,21 @@ export default function MatchesTab({
                 ) : (
                   <div className="mt-3.5">
                     {counterpartPhone ? (
-                      <a
-                        href={buildWhatsappLink(counterpartPhone, whatsappMessage)}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={() => onContact(listingMatch.id)}
-                        aria-label={`${t('matches.contactaA')} ${counterpartName ?? ''} ${t('matches.porWhatsapp')}`}
-                        className="flex w-full items-center justify-center rounded-[10px] bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] px-4 py-[13px] text-[15px] font-bold text-white transition-[filter] duration-150 hover:brightness-[1.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b7a5ff]"
-                      >
-                        {t('matches.contactaA')} {firstName(counterpartName ?? '')} {t('matches.porWhatsapp')}
-                      </a>
+                      <div className="flex items-center justify-between gap-3 rounded-[10px] border border-white/10 bg-white/[0.03] px-3.5 py-2.5">
+                        <span className="min-w-0 truncate text-[13px] font-semibold text-[#f0f1f7]">
+                          {t('matches.contactaA')} {firstName(counterpartName ?? '')}
+                        </span>
+                        <a
+                          href={buildWhatsappLink(counterpartPhone, whatsappMessage)}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={() => onContact(listingMatch.id)}
+                          aria-label={`${t('matches.contactaA')} ${counterpartName ?? ''} ${t('matches.porWhatsapp')}`}
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_4px_14px_rgba(37,211,102,0.35)] transition-transform duration-150 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366]"
+                        >
+                          <IconWhatsapp className="h-[22px] w-[22px]" />
+                        </a>
+                      </div>
                     ) : (
                       <p className="text-center text-xs text-white/40">{t('matches.sinTelefono')}</p>
                     )}

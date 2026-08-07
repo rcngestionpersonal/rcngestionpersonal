@@ -6,9 +6,12 @@ function isPublicPath(pathname: string): boolean {
   if (pathname === '/contacto') return true;
   if (pathname === '/agentes/registro') return true;
   if (pathname === '/agentes/recuperar-contrasena') return true;
+  if (pathname === '/recuperar-acceso') return true;
+  if (pathname === '/restablecer') return true;
   if (pathname === '/soporte') return true;
   if (pathname.startsWith('/v/')) return true;
   if (pathname.startsWith('/api/auth/')) return true;
+  if (pathname === '/api/health') return true;
   if (pathname.startsWith('/_next/')) return true;
   if (pathname.startsWith('/favicon')) return true;
   if (pathname.startsWith('/api/real-estate/paypal/webhook')) return true;

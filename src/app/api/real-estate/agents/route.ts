@@ -3,8 +3,7 @@ import { SubscriptionStatus } from '@prisma/client';
 import { hashPassword } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createAgent, listAgents, sanitizeAgent, shouldUseMockStore } from '@/lib/real-estate/mock-store';
-
-const TRIAL_DAYS = 7;
+import { TRIAL_DAYS } from '@/lib/real-estate/paypal';
 
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams;

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { hashPassword } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { bootstrapDemoAgents, DEMO_AGENT_PASSWORD, shouldUseMockStore } from '@/lib/real-estate/mock-store';
+import { TRIAL_DAYS } from '@/lib/real-estate/paypal';
 
 export async function POST() {
   if (shouldUseMockStore()) {
@@ -14,7 +15,7 @@ export async function POST() {
     const agentsCount = await prisma.agent.count();
 
     if (agentsCount === 0) {
-      const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
       const passwordHash = await hashPassword(DEMO_AGENT_PASSWORD);
       await prisma.agent.createMany({
         data: [

@@ -84,6 +84,7 @@ export type AgentItem = {
   id: string;
   fullName: string;
   phone: string;
+  email?: string | null;
   photoUrl?: string | null;
   specializationZones?: string[];
   carnetMessage?: string | null;

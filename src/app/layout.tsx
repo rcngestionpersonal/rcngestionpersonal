@@ -17,18 +17,22 @@ export const viewport: Viewport = {
   maximumScale: 5,
 };
 
+const DEFAULT_TITLE = "Redinmo.io | El hub que conecta colegas inmobiliarios";
+const DEFAULT_DESCRIPTION =
+  "Redinmo.io es el hub donde los agentes inmobiliarios conectan sus inmuebles y pedidos: carga tu inventario y recibe matches en segundos.";
+
 export const metadata: Metadata = {
-  title: "BrokerHub AI | SaaS Inmobiliario",
-  description: "Plataforma SaaS para capturar oportunidades desde tu chat web, clasificar con IA y distribuir matches entre agentes inmobiliarios.",
+  title: DEFAULT_TITLE,
+  description: DEFAULT_DESCRIPTION,
   metadataBase,
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "BrokerHub AI | SaaS Inmobiliario",
-    description: "Plataforma SaaS para capturar oportunidades desde tu chat web, clasificar con IA y distribuir matches entre agentes inmobiliarios.",
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
     url: "/",
-    siteName: "BrokerHub AI",
+    siteName: "Redinmo.io",
     locale: "es_ES",
     type: "website",
   },

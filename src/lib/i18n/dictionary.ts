@@ -1,3 +1,5 @@
+import { TRIAL_DAYS } from '@/lib/real-estate/paypal';
+
 export type Language = 'es' | 'en';
 
 export const PROPERTY_TYPE_LABELS: Record<Language, Record<string, string>> = {
@@ -154,7 +156,7 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'kpi.coincidenciasActivas.title': 'En proceso',
     'kpi.coincidenciasActivas.detail': 'Coincidencias en seguimiento',
     'kpi.trials.title': 'En prueba gratis',
-    'kpi.trials.detail': '7 días sin costo',
+    'kpi.trials.detail': `${TRIAL_DAYS} días sin costo`,
     'kpi.suscriptores.title': 'Con suscripción activa',
     'kpi.suscriptores.detail': 'Plan mensual',
 
@@ -170,7 +172,7 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'resumen.topZonas.title': 'Zonas con más movimiento',
     'resumen.topZonas.empty': 'Todavía no hay datos. Van a aparecer con los primeros pedidos.',
     'resumen.onboarding.title': 'Onboarding rápido',
-    'resumen.onboarding.detail': 'Crea agentes de demo con prueba gratis de 7 días.',
+    'resumen.onboarding.detail': `Crea agentes de demo con prueba gratis de ${TRIAL_DAYS} días.`,
     'resumen.onboarding.button': 'Cargar agentes demo',
     'resumen.onboarding.buttonLoading': 'Cargando...',
     'resumen.focoDiario.title': 'Qué hacer hoy',
@@ -180,7 +182,7 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
 
     'suscripcion.title.agent': 'Tu suscripción',
     'suscripcion.title.admin': 'Gestión de agentes y suscripciones',
-    'suscripcion.plan': 'Plan mensual: US$8.99/mes + IVA, con 7 días de prueba gratis.',
+    'suscripcion.plan': `Plan mensual: US$8.99/mes + IVA, con ${TRIAL_DAYS} días de prueba gratis.`,
     'suscripcion.planShort': 'Plan sugerido: US$8.99/mes + IVA',
     'suscripcion.activar': 'Activar · US$8.99/mes',
     'suscripcion.masIva': 'más IVA',
@@ -781,7 +783,7 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'kpi.coincidenciasActivas.title': 'In progress',
     'kpi.coincidenciasActivas.detail': 'Matches being followed up',
     'kpi.trials.title': 'On free trial',
-    'kpi.trials.detail': '7 days free',
+    'kpi.trials.detail': `${TRIAL_DAYS} days free`,
     'kpi.suscriptores.title': 'With active subscription',
     'kpi.suscriptores.detail': 'Monthly plan',
 
@@ -797,7 +799,7 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'resumen.topZonas.title': 'Busiest areas',
     'resumen.topZonas.empty': 'No data yet. It will show up with the first requests.',
     'resumen.onboarding.title': 'Quick onboarding',
-    'resumen.onboarding.detail': 'Create demo agents with a 7-day free trial.',
+    'resumen.onboarding.detail': `Create demo agents with a ${TRIAL_DAYS}-day free trial.`,
     'resumen.onboarding.button': 'Load demo agents',
     'resumen.onboarding.buttonLoading': 'Loading...',
     'resumen.focoDiario.title': 'What to do today',
@@ -807,7 +809,7 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
 
     'suscripcion.title.agent': 'Your subscription',
     'suscripcion.title.admin': 'Agents and subscriptions',
-    'suscripcion.plan': 'Monthly plan: US$8.99/month + tax, with a 7-day free trial.',
+    'suscripcion.plan': `Monthly plan: US$8.99/month + tax, with a ${TRIAL_DAYS}-day free trial.`,
     'suscripcion.planShort': 'Suggested plan: US$8.99/month + tax',
     'suscripcion.activar': 'Activate · US$8.99/mo',
     'suscripcion.masIva': 'plus tax',

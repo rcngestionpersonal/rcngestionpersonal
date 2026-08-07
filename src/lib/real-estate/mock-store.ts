@@ -3,7 +3,7 @@ import { hashPassword } from '@/lib/auth';
 import { sendEmailNotification } from '@/lib/real-estate/email';
 import { buildMatchCreatedEmail } from '@/lib/real-estate/email-templates';
 import { operationActionLabelEs, propertyTypeLabelEs } from '@/lib/real-estate/labels';
-import { getAppUrl } from '@/lib/real-estate/paypal';
+import { getAppUrl, TRIAL_DAYS } from '@/lib/real-estate/paypal';
 import { buildRanking, milestonePoints, type AgentRankingEntry } from '@/lib/real-estate/ranking';
 import { zoneCentroid } from '@/lib/real-estate/quito-zones';
 import {
@@ -183,6 +183,16 @@ type ClosedDealRecord = {
   updatedAt: string;
 };
 
+type PasswordResetTokenRecord = {
+  id: string;
+  agentId: string;
+  tokenHash: string;
+  expiresAt: string;
+  usedAt?: string;
+  createdAt: string;
+  requestIp?: string;
+};
+
 type Store = {
   agents: AgentRecord[];
   opportunities: OpportunityRecord[];
@@ -190,6 +200,7 @@ type Store = {
   listingMatches: ListingMatchRecord[];
   closedDeals: ClosedDealRecord[];
   paypalEvents: Set<string>;
+  passwordResetTokens: PasswordResetTokenRecord[];
 };
 
 function nowIso(): string {
@@ -209,7 +220,7 @@ const DEMO_AGENT_PASSWORD_HASH = 'AAECAwQFBgcICQoLDA0ODw.3kFvFN3FYZo-L-tTMitfrpU
 
 function seedDemoAgentsSync(store: Store): void {
   if (store.agents.length > 0) return;
-  const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const demoAgents: Array<Pick<AgentRecord, 'fullName' | 'phone' | 'email' | 'company' | 'zones' | 'propertyTypesInterest' | 'minBudget' | 'maxBudget' | 'specialty'>> = [
     {
       fullName: 'Sofia Paredes',
@@ -271,6 +282,7 @@ function getStore(): Store {
       listingMatches: [],
       closedDeals: [],
       paypalEvents: new Set<string>(),
+      passwordResetTokens: [],
     };
     // El modo mock existe para poder probar la plataforma sin configurar nada:
     // se siembran los agentes demo de una vez, sin depender de que un admin
@@ -293,6 +305,10 @@ function getStore(): Store {
 
   if (!(globalStore.__realEstateMockStore as Partial<Store>).closedDeals) {
     globalStore.__realEstateMockStore.closedDeals = [];
+  }
+
+  if (!(globalStore.__realEstateMockStore as Partial<Store>).passwordResetTokens) {
+    globalStore.__realEstateMockStore.passwordResetTokens = [];
   }
 
   return globalStore.__realEstateMockStore;
@@ -343,6 +359,12 @@ export function findAgentByPhone(phone: string): AgentRecord | null {
   return store.agents.find((a) => a.phone === phone) ?? null;
 }
 
+export function findAgentByEmail(email: string): AgentRecord | null {
+  const store = getStore();
+  const target = email.trim().toLowerCase();
+  return store.agents.find((a) => a.email?.toLowerCase() === target) ?? null;
+}
+
 export async function createAgent(input: {
   fullName: string;
   phone: string;
@@ -360,7 +382,7 @@ export async function createAgent(input: {
 }): Promise<AgentRecord> {
   const store = getStore();
   const createdAt = nowIso();
-  const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const agent: AgentRecord = {
     id: uid('agent'),
     fullName: input.fullName,
@@ -437,6 +459,51 @@ export function updateAgent(agentId: string, patch: Record<string, unknown>): Ag
 export function deactivateAgent(agentId: string): boolean {
   const updated = updateAgent(agentId, { isActive: false });
   return Boolean(updated);
+}
+
+// Espejo en memoria de PasswordResetToken (ver prisma/schema.prisma) para que el
+// flujo de recuperacion de contrasena sea probable end-to-end en modo mock, sin
+// depender de la conexion real a Neon.
+export function createMockResetToken(input: { agentId: string; tokenHash: string; expiresAt: string; requestIp?: string }): PasswordResetTokenRecord {
+  const store = getStore();
+  const record: PasswordResetTokenRecord = {
+    id: uid('prt'),
+    agentId: input.agentId,
+    tokenHash: input.tokenHash,
+    expiresAt: input.expiresAt,
+    createdAt: nowIso(),
+    requestIp: input.requestIp,
+  };
+  store.passwordResetTokens.push(record);
+  return record;
+}
+
+export function findMockResetTokenByHash(tokenHash: string): PasswordResetTokenRecord | null {
+  const store = getStore();
+  return store.passwordResetTokens.find((t) => t.tokenHash === tokenHash) ?? null;
+}
+
+export function countMockResetTokensForAgentSince(agentId: string, since: Date): number {
+  const store = getStore();
+  return store.passwordResetTokens.filter((t) => t.agentId === agentId && new Date(t.createdAt) >= since).length;
+}
+
+export function markMockResetTokenUsed(tokenHash: string): void {
+  const store = getStore();
+  const record = store.passwordResetTokens.find((t) => t.tokenHash === tokenHash);
+  if (record) record.usedAt = nowIso();
+}
+
+// Al consumir un token exitosamente, se invalidan (marcan usados) todos los demas
+// tokens sin usar de ese agente - nunca deben quedar dos enlaces vigentes a la vez.
+export function invalidateOtherMockResetTokens(agentId: string, exceptTokenHash: string): void {
+  const store = getStore();
+  const now = nowIso();
+  for (const t of store.passwordResetTokens) {
+    if (t.agentId === agentId && t.tokenHash !== exceptTokenHash && !t.usedAt) {
+      t.usedAt = now;
+    }
+  }
 }
 
 export const DEMO_AGENT_PASSWORD = 'demo1234';

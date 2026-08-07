@@ -1,7 +1,8 @@
 // This is your Prisma schema file.
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -114,6 +115,7 @@ model Agent {
   listingsReferred      Listing[]          @relation("ListingReferredBy")
   notificationLogs      NotificationLog[]
   interactions          InteractionLog[]
+  passwordResetTokens   PasswordResetToken[]
 }
 
 model Listing {
@@ -278,6 +280,24 @@ model EventLog {
 
   @@index([entityType, entityId])
   @@index([eventType])
+}
+
+// Recuperacion de contrasena: solo se guarda el HASH del token (nunca el token en
+// claro - ese vive unicamente en el enlace del correo). Tambien sirve como fuente
+// de verdad para el rate limiting (contar filas recientes por agentId/requestIp),
+// asi no hace falta una tabla de rate-limit aparte.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  agent     Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentId   String
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  requestIp String?
+
+  @@index([tokenHash])
+  @@index([agentId])
 }
 
 // Registro de cierres (venta/alquiler concretado). El campo createdByAgentId nunca
