@@ -98,6 +98,12 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'shell.menu': 'Menú',
     'shell.verificado': 'Verificado',
 
+    'theme.aria': 'Apariencia',
+    'theme.label': 'Apariencia',
+    'theme.light': 'Claro',
+    'theme.dark': 'Oscuro',
+    'theme.system': 'Automático',
+
     'verificacion.title': 'Verificación de contacto',
     'verificacion.garantia': 'La verificación garantiza una comunidad confiable y la protección de tus datos.',
     'verificacion.idNumber': 'Cédula o RUC:',
@@ -724,6 +730,12 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'shell.logout': 'Log out',
     'shell.menu': 'Menu',
     'shell.verificado': 'Verified',
+
+    'theme.aria': 'Appearance',
+    'theme.label': 'Appearance',
+    'theme.light': 'Light',
+    'theme.dark': 'Dark',
+    'theme.system': 'Auto',
 
     'verificacion.title': 'Contact verification',
     'verificacion.garantia': 'Verification guarantees a trustworthy community and protects your data.',

@@ -67,15 +67,15 @@ function MatchCluster() {
 
       <div className={styles.demoNotes}>
         <p className={styles.demoNote}>
-          <Check className="h-3 w-3" style={{ color: 'var(--teal)' }} strokeWidth={2.5} />
+          <Check className="h-3 w-3" style={{ color: 'var(--accent)' }} strokeWidth={2.5} />
           Cargas un pedido y el sistema te trae los inmuebles de tus colegas que encajan.
         </p>
         <p className={styles.demoNote}>
-          <Check className="h-3 w-3" style={{ color: 'var(--teal)' }} strokeWidth={2.5} />
+          <Check className="h-3 w-3" style={{ color: 'var(--accent)' }} strokeWidth={2.5} />
           Cargas un inmueble y te trae los pedidos que tus colegas están buscando.
         </p>
         <p className={styles.demoNote}>
-          <Check className="h-3 w-3" style={{ color: 'var(--teal)' }} strokeWidth={2.5} />
+          <Check className="h-3 w-3" style={{ color: 'var(--accent)' }} strokeWidth={2.5} />
           Hablas directo con tu colega, acuerdan la comisión y cierran juntos.
         </p>
       </div>
@@ -113,15 +113,15 @@ export default function Hero() {
             </div>
             <div className={styles.heroNotes}>
               <span className={styles.heroNote}>
-                <Check className="h-3 w-3" style={{ color: 'var(--teal)' }} strokeWidth={2.5} />
+                <Check className="h-3 w-3" style={{ color: 'var(--accent)' }} strokeWidth={2.5} />
                 30 días gratis
               </span>
               <span className={styles.heroNote}>
-                <Check className="h-3 w-3" style={{ color: 'var(--teal)' }} strokeWidth={2.5} />
+                <Check className="h-3 w-3" style={{ color: 'var(--accent)' }} strokeWidth={2.5} />
                 Sin comisión sobre tus cierres
               </span>
               <span className={styles.heroNote}>
-                <Check className="h-3 w-3" style={{ color: 'var(--teal)' }} strokeWidth={2.5} />
+                <Check className="h-3 w-3" style={{ color: 'var(--accent)' }} strokeWidth={2.5} />
                 Cancelas cuando quieras
               </span>
             </div>

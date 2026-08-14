@@ -270,14 +270,14 @@ export default function CierresMapa({
       <div ref={containerRef} className="h-[420px] w-full rounded-2xl sm:h-[560px]" />
 
       {loading ? (
-        <div className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/15 bg-[#0b0d14]/90 px-3 py-1 text-[11px] font-semibold text-white/60">
+        <div className="pointer-events-none absolute left-3 top-3 rounded-full border border-line-strong bg-bg/90 px-3 py-1 text-[11px] font-semibold text-text-2">
           …
         </div>
       ) : null}
 
       {!loading && filteredDeals.length === 0 ? (
-        <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-[#0b0d14]/75 p-6 text-center backdrop-blur-sm">
-          <p className="max-w-sm text-sm text-white/70">{lang === 'es' ? 'No hay cierres visibles con estos filtros en esta zona del mapa.' : 'No closings visible with these filters in this map area.'}</p>
+        <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-bg/75 p-6 text-center backdrop-blur-sm">
+          <p className="max-w-sm text-sm text-text-2">{lang === 'es' ? 'No hay cierres visibles con estos filtros en esta zona del mapa.' : 'No closings visible with these filters in this map area.'}</p>
         </div>
       ) : null}
     </div>

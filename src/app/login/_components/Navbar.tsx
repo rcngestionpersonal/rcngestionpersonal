@@ -6,7 +6,7 @@ export default function Navbar() {
     <header className={styles.navbar}>
       <div className={styles.navInner}>
         <div className={styles.navBrand}>
-          <Sparkle aria-hidden="true" className="h-[13px] w-[13px]" style={{ color: 'var(--violet)' }} strokeWidth={2} />
+          <Sparkle aria-hidden="true" className="h-[13px] w-[13px]" style={{ color: 'var(--brand)' }} strokeWidth={2} />
           REDINMO.IO
         </div>
         <nav className={styles.navLinks} aria-label="Navegación principal">

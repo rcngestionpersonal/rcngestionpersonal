@@ -16,6 +16,7 @@ const profileSchema = z.object({
   specializationZones: z.array(z.enum(ZONE_KEYS)).max(3, 'Máximo 3 zonas.').optional(),
   carnetMessage: z.string().trim().max(220, 'Máximo 220 caracteres.').optional(),
   email: z.string().trim().email('Ingresa un correo electrónico válido.').optional(),
+  themePreference: z.enum(['LIGHT', 'DARK', 'SYSTEM']).optional(),
 });
 
 export async function PATCH(request: NextRequest) {
@@ -30,9 +31,15 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Datos inválidos.' }, { status: 400 });
   }
 
-  const data: { specializationZones?: string[]; carnetMessage?: string | null; email?: string } = {};
+  const data: {
+    specializationZones?: string[];
+    carnetMessage?: string | null;
+    email?: string;
+    themePreference?: 'LIGHT' | 'DARK' | 'SYSTEM';
+  } = {};
   if (parsed.data.specializationZones) data.specializationZones = parsed.data.specializationZones;
   if (parsed.data.carnetMessage !== undefined) data.carnetMessage = parsed.data.carnetMessage || null;
+  if (parsed.data.themePreference) data.themePreference = parsed.data.themePreference;
 
   if (parsed.data.email) {
     if (shouldUseMockStore()) {

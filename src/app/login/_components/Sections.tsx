@@ -201,22 +201,22 @@ export function ColegasSection() {
             </div>
             <div className={styles.profileStats}>
               <div className={styles.profileStatRow}>
-                <IdCard className="h-[15px] w-[15px]" style={{ color: 'var(--violet)' }} strokeWidth={1.8} />
+                <IdCard className="h-[15px] w-[15px]" style={{ color: 'var(--brand)' }} strokeWidth={1.8} />
                 <span className={styles.profileStatLabel}>Inmuebles en su inventario</span>
                 <span className={styles.profileStatValue}>24</span>
               </div>
               <div className={styles.profileStatRow}>
-                <Sparkles className="h-[15px] w-[15px]" style={{ color: 'var(--violet)' }} strokeWidth={1.8} />
+                <Sparkles className="h-[15px] w-[15px]" style={{ color: 'var(--brand)' }} strokeWidth={1.8} />
                 <span className={styles.profileStatLabel}>Matches concretados</span>
                 <span className={styles.profileStatValue}>11</span>
               </div>
               <div className={styles.profileStatRow}>
-                <Handshake className="h-[15px] w-[15px]" style={{ color: 'var(--violet)' }} strokeWidth={1.8} />
+                <Handshake className="h-[15px] w-[15px]" style={{ color: 'var(--brand)' }} strokeWidth={1.8} />
                 <span className={styles.profileStatLabel}>Cierres registrados</span>
                 <span className={styles.profileStatValue}>18</span>
               </div>
               <div className={styles.profileStatRow}>
-                <BarChart3 className="h-[15px] w-[15px]" style={{ color: 'var(--violet)' }} strokeWidth={1.8} />
+                <BarChart3 className="h-[15px] w-[15px]" style={{ color: 'var(--brand)' }} strokeWidth={1.8} />
                 <span className={styles.profileStatLabel}>Constancia (12 meses)</span>
                 <span className={styles.profileStatValue}>Alta</span>
               </div>

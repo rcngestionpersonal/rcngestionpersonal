@@ -19,12 +19,12 @@ export function ModuleHeader({ icon, title, subtitle }: { icon: ReactNode; title
   return (
     <div className="mb-6 min-w-0">
       <div className="flex items-center gap-2.5">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[rgba(167,139,250,0.13)] text-[#b7a5ff]">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-dim text-brand">
           {icon}
         </span>
-        <h2 className="min-w-0 truncate text-[20px] font-bold tracking-[-0.01em] text-[#f0f1f7]">{title}</h2>
+        <h2 className="min-w-0 truncate text-[20px] font-bold tracking-[-0.01em] text-text">{title}</h2>
       </div>
-      <p className="mt-1.5 text-[13.5px] text-[#9296b0]">{subtitle}</p>
+      <p className="mt-1.5 text-[13.5px] text-text-2">{subtitle}</p>
     </div>
   );
 }
@@ -39,7 +39,7 @@ export function truncateText(text: string, max = 42): string {
 
 export function Card({ children }: { children: ReactNode }) {
   return (
-    <article className="min-w-0 rounded-2xl border border-[rgba(255,255,255,0.07)] border-t-[rgba(255,255,255,0.13)] bg-[#171429] px-[18px] pb-1.5 pt-[18px]">
+    <article className="min-w-0 rounded-2xl border border-[rgba(255,255,255,0.07)] border-t-[rgba(255,255,255,0.13)] bg-bg-alt px-[18px] pb-1.5 pt-[18px]">
       {children}
     </article>
   );
@@ -51,8 +51,8 @@ export type ModuleAccent = 'teal' | 'violet';
 
 function accentColors(accent: ModuleAccent) {
   return accent === 'teal'
-    ? { text: '#2dd4bf', border: 'rgba(45,212,191,0.35)', borderStrong: 'rgba(45,212,191,0.42)', bg: 'rgba(45,212,191,0.12)' }
-    : { text: '#b7a5ff', border: 'rgba(167,139,250,0.35)', borderStrong: 'rgba(167,139,250,0.42)', bg: 'rgba(167,139,250,0.13)' };
+    ? { text: 'var(--accent)', border: 'var(--accent-line)', borderStrong: 'var(--accent-line)', bg: 'var(--accent-dim)' }
+    : { text: 'var(--brand)', border: 'var(--brand-line)', borderStrong: 'var(--brand-line)', bg: 'var(--brand-dim)' };
 }
 
 export function Chip({
@@ -68,9 +68,9 @@ export function Chip({
   if (tone === 'teal') {
     toneClasses = 'bg-[rgba(45,212,191,0.12)] border-[rgba(45,212,191,0.35)] text-[#2dd4bf]';
   } else if (tone === 'violet') {
-    toneClasses = 'bg-[rgba(167,139,250,0.13)] border-[rgba(167,139,250,0.42)] text-[#b7a5ff]';
+    toneClasses = 'bg-brand-dim border-brand-line text-brand';
   } else {
-    toneClasses = 'bg-transparent border-[rgba(255,255,255,0.07)] text-[#62667f]';
+    toneClasses = 'bg-transparent border-[rgba(255,255,255,0.07)] text-text-3';
   }
   return (
     <span
@@ -91,8 +91,8 @@ export function DataBlock({ rows }: { rows: Array<{ label: string; value: ReactN
           key={row.label}
           className={`flex min-w-0 items-start justify-between gap-3 py-1 ${idx > 0 ? 'border-t border-dashed border-[rgba(255,255,255,0.07)]' : ''}`}
         >
-          <span className="min-w-[82px] shrink-0 pt-0.5 text-[10.5px] font-bold uppercase tracking-[0.07em] text-[#62667f]">{row.label}</span>
-          <span className="min-w-0 flex-1 break-words text-right text-sm font-medium text-[#f0f1f7]">{row.value}</span>
+          <span className="min-w-[82px] shrink-0 pt-0.5 text-[10.5px] font-bold uppercase tracking-[0.07em] text-text-3">{row.label}</span>
+          <span className="min-w-0 flex-1 break-words text-right text-sm font-medium text-text">{row.value}</span>
         </div>
       ))}
     </div>
@@ -118,12 +118,12 @@ export function MatchLink({
       onClick={onClick}
       aria-label={ariaLabel}
       style={{ borderColor: c.borderStrong, color: c.text }}
-      className="flex w-full min-w-0 items-center gap-2 rounded-[10px] border bg-transparent px-[13px] py-2.5 text-left transition-colors duration-150 hover:bg-white/[0.06] focus-visible:outline focus-visible:outline-2"
+      className="flex w-full min-w-0 items-center gap-2 rounded-[10px] border bg-transparent px-[13px] py-2.5 text-left transition-colors duration-150 hover:bg-surface focus-visible:outline focus-visible:outline-2"
     >
       <span className="shrink-0 text-[15px]" style={{ color: c.text }}>&#10022;</span>
       <span className="min-w-0 flex-1 truncate text-sm">
-        <span className="font-semibold text-[#f0f1f7]">{truncateText(title, 30)}</span>{' '}
-        <span className="font-normal text-[#9296b0]">{truncateText(detail, 34)}</span>
+        <span className="font-semibold text-text">{truncateText(title, 30)}</span>{' '}
+        <span className="font-normal text-text-2">{truncateText(detail, 34)}</span>
       </span>
       <span className="shrink-0" style={{ color: c.text }}>&rarr;</span>
     </button>
@@ -145,14 +145,14 @@ export function IconActionButton({
   tone?: 'edit' | 'delete';
   disabled?: boolean;
 }) {
-  const hoverClass = tone === 'delete' ? 'hover:border-[#e5484d] hover:text-[#e5484d]' : 'hover:border-[#b7a5ff] hover:text-[#b7a5ff]';
+  const hoverClass = tone === 'delete' ? 'hover:border-[#e5484d] hover:text-[#e5484d]' : 'hover:border-brand hover:text-brand';
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}
       title={title ?? ariaLabel}
-      className={`flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[9px] border border-[rgba(255,255,255,0.07)] bg-transparent text-[#62667f] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 ${hoverClass}`}
+      className={`flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[9px] border border-[rgba(255,255,255,0.07)] bg-transparent text-text-3 transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 ${hoverClass}`}
     >
       {icon}
     </button>
@@ -160,7 +160,7 @@ export function IconActionButton({
 }
 
 export function CardFooterNote({ children }: { children: ReactNode }) {
-  return <p className="min-w-0 text-xs leading-relaxed text-[#62667f]">{children}</p>;
+  return <p className="min-w-0 text-xs leading-relaxed text-text-3">{children}</p>;
 }
 
 // Disparador de acordeon reutilizado por Cierres / Inmuebles / Pedidos para "Registrar
@@ -187,14 +187,14 @@ export function RegisterAccordion({
   const open = controlledOpen ?? internalOpen;
   const toggle = () => (onToggle ? onToggle() : setInternalOpen((v) => !v));
   return (
-    <section className="rounded-2xl border border-[rgba(255,255,255,0.07)] border-t-[rgba(255,255,255,0.13)] bg-[#171429] p-[18px] fade-up">
+    <section className="rounded-2xl border border-[rgba(255,255,255,0.07)] border-t-[rgba(255,255,255,0.13)] bg-bg-alt p-[18px] fade-up">
       <button
         onClick={toggle}
         aria-expanded={open}
         className="flex w-full min-w-0 items-center gap-[13px] text-left"
       >
         <span
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[11px] border border-[rgba(167,139,250,0.42)] bg-[rgba(167,139,250,0.13)] text-[18px] font-bold text-[#b7a5ff] transition-transform duration-200 motion-reduce:transition-none ${
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[11px] border border-brand-line bg-brand-dim text-[18px] font-bold text-brand transition-transform duration-200 motion-reduce:transition-none ${
             open ? 'rotate-45' : ''
           }`}
         >
@@ -202,14 +202,14 @@ export function RegisterAccordion({
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
-            <span className="text-[17px] font-bold text-[#f0f1f7]">{title}</span>
-            <span className="inline-flex items-center rounded-full border border-[rgba(167,139,250,0.42)] bg-[rgba(167,139,250,0.13)] px-2 py-0.5 text-[10.5px] font-bold tracking-[0.05em] text-[#b7a5ff]">
+            <span className="text-[17px] font-bold text-text">{title}</span>
+            <span className="inline-flex items-center rounded-full border border-brand-line bg-brand-dim px-2 py-0.5 text-[10.5px] font-bold tracking-[0.05em] text-brand">
               +{points} PTS
             </span>
           </span>
-          <span className="mt-0.5 block text-[12.5px] text-[#62667f]">{subtitle}</span>
+          <span className="mt-0.5 block text-[12.5px] text-text-3">{subtitle}</span>
         </span>
-        <span className={`shrink-0 text-[13px] text-[#b7a5ff] transition-transform duration-200 motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}>▼</span>
+        <span className={`shrink-0 text-[13px] text-brand transition-transform duration-200 motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}>▼</span>
       </button>
       {open ? <div className="fade-up mt-4 min-w-0">{children}</div> : null}
     </section>
@@ -352,14 +352,14 @@ export function AvatarInitials({
       <img
         src={photoUrl}
         alt={`Foto de ${name}`}
-        className={`shrink-0 rounded-full object-cover ${ring ? 'outline outline-2 outline-offset-2 outline-[#b7a5ff]' : ''}`}
+        className={`shrink-0 rounded-full object-cover ${ring ? 'outline outline-2 outline-offset-2 outline-brand' : ''}`}
         style={{ width: size, height: size }}
       />
     );
   }
   return (
     <div
-      className={`flex shrink-0 items-center justify-center rounded-full font-extrabold text-[#1c1330] ${ring ? 'outline outline-2 outline-offset-2 outline-[#b7a5ff]' : ''}`}
+      className={`flex shrink-0 items-center justify-center rounded-full font-extrabold text-[#1c1330] ${ring ? 'outline outline-2 outline-offset-2 outline-brand' : ''}`}
       style={{ width: size, height: size, background: colorHex, fontSize: Math.round(size * 0.36) }}
     >
       {initialsOf(name)}
@@ -387,16 +387,16 @@ export function LevelBar({
   const nextLabel = nextLevel ? (lang === 'es' ? nextLevel.labelEs : nextLevel.labelEn) : null;
   return (
     <div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+      <div className="h-2 w-full overflow-hidden rounded-full bg-surface-2">
         <div
-          className="h-full rounded-full bg-[#b7a5ff] transition-[width] duration-500 ease-out motion-reduce:transition-none"
+          className="h-full rounded-full bg-brand transition-[width] duration-500 ease-out motion-reduce:transition-none"
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="mt-1.5 text-xs text-[#9296b0]">
+      <p className="mt-1.5 text-xs text-text-2">
         {nextLevel ? (
           <>
-            {levelLabel} / <span className="font-semibold text-[#f0f1f7]">{nextLevel.min - totalPoints}</span> {t('ranking.puntos')} {t('common.para')} {nextLabel}
+            {levelLabel} / <span className="font-semibold text-text">{nextLevel.min - totalPoints}</span> {t('ranking.puntos')} {t('common.para')} {nextLabel}
           </>
         ) : (
           t('puntos.nivelMaximo')
@@ -444,7 +444,7 @@ export function ProgressRing({
         cy={center}
         r={radius}
         strokeWidth={stroke}
-        stroke="#b7a5ff"
+        stroke="var(--brand)"
         fill="none"
         strokeLinecap="round"
         strokeDasharray={circumference}
@@ -452,10 +452,10 @@ export function ProgressRing({
         transform={`rotate(-90 ${center} ${center})`}
         className="transition-[stroke-dashoffset] duration-[600ms] ease-out motion-reduce:transition-none"
       />
-      <text x={center} y={center - 5} textAnchor="middle" fontSize="29" fontWeight="800" fill="#f0f1f7">
+      <text x={center} y={center - 5} textAnchor="middle" fontSize="29" fontWeight="800" fill="var(--text)">
         {totalPoints}
       </text>
-      <text x={center} y={center + 13} textAnchor="middle" fontSize="10" fontWeight="700" letterSpacing="1" fill="#62667f">
+      <text x={center} y={center + 13} textAnchor="middle" fontSize="10" fontWeight="700" letterSpacing="1" fill="var(--text-3)">
         PUNTOS
       </text>
     </svg>

@@ -62,7 +62,7 @@ function lastMilestone(
 function MatchBadge({ label }: { label: string }) {
   return (
     <span className="inline-flex rounded-full p-px" style={{ background: MATCH_GRADIENT }}>
-      <span className="flex items-center gap-1 rounded-full bg-[#171429] px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.08em]">
+      <span className="flex items-center gap-1 rounded-full bg-bg-alt px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.08em]">
         <span style={{ backgroundImage: MATCH_GRADIENT, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
           &#10022; {label}
         </span>
@@ -93,8 +93,8 @@ export default function MatchesTab({
   if (!isAdmin && !canAccess) {
     return (
       <section className="glass-card rounded-[1.8rem] p-4 fade-up sm:p-6">
-        <h2 className="text-xl font-bold text-white">{t('matches.locked.title')}</h2>
-        <p className="mt-2 text-sm text-white/60">{t('matches.locked.detail')}</p>
+        <h2 className="text-xl font-bold text-text">{t('matches.locked.title')}</h2>
+        <p className="mt-2 text-sm text-text-2">{t('matches.locked.detail')}</p>
       </section>
     );
   }
@@ -140,7 +140,7 @@ export default function MatchesTab({
         />
 
         <div className="grid gap-[18px] xl:grid-cols-2">
-          {listingRows.length === 0 && <p className="text-sm text-white/60">{t('matches.empty')}</p>}
+          {listingRows.length === 0 && <p className="text-sm text-text-2">{t('matches.empty')}</p>}
           {listingRows.map(({ opportunity, listingMatch }) => {
             const amListingSide = !isAdmin && (listingMatch.managingAgentId === myAgentId || listingMatch.referredByAgentId === myAgentId);
             const amRequestSide = !isAdmin && listingMatch.createdByAgentId === myAgentId;
@@ -191,7 +191,7 @@ export default function MatchesTab({
                     <MatchBadge label={t('matches.badgeMatch')} />
                     <span className="text-right text-[13px] font-semibold text-violet-300">{listingMatch.score.toFixed(0)}%</span>
                   </div>
-                  <p className="mt-3 pb-3 text-[13.5px] font-semibold text-[#f0f1f7]">
+                  <p className="mt-3 pb-3 text-[13.5px] font-semibold text-text">
                     {agentFullName(listingMatch.managingAgentId) ?? '—'}
                     {' ('}{listingMatch.listingTitle ?? listingMatch.listing?.title}{')'}
                     {' ↔ '}
@@ -207,14 +207,14 @@ export default function MatchesTab({
                 {/* Fila 1 */}
                 <div className="flex items-center justify-between gap-2">
                   <MatchBadge label={t('matches.badgeMatch')} />
-                  <span className="text-[12px] font-medium text-[#62667f]">{matchDateLabel}</span>
+                  <span className="text-[12px] font-medium text-text-3">{matchDateLabel}</span>
                 </div>
 
                 {/* Fila 2 */}
                 <div className="mt-3 flex items-center gap-1.5">
-                  <h3 className="text-[16.5px] font-bold leading-tight tracking-[-0.01em] text-[#f0f1f7]">{counterpartName ?? '—'}</h3>
+                  <h3 className="text-[16.5px] font-bold leading-tight tracking-[-0.01em] text-text">{counterpartName ?? '—'}</h3>
                   {counterpartName && counterpartVerified ? (
-                    <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-[rgba(167,139,250,0.42)] bg-[rgba(167,139,250,0.13)] text-[10px] font-bold text-[#b7a5ff]">
+                    <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-brand-line bg-brand-dim text-[10px] font-bold text-brand">
                       ✓
                     </span>
                   ) : null}
@@ -241,9 +241,9 @@ export default function MatchesTab({
                     (item 10.2 del pedido) - el historial completo sigue disponible abajo. */}
                 {listingMatch.contactedAt ? (
                   lastAction ? (
-                    <div className="mt-3.5 flex items-center justify-between gap-2 rounded-[10px] border border-white/10 bg-white/[0.03] px-3.5 py-2.5">
-                      <span className="min-w-0 truncate text-[13px] font-semibold text-[#f0f1f7]">
-                        {lastAction.label} <span className="font-normal text-[#62667f]">· {fmtShortDate(lastAction.dateIso, lang)}</span>
+                    <div className="mt-3.5 flex items-center justify-between gap-2 rounded-[10px] border border-line bg-surface px-3.5 py-2.5">
+                      <span className="min-w-0 truncate text-[13px] font-semibold text-text">
+                        {lastAction.label} <span className="font-normal text-text-3">· {fmtShortDate(lastAction.dateIso, lang)}</span>
                       </span>
                       <span className="shrink-0 rounded-full bg-[rgba(45,212,191,0.12)] px-2 py-0.5 text-[10.5px] font-bold text-[#2dd4bf]">+{lastAction.points} pts</span>
                     </div>
@@ -251,8 +251,8 @@ export default function MatchesTab({
                 ) : (
                   <div className="mt-3.5">
                     {counterpartPhone ? (
-                      <div className="flex items-center justify-between gap-3 rounded-[10px] border border-white/10 bg-white/[0.03] px-3.5 py-2.5">
-                        <span className="min-w-0 truncate text-[13px] font-semibold text-[#f0f1f7]">
+                      <div className="flex items-center justify-between gap-3 rounded-[10px] border border-line bg-surface px-3.5 py-2.5">
+                        <span className="min-w-0 truncate text-[13px] font-semibold text-text">
                           {t('matches.contactaA')} {firstName(counterpartName ?? '')}
                         </span>
                         <a
@@ -261,13 +261,13 @@ export default function MatchesTab({
                           rel="noreferrer"
                           onClick={() => onContact(listingMatch.id)}
                           aria-label={`${t('matches.contactaA')} ${counterpartName ?? ''} ${t('matches.porWhatsapp')}`}
-                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_4px_14px_rgba(37,211,102,0.35)] transition-transform duration-150 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366]"
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#25D366] text-text shadow-[0_4px_14px_rgba(37,211,102,0.35)] transition-transform duration-150 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366]"
                         >
                           <IconWhatsapp className="h-[22px] w-[22px]" />
                         </a>
                       </div>
                     ) : (
-                      <p className="text-center text-xs text-white/40">{t('matches.sinTelefono')}</p>
+                      <p className="text-center text-xs text-text-3">{t('matches.sinTelefono')}</p>
                     )}
                   </div>
                 )}
@@ -305,10 +305,10 @@ function TimelineDisclosure({ t, children }: { t: (k: string) => string; childre
     <div className="mt-1 border-t border-[rgba(255,255,255,0.07)]">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between py-[13px] text-left text-[14.5px] font-semibold text-[#f0f1f7]"
+        className="flex w-full items-center justify-between py-[13px] text-left text-[14.5px] font-semibold text-text"
       >
         {open ? t('matches.ocultarSeguimiento') : t('matches.verSeguimiento')}
-        <span className={`text-xs text-[#b7a5ff] transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>▼</span>
+        <span className={`text-xs text-brand transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>▼</span>
       </button>
       {open ? <div className="fade-up pb-3">{children}</div> : null}
     </div>

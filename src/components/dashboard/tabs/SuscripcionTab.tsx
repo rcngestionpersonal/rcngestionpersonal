@@ -34,17 +34,17 @@ export default function SuscripcionTab({
     return (
       <div className="space-y-10">
         <section className="glass-card rounded-[1.8rem] p-4 fade-up sm:p-6">
-          <h2 className="text-xl font-bold text-white">{t('suscripcion.title.agent')}</h2>
-          <p className="mt-1 text-sm text-white/60">{t('suscripcion.plan')}</p>
+          <h2 className="text-xl font-bold text-text">{t('suscripcion.title.agent')}</h2>
+          <p className="mt-1 text-sm text-text-2">{t('suscripcion.plan')}</p>
 
           {myAgent ? (
-            <article className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-sm font-semibold text-white">{myAgent.fullName}</p>
-              <p className="text-xs text-white/60">
+            <article className="mt-4 rounded-2xl border border-line bg-surface-2 p-4">
+              <p className="text-sm font-semibold text-text">{myAgent.fullName}</p>
+              <p className="text-xs text-text-2">
                 {myAgent.company ?? t('suscripcion.sinEmpresa')} | {myAgent.phone}
               </p>
               <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <span className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-xs font-semibold text-white/80">
+                <span className="rounded-full border border-line-strong bg-surface-2 px-2 py-1 text-xs font-semibold text-text">
                   {tSubscriptionStatus(myAgent.subscriptionStatus)}
                 </span>
                 {myAgent.subscriptionStatus !== 'ACTIVE' && !isPaypalButtonConfigured() ? (
@@ -67,8 +67,8 @@ export default function SuscripcionTab({
                 ) : null}
               </div>
               {myAgent.subscriptionStatus === 'TRIAL' ? (
-                <p className="mt-2 text-xs text-white/50">
-                  {t('suscripcion.diasRestantes')} <span className="font-semibold text-white">{daysRemaining(myAgent.trialEndsAt)}</span>
+                <p className="mt-2 text-xs text-text-2">
+                  {t('suscripcion.diasRestantes')} <span className="font-semibold text-text">{daysRemaining(myAgent.trialEndsAt)}</span>
                 </p>
               ) : null}
               {!verified ? (
@@ -78,7 +78,7 @@ export default function SuscripcionTab({
               ) : null}
             </article>
           ) : (
-            <p className="mt-4 text-sm text-white/60">{t('suscripcion.sinRegistro')}</p>
+            <p className="mt-4 text-sm text-text-2">{t('suscripcion.sinRegistro')}</p>
           )}
 
           {myAgent && myAgent.subscriptionStatus !== 'ACTIVE' ? (
@@ -94,17 +94,17 @@ export default function SuscripcionTab({
   return (
     <section className="glass-card rounded-[1.8rem] p-4 fade-up sm:p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white">{t('suscripcion.title.admin')}</h2>
-        <p className="text-sm text-white/60">{t('suscripcion.planShort')}</p>
+        <h2 className="text-xl font-bold text-text">{t('suscripcion.title.admin')}</h2>
+        <p className="text-sm text-text-2">{t('suscripcion.planShort')}</p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {agents.map((agent) => (
           <article
             key={agent.id}
-            className="rounded-2xl border border-white/10 bg-white/5 p-4 transition-transform duration-200 hover:-translate-y-0.5"
+            className="rounded-2xl border border-line bg-surface-2 p-4 transition-transform duration-200 hover:-translate-y-0.5"
           >
-            <p className="text-sm font-semibold text-white">
+            <p className="text-sm font-semibold text-text">
               {agent.fullName}
               {isAgentVerified(agent) ? (
                 <span className="ml-1.5 inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-500/10 px-1.5 py-0.5 align-middle text-[10px] font-semibold text-emerald-300">
@@ -112,14 +112,14 @@ export default function SuscripcionTab({
                 </span>
               ) : null}
             </p>
-            <p className="text-xs text-white/60">
+            <p className="text-xs text-text-2">
               {agent.company ?? t('suscripcion.sinEmpresa')} | {agent.phone}
             </p>
-            <p className="mt-2 text-xs text-white/50">
+            <p className="mt-2 text-xs text-text-2">
               {t('suscripcion.zonas')} {agent.zones.join(', ') || t('suscripcion.noDefinidas')}
             </p>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <span className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-xs font-semibold text-white/80">
+              <span className="rounded-full border border-line-strong bg-surface-2 px-2 py-1 text-xs font-semibold text-text">
                 {tSubscriptionStatus(agent.subscriptionStatus)}
               </span>
               {agent.subscriptionStatus !== 'ACTIVE' ? (

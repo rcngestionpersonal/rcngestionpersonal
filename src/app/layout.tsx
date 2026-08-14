@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { ThemeProvider } from "next-themes";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -44,8 +45,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
-      <body className={`${plusJakartaSans.variable} ${plusJakartaSans.className}`}>{children}</body>
+    <html lang="es" suppressHydrationWarning>
+      <body className={`${plusJakartaSans.variable} ${plusJakartaSans.className}`}>
+        <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem storageKey="redinmo-theme">
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

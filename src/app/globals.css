@@ -2,23 +2,106 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Arquitectura de tokens de color (tema claro/oscuro).
+   :root = tema oscuro (identidad visual actual, valor por defecto y fallback
+   antes de que next-themes aplique el atributo). [data-theme="light"] pisa
+   cada variable. Ningun componente debe volver a declarar un color literal:
+   toda la diferencia entre temas vive aqui. */
 :root {
-	--bg-base: #0d0b18;
-	--bg-panel: #171429;
-	--ink: #f0f1f7;
-	--ink-muted: #9296b0;
-	--ink-faint: #62667f;
-	--violet: #b7a5ff;
-	--violet-strong: #8b5cf6;
-	--violet-deep: #6d28d9;
-	--violet-border: rgba(167, 139, 250, 0.42);
-	--violet-dim: rgba(167, 139, 250, 0.13);
-	/* Teal se conserva solo como acento deliberado del "momento match" (badge de
-	   match, palabra "match", chips de score en Matches) - ya no es el color
-	   primario de la marca. */
-	--teal: #2dd4bf;
-	--input-bg: #14111f;
-	--input-border: rgba(255, 255, 255, 0.08);
+	--bg: #0a0812;
+	--bg-alt: #0f0b1c;
+	--surface: #171130;
+	--surface-2: #1e1740;
+	--input-bg: #100c22;
+
+	--line: rgba(183, 165, 255, 0.13);
+	--line-strong: rgba(183, 165, 255, 0.24);
+
+	--text: #f3f1fa;
+	--text-2: #a9a1cd;
+	--text-3: #736c96;
+
+	--brand: #b7a5ff;
+	--brand-dim: rgba(167, 139, 250, 0.13);
+	--brand-line: rgba(167, 139, 250, 0.34);
+	--brand-contrast: #120c22;
+
+	--accent: #2dd4bf;
+	--accent-dim: rgba(45, 212, 191, 0.1);
+	--accent-line: rgba(45, 212, 191, 0.32);
+	--accent-contrast: #04201c;
+
+	--grad: linear-gradient(100deg, #c3aeff, #6ee3d2);
+	--grad-contrast: #120c22;
+
+	--danger: #ff9d9d;
+	--danger-dim: rgba(255, 130, 130, 0.07);
+
+	--shadow-sm: none;
+	--shadow-md: 0 12px 30px rgba(0, 0, 0, 0.42);
+
+	--dot-color: rgba(255, 255, 255, 0.5);
+	--dot-opacity: 0.12;
+	--glow-brand: rgba(139, 92, 246, 0.22);
+	--glow-accent: rgba(45, 212, 191, 0.11);
+	--glow-blur: 90px;
+	/* Titulares con texto en degradado (background-clip:text) - en oscuro va
+	   casi blanco a violeta claro; en claro necesita tonos oscuros para leerse
+	   sobre fondo blanco (Login h1/h2). */
+	--heading-grad: linear-gradient(180deg, #f7f5ff, #c8bfeb);
+	/* Glow pulsante del badge de match (Login .mbadge / Parte 3.10). */
+	--mbadge-glow-1: rgba(195, 174, 255, 0.55);
+	--mbadge-glow-2: rgba(110, 227, 210, 0.3);
+	--mbadge-glow-3: rgba(212, 196, 255, 0.85);
+	--mbadge-glow-4: rgba(110, 227, 210, 0.55);
+}
+
+[data-theme='light'] {
+	--bg: #faf9fd;
+	--bg-alt: #f4f2fa;
+	--surface: #ffffff;
+	--surface-2: #f4f2fa;
+	--input-bg: #ffffff;
+
+	--line: #e6e1f2;
+	--line-strong: #d5cdea;
+
+	--text: #1a1330;
+	--text-2: #635a80;
+	--text-3: #8b83a6;
+
+	--brand: #6d4aff;
+	--brand-dim: #efeaff;
+	--brand-line: #c9b8ff;
+	--brand-contrast: #ffffff;
+
+	--accent: #0d9488;
+	--accent-dim: #e0f5f2;
+	--accent-line: #8fd8d0;
+	--accent-contrast: #ffffff;
+
+	--grad: linear-gradient(100deg, #7c5cff, #0fb5a3);
+	--grad-contrast: #ffffff;
+
+	--danger: #d92d20;
+	--danger-dim: #fef1f0;
+
+	--shadow-sm: 0 1px 3px rgba(26, 19, 48, 0.06);
+	--shadow-md: 0 1px 3px rgba(26, 19, 48, 0.06), 0 8px 24px rgba(26, 19, 48, 0.04);
+
+	/* Punteado violeta tenue en vez de blanco (ensuciaria sobre fondo claro). */
+	--dot-color: rgba(109, 74, 255, 0.08);
+	--dot-opacity: 1;
+	/* Glow de esquina a mitad de intensidad y mas difuminado que en oscuro. */
+	--glow-brand: rgba(139, 92, 246, 0.11);
+	--glow-accent: rgba(45, 212, 191, 0.055);
+	--glow-blur: 130px;
+	--heading-grad: linear-gradient(180deg, #4a3d78, #1a1330);
+	/* Glow del badge de match a intensidad reducida un 40% (Parte 3.10). */
+	--mbadge-glow-1: rgba(195, 174, 255, 0.33);
+	--mbadge-glow-2: rgba(110, 227, 210, 0.18);
+	--mbadge-glow-3: rgba(212, 196, 255, 0.51);
+	--mbadge-glow-4: rgba(110, 227, 210, 0.33);
 }
 
 * {
@@ -31,8 +114,25 @@ body {
 }
 
 body {
-	color: var(--ink);
-	background: var(--bg-base);
+	color: var(--text);
+	background: var(--bg);
+}
+
+/* Transicion de tema: solo color/fondo/borde, nunca layout. */
+*,
+*::before,
+*::after {
+	transition-property: background-color, color, border-color;
+	transition-duration: 200ms;
+	transition-timing-function: ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		transition-duration: 0ms;
+	}
 }
 
 .grain-overlay {
@@ -44,8 +144,8 @@ body {
 	position: absolute;
 	inset: 0;
 	pointer-events: none;
-	opacity: 0.12;
-	background-image: radial-gradient(rgba(255, 255, 255, 0.5) 0.7px, transparent 0.7px);
+	opacity: var(--dot-opacity);
+	background-image: radial-gradient(var(--dot-color) 0.7px, transparent 0.7px);
 	background-size: 4px 4px;
 }
 
@@ -65,8 +165,8 @@ body {
 	inset: 0;
 	z-index: -2;
 	pointer-events: none;
-	opacity: 0.12;
-	background-image: radial-gradient(rgba(255, 255, 255, 0.5) 0.7px, transparent 0.7px);
+	opacity: var(--dot-opacity);
+	background-image: radial-gradient(var(--dot-color) 0.7px, transparent 0.7px);
 	background-size: 4px 4px;
 }
 
@@ -80,8 +180,8 @@ body {
 	width: 480px;
 	height: 480px;
 	border-radius: 9999px;
-	background: rgba(139, 92, 246, 0.22);
-	filter: blur(90px);
+	background: var(--glow-brand);
+	filter: blur(var(--glow-blur));
 }
 
 .fade-up {
@@ -94,12 +194,12 @@ body {
 }
 
 .gradient-text {
-	color: var(--ink);
+	color: var(--text);
 }
 
 .gradient-btn {
-	background: linear-gradient(135deg, var(--violet-strong), var(--violet-deep));
-	color: #ffffff;
+	background: var(--grad);
+	color: var(--grad-contrast);
 }
 
 .gradient-btn:hover {

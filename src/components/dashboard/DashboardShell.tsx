@@ -4,6 +4,7 @@ import { useState, type ReactNode, type SVGProps } from 'react';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import { AvatarInitials } from './CardKit';
 import { IconClipboard, IconGrid, IconHouse, IconInvite, IconPodium, IconStar, IconSubscription, IconTarget } from './icons';
+import ThemeSwitch from './ThemeSwitch';
 import type { DashboardTab } from './types';
 
 // Invitar (agora "Invita a un Colega") va primero para agentes: es la accion
@@ -57,11 +58,11 @@ function tabLabelKey(tab: DashboardTab, isAdmin: boolean): string {
 function LanguageSwitch() {
   const { lang, setLang, t } = useLanguage();
   return (
-    <div className="flex items-center gap-1 rounded-full border border-white/15 bg-white/5 p-1 text-xs font-semibold">
+    <div className="flex items-center gap-1 rounded-full border border-line bg-surface-2 p-1 text-xs font-semibold">
       <button
         onClick={() => setLang('es')}
         className={`rounded-full px-2.5 py-1 transition-all duration-200 ${
-          lang === 'es' ? 'gradient-btn text-white shadow-sm' : 'text-white/60 hover:text-white'
+          lang === 'es' ? 'gradient-btn text-grad-contrast shadow-sm' : 'text-text-2 hover:text-text'
         }`}
         aria-label={t('lang.es')}
       >
@@ -70,7 +71,7 @@ function LanguageSwitch() {
       <button
         onClick={() => setLang('en')}
         className={`rounded-full px-2.5 py-1 transition-all duration-200 ${
-          lang === 'en' ? 'gradient-btn text-white shadow-sm' : 'text-white/60 hover:text-white'
+          lang === 'en' ? 'gradient-btn text-grad-contrast shadow-sm' : 'text-text-2 hover:text-text'
         }`}
         aria-label={t('lang.en')}
       >
@@ -112,7 +113,7 @@ export default function DashboardShell({
     <main className="violet-ambient-bg min-h-screen px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
       <div className="mx-auto flex max-w-7xl gap-6">
         <aside className="hidden w-60 shrink-0 lg:block">
-          <div className="sticky top-8 space-y-1 rounded-3xl border border-white/10 bg-[#0d0b18] p-3 shadow-[0_8px_32px_rgba(0,0,0,0.45)]">
+          <div className="sticky top-8 space-y-1 rounded-3xl border border-line bg-bg-alt p-3 shadow-md">
             <p className="gradient-text px-3 py-2 text-xs font-bold uppercase tracking-[0.2em]">{t('brand.name')}</p>
             {tabs.map((tab) => {
               const Icon = TAB_ICONS[tab];
@@ -124,10 +125,10 @@ export default function DashboardShell({
                   onClick={() => onTabChange(tab)}
                   className={`group flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left text-sm font-semibold transition-all duration-200 ease-out ${
                     isActive
-                      ? 'gradient-btn translate-x-0.5 shadow-[0_6px_18px_rgba(139,92,246,0.35)]'
+                      ? 'gradient-btn translate-x-0.5 text-grad-contrast shadow-md'
                       : isInvitar
-                        ? 'border border-[rgba(45,212,191,0.3)] bg-[rgba(45,212,191,0.08)] text-teal-200 hover:translate-x-0.5 hover:bg-[rgba(45,212,191,0.14)]'
-                        : 'text-white/60 hover:translate-x-0.5 hover:bg-white/5 hover:text-white'
+                        ? 'border border-accent-line bg-accent-dim text-accent hover:translate-x-0.5 hover:brightness-125'
+                        : 'text-text-2 hover:translate-x-0.5 hover:bg-surface-2 hover:text-text'
                   }`}
                 >
                   <Icon
@@ -136,7 +137,7 @@ export default function DashboardShell({
                     }`}
                   />
                   <span className="truncate">{t(tabLabelKey(tab, isAdmin))}</span>
-                  {isInvitar && !isActive ? <span aria-hidden="true" className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-[#2dd4bf]" /> : null}
+                  {isInvitar && !isActive ? <span aria-hidden="true" className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-accent" /> : null}
                 </button>
               );
             })}
@@ -144,17 +145,17 @@ export default function DashboardShell({
         </aside>
 
         <div className="min-w-0 flex-1 space-y-6">
-          <section className="fade-up sticky top-2 z-30 rounded-2xl border border-white/10 bg-[#0d0b18]/95 px-4 py-3 shadow-[0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:rounded-3xl sm:px-5">
-            <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-white sm:gap-3">
+          <section className="fade-up sticky top-2 z-30 rounded-2xl border border-line bg-bg-alt/95 px-4 py-3 shadow-md backdrop-blur-xl sm:rounded-3xl sm:px-5">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-text sm:gap-3">
               <div className="flex min-w-0 items-center gap-2 min-[360px]:gap-3">
                 {!isAdmin && photoUrl ? (
                   <AvatarInitials name={displayName} size={28} colorHex="#2dd4bf" photoUrl={photoUrl} ring />
                 ) : (
-                  <span className="gradient-btn rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-white">
+                  <span className="gradient-btn rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-grad-contrast">
                     {isAdmin ? t('shell.role.admin') : t('shell.role.agent')}
                   </span>
                 )}
-                <span className="truncate font-semibold text-white/85">
+                <span className="truncate font-semibold text-text-2">
                   {displayName}
                   {isVerified ? (
                     <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-0.5 align-middle text-[10px] font-semibold text-emerald-300">
@@ -165,10 +166,11 @@ export default function DashboardShell({
               </div>
 
               <div className="hidden items-center gap-2 lg:flex">
+                <ThemeSwitch isAdmin={isAdmin} />
                 <LanguageSwitch />
                 <button
                   onClick={onLogout}
-                  className="inline-flex h-10 items-center rounded-full border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 transition-all duration-200 hover:scale-[1.03] hover:bg-white/10"
+                  className="inline-flex h-10 items-center rounded-full border border-line bg-surface-2 px-4 text-xs font-semibold text-text-2 transition-all duration-200 hover:scale-[1.03] hover:bg-surface"
                 >
                   {t('shell.logout')}
                 </button>
@@ -178,14 +180,14 @@ export default function DashboardShell({
                 onClick={() => setMobileMenuOpen((v) => !v)}
                 aria-expanded={mobileMenuOpen}
                 aria-label={t('shell.menu')}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/80 transition-colors duration-200 hover:bg-white/10 lg:hidden"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface-2 text-text-2 transition-colors duration-200 hover:bg-surface lg:hidden"
               >
                 {mobileMenuOpen ? <IconClose className="h-5 w-5" /> : <IconMenu className="h-5 w-5" />}
               </button>
             </div>
 
             {mobileMenuOpen ? (
-              <div className="fade-up mt-3 space-y-1 border-t border-white/10 pt-3 lg:hidden">
+              <div className="fade-up mt-3 space-y-3 border-t border-line pt-3 lg:hidden">
                 {tabs.map((tab) => {
                   const Icon = TAB_ICONS[tab];
                   const isActive = activeTab === tab;
@@ -196,26 +198,29 @@ export default function DashboardShell({
                       onClick={() => selectTab(tab)}
                       className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors duration-150 ${
                         isActive
-                          ? 'bg-violet-400/15 text-violet-300'
+                          ? 'bg-brand-dim text-brand'
                           : isInvitar
-                            ? 'border border-[rgba(45,212,191,0.3)] bg-[rgba(45,212,191,0.08)] text-teal-200'
-                            : 'text-white/70 hover:bg-white/5 hover:text-white'
+                            ? 'border border-accent-line bg-accent-dim text-accent'
+                            : 'text-text-2 hover:bg-surface-2 hover:text-text'
                       }`}
                     >
                       <Icon className="h-[18px] w-[18px] shrink-0" />
                       <span className="truncate">{t(tabLabelKey(tab, isAdmin))}</span>
-                      {isInvitar && !isActive ? <span aria-hidden="true" className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-[#2dd4bf]" /> : null}
+                      {isInvitar && !isActive ? <span aria-hidden="true" className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-accent" /> : null}
                     </button>
                   );
                 })}
-                <div className="flex items-center justify-between gap-2 pt-2">
-                  <LanguageSwitch />
-                  <button
-                    onClick={onLogout}
-                    className="inline-flex h-10 items-center rounded-full border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 transition-all duration-200 hover:bg-white/10"
-                  >
-                    {t('shell.logout')}
-                  </button>
+                <div className="space-y-2 border-t border-line pt-3">
+                  <ThemeSwitch isAdmin={isAdmin} showLabel />
+                  <div className="flex items-center justify-between gap-2">
+                    <LanguageSwitch />
+                    <button
+                      onClick={onLogout}
+                      className="inline-flex h-10 items-center rounded-full border border-line bg-surface-2 px-4 text-xs font-semibold text-text-2 transition-all duration-200 hover:bg-surface"
+                    >
+                      {t('shell.logout')}
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : null}

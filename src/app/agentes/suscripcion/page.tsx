@@ -64,22 +64,22 @@ function SuscripcionOnboardingContent() {
   }
 
   if (loading || !agent) {
-    return <main className="min-h-screen bg-[#0d0b18]" />;
+    return <main className="min-h-screen bg-bg" />;
   }
 
   const days = daysRemaining(agent.trialEndsAt);
 
   return (
-    <main className="violet-ambient-bg min-h-screen px-4 py-10 text-white sm:py-16">
+    <main className="violet-ambient-bg min-h-screen px-4 py-10 text-text sm:py-16">
       <div className="mx-auto max-w-md">
-        <section className="grain-overlay relative mb-6 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+        <section className="grain-overlay relative mb-6 overflow-hidden rounded-3xl border border-line bg-surface p-6 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl">
           <div className="absolute -right-10 top-0 h-40 w-40 rounded-full bg-violet-600/25 blur-2xl" />
           <div className="relative z-10 space-y-2">
             <p className="inline-flex rounded-full border border-violet-400/40 bg-violet-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-violet-200">
               Paso 2 de 2
             </p>
             <h1 className="gradient-text text-2xl font-bold leading-tight sm:text-3xl">Activa tu suscripción</h1>
-            <p className="max-w-xl text-sm text-white/70">
+            <p className="max-w-xl text-sm text-text-2">
               {agent.subscriptionStatus === 'ACTIVE'
                 ? 'Tu suscripción ya está activa.'
                 : `Tu prueba gratuita de ${TRIAL_DAYS} días está activa${days > 0 ? ` (te quedan ${days} día${days === 1 ? '' : 's'})` : ''}. Suscríbete ahora o continúa disfrutando tu trial.`}
@@ -94,7 +94,7 @@ function SuscripcionOnboardingContent() {
 
           <button
             onClick={goToDashboard}
-            className="mt-4 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white/80 transition hover:bg-white/10"
+            className="mt-4 w-full rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-sm font-semibold text-text transition hover:bg-surface-2"
           >
             {agent.subscriptionStatus === 'ACTIVE' ? 'Ir a mi panel →' : 'Continuar con mi prueba gratuita →'}
           </button>

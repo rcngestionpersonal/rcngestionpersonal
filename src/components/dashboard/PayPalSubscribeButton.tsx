@@ -63,7 +63,7 @@ export default function PayPalSubscribeButton({ onSuccess }: { onSuccess: () => 
   if (!PAYPAL_CLIENT_ID || !PAYPAL_PLAN_ID) return null;
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+    <div className="rounded-2xl border border-line bg-surface p-5">
       <Script
         src={`https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&vault=true&intent=subscription`}
         strategy="lazyOnload"
@@ -71,9 +71,9 @@ export default function PayPalSubscribeButton({ onSuccess }: { onSuccess: () => 
       />
       <div className="flex items-center gap-2">
         <span className="text-lg">🔒</span>
-        <p className="text-sm font-semibold text-white">{t('paypal.tituloSeguro')}</p>
+        <p className="text-sm font-semibold text-text">{t('paypal.tituloSeguro')}</p>
       </div>
-      <p className="mt-1 text-xs text-[#9296b0]">{t('paypal.detalle')}</p>
+      <p className="mt-1 text-xs text-text-2">{t('paypal.detalle')}</p>
 
       {status === 'success' ? (
         <p className="mt-4 rounded-xl bg-violet-400/10 px-3 py-2.5 text-sm font-semibold text-violet-300">
@@ -83,7 +83,7 @@ export default function PayPalSubscribeButton({ onSuccess }: { onSuccess: () => 
         <div className="mt-4 max-w-xs" ref={containerRef} />
       )}
 
-      {status === 'processing' ? <p className="mt-2 text-xs text-[#9296b0]">{t('paypal.confirmando')}</p> : null}
+      {status === 'processing' ? <p className="mt-2 text-xs text-text-2">{t('paypal.confirmando')}</p> : null}
       {status === 'error' ? <p className="mt-2 text-xs text-pink-300">{t('paypal.error')}</p> : null}
 
       <p className="mt-3 text-[10px] text-[#7d8099]">{t('paypal.cancelacion')}</p>

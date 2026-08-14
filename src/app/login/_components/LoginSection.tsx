@@ -86,11 +86,11 @@ function LoginForm() {
             </p>
             <div className={styles.trustRow}>
               <span className={styles.trustChip}>
-                <ShieldCheck className="h-3 w-3" style={{ color: 'var(--teal)' }} strokeWidth={2} />
+                <ShieldCheck className="h-3 w-3" style={{ color: 'var(--accent)' }} strokeWidth={2} />
                 Agentes Verificados
               </span>
               <span className={styles.trustChip}>
-                <Lock className="h-3 w-3" style={{ color: 'var(--teal)' }} strokeWidth={2} />
+                <Lock className="h-3 w-3" style={{ color: 'var(--accent)' }} strokeWidth={2} />
                 Datos Protegidos · LOPDP
               </span>
             </div>

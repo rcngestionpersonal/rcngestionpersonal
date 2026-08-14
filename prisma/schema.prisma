@@ -69,6 +69,12 @@ enum ListingStatus {
   INACTIVE
 }
 
+enum ThemePreference {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
 model Agent {
   id                    String             @id @default(cuid())
   fullName              String
@@ -105,6 +111,9 @@ model Agent {
   specializationZones   String[]           @default([])
   carnetMessage         String?
   carnetSlug            String?            @unique
+  // Preferencia de tema claro/oscuro/automatico - localStorage es el respaldo
+  // inmediato (evita parpadeo), esto es la fuente de verdad multi-dispositivo.
+  themePreference       ThemePreference    @default(DARK)
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
   matches               AgentMatch[]

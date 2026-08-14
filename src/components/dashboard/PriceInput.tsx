@@ -23,16 +23,16 @@ export function PriceInput({
   return (
     <div>
       <div className="relative">
-        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-white/40">$</span>
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-3">$</span>
         <input
-          className="w-full rounded-xl border border-white/15 bg-white/5 py-2.5 pl-6 pr-3 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400"
+          className="w-full rounded-xl border border-line-strong bg-surface-2 py-2.5 pl-6 pr-3 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400"
           value={formatPriceDigits(value)}
           onChange={(e) => onChange(e.target.value.replace(/\D/g, ''))}
           inputMode="numeric"
           placeholder={placeholder}
         />
       </div>
-      {helperText ? <p className="mt-1 text-[11px] text-white/40">{helperText}</p> : null}
+      {helperText ? <p className="mt-1 text-[11px] text-text-3">{helperText}</p> : null}
     </div>
   );
 }

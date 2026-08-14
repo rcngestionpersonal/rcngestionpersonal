@@ -35,8 +35,8 @@ function agentName(agentId: string | undefined, agents: AgentItem[]): string | u
 
 function pillClasses(active: boolean): string {
   return active
-    ? 'gradient-btn border-transparent text-white'
-    : 'border-white/15 text-white/60 hover:bg-white/10';
+    ? 'gradient-btn border-transparent text-grad-contrast'
+    : 'border-line-strong text-text-2 hover:bg-surface-2';
 }
 
 function PlaceholderIcon({ propertyType }: { propertyType: string }) {
@@ -228,20 +228,20 @@ export default function InmueblesTab({
             <div>
               <div className="grid gap-3 md:grid-cols-2">
                 <input
-                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400"
+                  className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder={t('inmuebles.form.titulo.placeholder')}
                 />
                 <PriceInput value={price} onChange={setPrice} placeholder={t('inmuebles.form.precio.placeholder')} helperText={t('common.precioAyuda')} />
                 <input
-                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400"
+                  className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   placeholder={t('inmuebles.form.ciudad.placeholder')}
                 />
                 <input
-                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400"
+                  className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400"
                   value={zone}
                   onChange={(e) => setZone(e.target.value)}
                   placeholder={t('inmuebles.form.zona.placeholder')}
@@ -275,7 +275,7 @@ export default function InmueblesTab({
               <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/5 p-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-emerald-300">{t('inmuebles.fotoPortada.label')}</p>
                 <div className="mt-2 flex items-center gap-3">
-                  <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[11px] border border-white/10 bg-gradient-to-br from-[#1b2033] to-[#101421]">
+                  <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[11px] border border-line bg-surface-2">
                     {pendingPhotoPreview || (editingId && listings.find((l) => l.id === editingId)?.coverPhotoUrl) ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -286,7 +286,7 @@ export default function InmueblesTab({
                     ) : (
                       <>
                         <PlaceholderIcon propertyType={propertyType} />
-                        <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-emerald-400/40 bg-[#0b0f1a] text-emerald-300">
+                        <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-emerald-400/40 bg-bg text-emerald-300">
                           <Upload className="h-3 w-3" strokeWidth={2.2} />
                         </span>
                       </>
@@ -314,10 +314,10 @@ export default function InmueblesTab({
                 <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-violet-300">
                   <Lock className="h-3 w-3 shrink-0" strokeWidth={2} /> {t('inmuebles.form.datosCliente.titulo')}
                 </p>
-                <p className="mt-1 text-xs text-white/50">{t('inmuebles.form.datosCliente.privacidad')}</p>
+                <p className="mt-1 text-xs text-text-2">{t('inmuebles.form.datosCliente.privacidad')}</p>
                 <div className="mt-2 grid gap-2 md:grid-cols-2">
                   <input
-                    className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400"
+                    className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400"
                     value={ownerName}
                     onChange={(e) => setOwnerName(e.target.value)}
                     placeholder={t(
@@ -325,7 +325,7 @@ export default function InmueblesTab({
                     )}
                   />
                   <input
-                    className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400"
+                    className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400"
                     value={ownerPhone}
                     onChange={(e) => setOwnerPhone(e.target.value)}
                     placeholder={t('inmuebles.form.telefonoCliente.placeholder')}
@@ -335,34 +335,34 @@ export default function InmueblesTab({
 
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-white/50">
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-text-2">
                     {t('inmuebles.form.quienGestiona')}
                   </label>
                   {isAdmin ? (
                     <select
-                      className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none focus:border-violet-400"
+                      className="w-full rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none focus:border-violet-400"
                       value={managingAgentId}
                       onChange={(e) => setManagingAgentId(e.target.value)}
                     >
-                      <option className="bg-[#0b0f1a]" value="">{t('inmuebles.form.seleccionaAgente')}</option>
+                      <option className="bg-bg" value="">{t('inmuebles.form.seleccionaAgente')}</option>
                       {agents.map((a) => (
-                        <option key={a.id} className="bg-[#0b0f1a]" value={a.id}>
+                        <option key={a.id} className="bg-bg" value={a.id}>
                           {a.fullName}
                         </option>
                       ))}
                     </select>
                   ) : (
-                    <div className="flex h-[42px] items-center rounded-xl border border-white/10 bg-white/[0.03] px-3 text-sm text-white/70">
+                    <div className="flex h-[42px] items-center rounded-xl border border-line bg-surface px-3 text-sm text-text-2">
                       {t('inmuebles.form.yoDirectamente')}
                     </div>
                   )}
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-white/50">
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-text-2">
                     {t('inmuebles.form.comision')}
                   </label>
                   <input
-                    className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none focus:border-violet-400"
+                    className="w-full rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none focus:border-violet-400"
                     value={commissionSharePercent}
                     type="number"
                     min={0}
@@ -376,14 +376,14 @@ export default function InmueblesTab({
                 <button
                   onClick={submit}
                   disabled={creating || !title.trim() || !city.trim() || !price.trim()}
-                  className="gradient-btn flex-1 rounded-full px-4 py-2.5 text-sm font-semibold text-white transition-transform duration-200 hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 md:flex-none"
+                  className="gradient-btn flex-1 rounded-full px-4 py-2.5 text-sm font-semibold text-grad-contrast transition-transform duration-200 hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 md:flex-none"
                 >
                   {creating ? t('inmuebles.form.guardando') : editingId ? t('inmuebles.guardarCambios') : t('inmuebles.form.submit')}
                 </button>
                 {editingId ? (
                   <button
                     onClick={cancelEdit}
-                    className="rounded-full border border-white/15 px-4 py-2.5 text-sm font-semibold text-white/70 transition-colors duration-200 hover:bg-white/10"
+                    className="rounded-full border border-line-strong px-4 py-2.5 text-sm font-semibold text-text-2 transition-colors duration-200 hover:bg-surface-2"
                   >
                     {t('inmuebles.cancelar')}
                   </button>
@@ -393,13 +393,13 @@ export default function InmueblesTab({
         </RegisterAccordion>
       ) : !isAdmin ? (
         <section className="glass-card rounded-[1.8rem] p-4 fade-up sm:p-6">
-          <h2 className="text-lg font-bold text-white">{t('inmuebles.locked.title')}</h2>
-          <p className="mt-1 text-sm text-white/60">{t('inmuebles.locked.detail')}</p>
+          <h2 className="text-lg font-bold text-text">{t('inmuebles.locked.title')}</h2>
+          <p className="mt-1 text-sm text-text-2">{t('inmuebles.locked.detail')}</p>
         </section>
       ) : null}
 
       <div className="grid gap-[18px] xl:grid-cols-2">
-        {visibleListings.length === 0 && <p className="text-sm text-white/60">{t('inmuebles.list.empty')}</p>}
+        {visibleListings.length === 0 && <p className="text-sm text-text-2">{t('inmuebles.list.empty')}</p>}
         {[...visibleListings]
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
           .map((listing) => {
@@ -421,24 +421,24 @@ export default function InmueblesTab({
                     <Chip tone="teal">{tOperation(listing.operationType)} · {tProperty(listing.propertyType)}</Chip>
                     <Chip tone="teal" uppercase={false}>&#9679; {tListingStatus(listing.status)}</Chip>
                   </div>
-                  <span className="shrink-0 text-[12px] font-medium text-[#62667f]">{dateLabel}</span>
+                  <span className="shrink-0 text-[12px] font-medium text-text-3">{dateLabel}</span>
                 </div>
 
                 {/* Fila 2 */}
                 <div className="mt-3 flex min-w-0 items-start gap-[13px]">
-                  <label className="group relative flex h-[52px] w-[52px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-[11px] border border-white/10 bg-gradient-to-br from-[#1b2033] to-[#101421] text-[#2dd4bf]">
+                  <label className="group relative flex h-[52px] w-[52px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-[11px] border border-line bg-surface-2 text-[#2dd4bf]">
                     {listing.coverPhotoUrl ? (
                       <Image src={listing.coverPhotoUrl} alt={listing.title} fill sizes="52px" className="object-cover" />
                     ) : (
                       <>
                         <PlaceholderIcon propertyType={listing.propertyType} />
                         {canEdit ? (
-                          <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-emerald-400/40 bg-[#0b0f1a] text-emerald-300">
+                          <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-emerald-400/40 bg-bg text-emerald-300">
                             <Upload className="h-3 w-3" strokeWidth={2.2} />
                           </span>
                         ) : null}
                         {canEdit ? (
-                          <span className="absolute inset-0 flex items-center justify-center bg-black/70 text-center text-[9px] font-semibold text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                          <span className="absolute inset-0 flex items-center justify-center bg-black/70 text-center text-[9px] font-semibold text-text opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                             {isUploading ? t('inmuebles.fotoPortada.subiendo') : t('inmuebles.fotoPortada.agregar')}
                           </span>
                         ) : null}
@@ -461,10 +461,10 @@ export default function InmueblesTab({
                     ) : null}
                   </label>
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-[16px] font-bold leading-tight text-[#f0f1f7]">
+                    <h3 className="truncate text-[16px] font-bold leading-tight text-text">
                       {abbreviatedTitle(listing.propertyType, listing.zone || listing.city, tProperty, lang)}
                     </h3>
-                    <p className="mt-0.5 truncate text-[12.5px] text-[#9296b0]">{zonaLine(listing)}</p>
+                    <p className="mt-0.5 truncate text-[12.5px] text-text-2">{zonaLine(listing)}</p>
                     <p className="mt-1 text-[17px] font-extrabold text-[#2dd4bf]">${listing.price.toLocaleString('en-US')}</p>
                   </div>
                 </div>
@@ -482,7 +482,7 @@ export default function InmueblesTab({
                             label: t('inmuebles.propietarioLabel'),
                             value: (
                               <span className="inline-flex items-center gap-1.5" title={t('common.visibleSoloParaTi')}>
-                                <Lock className="h-[11px] w-[11px] shrink-0 text-[#62667f]" strokeWidth={2.2} />
+                                <Lock className="h-[11px] w-[11px] shrink-0 text-text-3" strokeWidth={2.2} />
                                 {listing.ownerName ?? t('pedidos.sinNombre')}
                               </span>
                             ),
@@ -498,7 +498,7 @@ export default function InmueblesTab({
                   {listing.matches && listing.matches.length > 0 ? (
                     <>
                       <div className="mb-2 flex items-center gap-1.5">
-                        <span className="text-[10.5px] font-bold uppercase tracking-[0.07em] text-[#62667f]">{t('inmuebles.matchesDeEsteInmueble')}</span>
+                        <span className="text-[10.5px] font-bold uppercase tracking-[0.07em] text-text-3">{t('inmuebles.matchesDeEsteInmueble')}</span>
                         <span className="rounded-full bg-[rgba(45,212,191,0.12)] px-[7px] py-px text-[10.5px] font-semibold text-[#2dd4bf]">{listing.matches.length}</span>
                       </div>
                       <div className="space-y-2">
@@ -523,14 +523,14 @@ export default function InmueblesTab({
                       </div>
                     </>
                   ) : (
-                    <p className="text-[12.5px] text-[#62667f]">{t('common.aunSinMatches')}</p>
+                    <p className="text-[12.5px] text-text-3">{t('common.aunSinMatches')}</p>
                   )}
                 </div>
 
                 {/* Fila 5 */}
                 {canEdit ? (
                   <div className="mt-3.5 flex items-end justify-between gap-3 border-t border-[rgba(255,255,255,0.07)] pt-3">
-                    <p className="min-w-0 text-xs leading-relaxed text-[#62667f]">
+                    <p className="min-w-0 text-xs leading-relaxed text-text-3">
                       {withinEditWindow
                         ? `${t('inmuebles.editableHastaPrefix')} ${editDeadline.toLocaleString(lang === 'es' ? 'es-EC' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}.`
                         : t('common.editVencido24h')}

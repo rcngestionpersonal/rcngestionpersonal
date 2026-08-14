@@ -42,6 +42,7 @@ type AgentRecord = {
   subscriptionStatus: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'INACTIVE';
   paypalSubscriptionId?: string;
   paypalPayerId?: string;
+  themePreference: 'LIGHT' | 'DARK' | 'SYSTEM';
   createdAt: string;
   updatedAt: string;
 };
@@ -266,6 +267,7 @@ function seedDemoAgentsSync(store: Store): void {
       isActive: true,
       trialEndsAt,
       subscriptionStatus: 'TRIAL',
+      themePreference: 'DARK',
       createdAt,
       updatedAt: createdAt,
     });
@@ -401,6 +403,7 @@ export async function createAgent(input: {
     isActive: true,
     trialEndsAt,
     subscriptionStatus: 'TRIAL',
+    themePreference: 'DARK',
     createdAt,
     updatedAt: createdAt,
   };

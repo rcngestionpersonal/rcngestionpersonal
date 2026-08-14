@@ -29,8 +29,8 @@ import { MIN_SAMPLE_SIZE, QUITO_ZONES, sectorsForZone, zoneForCoordinates, zoneL
 import type { MapFilters } from '../CierresMapa';
 import type { ClosedDealItem } from '../types';
 
-const ClosedDealsMap = dynamic(() => import('../ClosedDealsMap'), { ssr: false, loading: () => <div className="h-64 w-full animate-pulse rounded-2xl bg-white/5 sm:h-80" /> });
-const CierresMapa = dynamic(() => import('../CierresMapa'), { ssr: false, loading: () => <div className="h-[420px] w-full animate-pulse rounded-2xl bg-white/5 sm:h-[560px]" /> });
+const ClosedDealsMap = dynamic(() => import('../ClosedDealsMap'), { ssr: false, loading: () => <div className="h-64 w-full animate-pulse rounded-2xl bg-surface-2 sm:h-80" /> });
+const CierresMapa = dynamic(() => import('../CierresMapa'), { ssr: false, loading: () => <div className="h-[420px] w-full animate-pulse rounded-2xl bg-surface-2 sm:h-[560px]" /> });
 
 export type NewClosedDealInput = {
   operationType: 'SALE' | 'RENT' | 'BOTH';
@@ -59,7 +59,7 @@ export type NewClosedDealInput = {
 };
 
 function pillClasses(active: boolean): string {
-  return active ? 'gradient-btn border-transparent text-white' : 'border-white/15 text-white/60 hover:bg-white/10';
+  return active ? 'gradient-btn border-transparent text-grad-contrast' : 'border-line-strong text-text-2 hover:bg-surface-2';
 }
 
 function sectionBKind(propertyType: string): 'CASA' | 'DEPTO_SUITE' | 'TERRENO' | 'LOCAL' {
@@ -419,8 +419,8 @@ export default function CierresTab({
   if (!canAccess) {
     return (
       <section className="glass-card rounded-[1.8rem] p-4 fade-up sm:p-6">
-        <h2 className="text-xl font-bold text-white">{t('nav.cierres')}</h2>
-        <p className="mt-2 text-sm text-white/60">{t('cierres.locked.detail')}</p>
+        <h2 className="text-xl font-bold text-text">{t('nav.cierres')}</h2>
+        <p className="mt-2 text-sm text-text-2">{t('cierres.locked.detail')}</p>
       </section>
     );
   }
@@ -432,24 +432,24 @@ export default function CierresTab({
 
       {/* Tarjeta intro */}
       <Card>
-        <h3 className="text-[18px] font-bold tracking-[-0.01em] text-[#f0f1f7]">{t('cierres.introTitulo1')}</h3>
-        <p className="mb-2 text-[15px] font-bold text-[#b7a5ff]">{t('cierres.introTitulo2')}</p>
-        <p className="mb-[13px] text-sm leading-[1.65] text-[#9296b0]">
+        <h3 className="text-[18px] font-bold tracking-[-0.01em] text-text">{t('cierres.introTitulo1')}</h3>
+        <p className="mb-2 text-[15px] font-bold text-brand">{t('cierres.introTitulo2')}</p>
+        <p className="mb-[13px] text-sm leading-[1.65] text-text-2">
           {t('cierres.intro.p1')}
-          <span className="font-semibold text-[#f0f1f7]">{t('cierres.intro.bold')}</span>
+          <span className="font-semibold text-text">{t('cierres.intro.bold')}</span>
           {t('cierres.intro.p2')}
         </p>
         <div className="flex flex-wrap gap-1.5">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.07)] px-[11px] py-[5px] text-[11.5px] font-semibold text-[#9296b0]">
-            <Lock className="h-[11px] w-[11px] shrink-0 text-[#b7a5ff]" strokeWidth={2.2} />
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.07)] px-[11px] py-[5px] text-[11.5px] font-semibold text-text-2">
+            <Lock className="h-[11px] w-[11px] shrink-0 text-brand" strokeWidth={2.2} />
             {t('cierres.chip.anonimo')}
           </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.07)] px-[11px] py-[5px] text-[11.5px] font-semibold text-[#9296b0]">
-            <Check className="h-[11px] w-[11px] shrink-0 text-[#b7a5ff]" strokeWidth={2.2} />
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.07)] px-[11px] py-[5px] text-[11.5px] font-semibold text-text-2">
+            <Check className="h-[11px] w-[11px] shrink-0 text-brand" strokeWidth={2.2} />
             {t('cierres.chip.datosAgregados')}
           </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.07)] px-[11px] py-[5px] text-[11.5px] font-semibold text-[#9296b0]">
-            <span className="shrink-0 text-[#b7a5ff]">&#10022;</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.07)] px-[11px] py-[5px] text-[11.5px] font-semibold text-text-2">
+            <span className="shrink-0 text-brand">&#10022;</span>
             {t('cierres.chip.sumaRanking')}
           </span>
         </div>
@@ -490,7 +490,7 @@ export default function CierresTab({
                   ))}
                 </div>
 
-                <p className="mb-1.5 mt-4 text-xs font-semibold uppercase tracking-[0.1em] text-white/50">{t('cierres.zonaQuito')}</p>
+                <p className="mb-1.5 mt-4 text-xs font-semibold uppercase tracking-[0.1em] text-text-2">{t('cierres.zonaQuito')}</p>
                 <div className="flex flex-wrap gap-2">
                   {QUITO_ZONES.map((zone) => (
                     <button
@@ -509,19 +509,19 @@ export default function CierresTab({
                 {zoneKey ? (
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
                     <select
-                      className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none focus:border-violet-400"
+                      className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none focus:border-violet-400"
                       value={sector}
                       onChange={(e) => setSector(e.target.value)}
                     >
-                      <option className="bg-[#0b0f1a]" value="">{t('cierres.seleccionaSector')}</option>
+                      <option className="bg-bg" value="">{t('cierres.seleccionaSector')}</option>
                       {sectorOptions.map((s) => (
-                        <option key={s} className="bg-[#0b0f1a]" value={s}>{s}</option>
+                        <option key={s} className="bg-bg" value={s}>{s}</option>
                       ))}
-                      <option className="bg-[#0b0f1a]" value="__otro__">{t('cierres.otroSector')}</option>
+                      <option className="bg-bg" value="__otro__">{t('cierres.otroSector')}</option>
                     </select>
                     {sector === '__otro__' ? (
                       <input
-                        className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400"
+                        className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400"
                         value={sectorOtro}
                         onChange={(e) => setSectorOtro(e.target.value)}
                         placeholder={t('cierres.otroSector.placeholder')}
@@ -531,15 +531,15 @@ export default function CierresTab({
                 ) : null}
 
                 <input
-                  className="mt-3 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400"
+                  className="mt-3 w-full rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400"
                   value={microzona}
                   onChange={(e) => setMicrozona(e.target.value)}
                   placeholder={t('cierres.microzona.placeholder')}
                 />
 
-                <p className="mb-1.5 mt-4 text-xs font-semibold uppercase tracking-[0.1em] text-white/50">
+                <p className="mb-1.5 mt-4 text-xs font-semibold uppercase tracking-[0.1em] text-text-2">
                   {t('cierres.antiguedad.label')}
-                  {kind === 'TERRENO' ? <span className="ml-1 normal-case text-white/30">({t('cierres.campoOpcional')})</span> : null}
+                  {kind === 'TERRENO' ? <span className="ml-1 normal-case text-text-3">({t('cierres.campoOpcional')})</span> : null}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {ANTIGUEDAD_OPTIONS.map((o) => (
@@ -549,9 +549,9 @@ export default function CierresTab({
                   ))}
                 </div>
 
-                <p className="mb-1.5 mt-4 text-xs font-semibold uppercase tracking-[0.1em] text-white/50">
+                <p className="mb-1.5 mt-4 text-xs font-semibold uppercase tracking-[0.1em] text-text-2">
                   {t('cierres.estado.label')}
-                  {kind === 'TERRENO' ? <span className="ml-1 normal-case text-white/30">({t('cierres.campoOpcional')})</span> : null}
+                  {kind === 'TERRENO' ? <span className="ml-1 normal-case text-text-3">({t('cierres.campoOpcional')})</span> : null}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {ESTADO_OPTIONS.map((o) => (
@@ -561,7 +561,7 @@ export default function CierresTab({
                   ))}
                 </div>
 
-                <p className="mb-1.5 mt-4 text-xs font-semibold uppercase tracking-[0.1em] text-white/50">{t('cierres.ubicacionMapa.label')}</p>
+                <p className="mb-1.5 mt-4 text-xs font-semibold uppercase tracking-[0.1em] text-text-2">{t('cierres.ubicacionMapa.label')}</p>
                 <ClosedDealsMap
                   points={[]}
                   pickable
@@ -575,11 +575,11 @@ export default function CierresTab({
                     }
                   }}
                 />
-                <p className="mt-1.5 text-[11px] text-white/35">{t('cierres.ubicacionMapa.privacidad')}</p>
+                <p className="mt-1.5 text-[11px] text-text-3">{t('cierres.ubicacionMapa.privacidad')}</p>
               </div>
 
               {/* Seccion B (condicional) */}
-              <div className="border-t border-white/10 pt-5">
+              <div className="border-t border-line pt-5">
                 <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-violet-300">{t('cierres.seccionB')}</p>
 
                 {kind === 'CASA' ? (
@@ -594,33 +594,33 @@ export default function CierresTab({
                     </div>
                     <div className="grid gap-3 md:grid-cols-2">
                       {esIndependiente ? (
-                        <input className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400" value={terrenoM2} type="number" min={0} onChange={(e) => setTerrenoM2(e.target.value)} placeholder={t('cierres.terrenoM2.placeholder')} />
+                        <input className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400" value={terrenoM2} type="number" min={0} onChange={(e) => setTerrenoM2(e.target.value)} placeholder={t('cierres.terrenoM2.placeholder')} />
                       ) : null}
-                      <input className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400" value={areaM2} type="number" min={0} onChange={(e) => setAreaM2(e.target.value)} placeholder={esIndependiente ? t('cierres.construccionM2.placeholder') : t('cierres.metrajeHabitable.placeholder')} />
+                      <input className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400" value={areaM2} type="number" min={0} onChange={(e) => setAreaM2(e.target.value)} placeholder={esIndependiente ? t('cierres.construccionM2.placeholder') : t('cierres.metrajeHabitable.placeholder')} />
                       {esIndependiente === false ? (
-                        <input className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400" value={alicuotaMensual} type="number" min={0} onChange={(e) => setAlicuotaMensual(e.target.value)} placeholder={t('cierres.alicuota.placeholder')} />
+                        <input className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400" value={alicuotaMensual} type="number" min={0} onChange={(e) => setAlicuotaMensual(e.target.value)} placeholder={t('cierres.alicuota.placeholder')} />
                       ) : null}
-                      <input className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400" value={plantas} type="number" min={0} onChange={(e) => setPlantas(e.target.value)} placeholder={t('cierres.plantas.placeholder')} />
-                      <input className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400" value={bedrooms} type="number" min={0} onChange={(e) => setBedrooms(e.target.value)} placeholder={t('cierres.form.habitaciones.placeholder')} />
-                      <input className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400" value={bathrooms} type="number" min={0} onChange={(e) => setBathrooms(e.target.value)} placeholder={t('cierres.form.banos.placeholder')} />
-                      <input className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400" value={parkingSpaces} type="number" min={0} onChange={(e) => setParkingSpaces(e.target.value)} placeholder={t('cierres.form.parqueaderos.placeholder')} />
+                      <input className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400" value={plantas} type="number" min={0} onChange={(e) => setPlantas(e.target.value)} placeholder={t('cierres.plantas.placeholder')} />
+                      <input className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400" value={bedrooms} type="number" min={0} onChange={(e) => setBedrooms(e.target.value)} placeholder={t('cierres.form.habitaciones.placeholder')} />
+                      <input className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400" value={bathrooms} type="number" min={0} onChange={(e) => setBathrooms(e.target.value)} placeholder={t('cierres.form.banos.placeholder')} />
+                      <input className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400" value={parkingSpaces} type="number" min={0} onChange={(e) => setParkingSpaces(e.target.value)} placeholder={t('cierres.form.parqueaderos.placeholder')} />
                     </div>
                   </div>
                 ) : null}
 
                 {kind === 'DEPTO_SUITE' ? (
                   <div className="grid gap-3 md:grid-cols-2">
-                    <input className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400" value={areaM2} type="number" min={0} onChange={(e) => setAreaM2(e.target.value)} placeholder={t('cierres.metrajeHabitable.placeholder')} />
-                    <input className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400" value={piso} type="number" min={0} onChange={(e) => setPiso(e.target.value)} placeholder={t('cierres.piso.placeholder')} />
-                    <input className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400" value={bedrooms} type="number" min={0} onChange={(e) => setBedrooms(e.target.value)} placeholder={t('cierres.form.habitaciones.placeholder')} />
-                    <input className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400" value={bathrooms} type="number" min={0} onChange={(e) => setBathrooms(e.target.value)} placeholder={t('cierres.form.banos.placeholder')} />
-                    <input className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400" value={parkingSpaces} type="number" min={0} onChange={(e) => setParkingSpaces(e.target.value)} placeholder={t('cierres.form.parqueaderos.placeholder')} />
-                    <input className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400" value={alicuotaMensual} type="number" min={0} onChange={(e) => setAlicuotaMensual(e.target.value)} placeholder={t('cierres.alicuota.placeholder')} />
-                    <label className="flex items-center gap-2 text-sm text-white/70">
+                    <input className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400" value={areaM2} type="number" min={0} onChange={(e) => setAreaM2(e.target.value)} placeholder={t('cierres.metrajeHabitable.placeholder')} />
+                    <input className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400" value={piso} type="number" min={0} onChange={(e) => setPiso(e.target.value)} placeholder={t('cierres.piso.placeholder')} />
+                    <input className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400" value={bedrooms} type="number" min={0} onChange={(e) => setBedrooms(e.target.value)} placeholder={t('cierres.form.habitaciones.placeholder')} />
+                    <input className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400" value={bathrooms} type="number" min={0} onChange={(e) => setBathrooms(e.target.value)} placeholder={t('cierres.form.banos.placeholder')} />
+                    <input className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400" value={parkingSpaces} type="number" min={0} onChange={(e) => setParkingSpaces(e.target.value)} placeholder={t('cierres.form.parqueaderos.placeholder')} />
+                    <input className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400" value={alicuotaMensual} type="number" min={0} onChange={(e) => setAlicuotaMensual(e.target.value)} placeholder={t('cierres.alicuota.placeholder')} />
+                    <label className="flex items-center gap-2 text-sm text-text-2">
                       <input type="checkbox" checked={tieneAscensor === true} onChange={(e) => setTieneAscensor(e.target.checked)} className="h-4 w-4 rounded" />
                       {t('cierres.tieneAscensor')}
                     </label>
-                    <label className="flex items-center gap-2 text-sm text-white/70">
+                    <label className="flex items-center gap-2 text-sm text-text-2">
                       <input type="checkbox" checked={tieneBodega === true} onChange={(e) => setTieneBodega(e.target.checked)} className="h-4 w-4 rounded" />
                       {t('cierres.tieneBodega')}
                     </label>
@@ -630,8 +630,8 @@ export default function CierresTab({
                 {kind === 'TERRENO' ? (
                   <div className="space-y-3">
                     <div className="grid gap-3 md:grid-cols-2">
-                      <input className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400" value={terrenoM2} type="number" min={0} onChange={(e) => setTerrenoM2(e.target.value)} placeholder={t('cierres.superficie.placeholder')} />
-                      <input className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400" value={frenteM} type="number" min={0} onChange={(e) => setFrenteM(e.target.value)} placeholder={t('cierres.frente.placeholder')} />
+                      <input className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400" value={terrenoM2} type="number" min={0} onChange={(e) => setTerrenoM2(e.target.value)} placeholder={t('cierres.superficie.placeholder')} />
+                      <input className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400" value={frenteM} type="number" min={0} onChange={(e) => setFrenteM(e.target.value)} placeholder={t('cierres.frente.placeholder')} />
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {USO_SUELO_OPTIONS.map((o) => (
@@ -641,11 +641,11 @@ export default function CierresTab({
                       ))}
                     </div>
                     <div className="flex flex-wrap gap-4">
-                      <label className="flex items-center gap-2 text-sm text-white/70">
+                      <label className="flex items-center gap-2 text-sm text-text-2">
                         <input type="checkbox" checked={urbanizadoConServicios === true} onChange={(e) => setUrbanizadoConServicios(e.target.checked)} className="h-4 w-4 rounded" />
                         {t('cierres.urbanizado')}
                       </label>
-                      <label className="flex items-center gap-2 text-sm text-white/70">
+                      <label className="flex items-center gap-2 text-sm text-text-2">
                         <input type="checkbox" checked={esEsquinero === true} onChange={(e) => setEsEsquinero(e.target.checked)} className="h-4 w-4 rounded" />
                         {t('cierres.esquinero')}
                       </label>
@@ -655,7 +655,7 @@ export default function CierresTab({
 
                 {kind === 'LOCAL' ? (
                   <div className="space-y-3">
-                    <input className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400 md:w-1/2" value={areaM2} type="number" min={0} onChange={(e) => setAreaM2(e.target.value)} placeholder={t('cierres.form.metraje.placeholder')} />
+                    <input className="w-full rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400 md:w-1/2" value={areaM2} type="number" min={0} onChange={(e) => setAreaM2(e.target.value)} placeholder={t('cierres.form.metraje.placeholder')} />
                     <div className="flex flex-wrap gap-2">
                       {UBICACION_COMERCIAL_OPTIONS.map((o) => (
                         <button key={o.value} onClick={() => setUbicacionComercial(o.value)} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${pillClasses(ubicacionComercial === o.value)}`}>
@@ -668,16 +668,16 @@ export default function CierresTab({
               </div>
 
               {/* Seccion C */}
-              <div className="border-t border-white/10 pt-5">
+              <div className="border-t border-line pt-5">
                 <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-violet-300">{t('cierres.seccionC')}</p>
                 <div className="grid gap-3 md:grid-cols-2">
                   <PriceInput value={publicationPrice} onChange={setPublicationPrice} placeholder={t('cierres.precioPublicacion.placeholder')} />
                   <PriceInput value={price} onChange={setPrice} placeholder={t('cierres.form.precio.placeholder')} helperText={t('common.precioAyuda')} />
                   <div>
-                    <label className="mb-1 block text-[11px] text-white/40">{t('cierres.fechaCierre.label')}</label>
+                    <label className="mb-1 block text-[11px] text-text-3">{t('cierres.fechaCierre.label')}</label>
                     <input
                       type="month"
-                      className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none focus:border-violet-400"
+                      className="w-full rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none focus:border-violet-400"
                       value={closedMonth}
                       max={isoToMonthYear(new Date().toISOString())}
                       onChange={(e) => setClosedMonth(e.target.value)}
@@ -685,7 +685,7 @@ export default function CierresTab({
                   </div>
                 </div>
 
-                <p className="mb-1.5 mt-4 text-xs font-semibold uppercase tracking-[0.1em] text-white/50">{t('cierres.tiempoMercado.label')}</p>
+                <p className="mb-1.5 mt-4 text-xs font-semibold uppercase tracking-[0.1em] text-text-2">{t('cierres.tiempoMercado.label')}</p>
                 <div className="flex flex-wrap gap-2">
                   {TIEMPO_MERCADO_OPTIONS.map((o) => (
                     <button key={o.value} onClick={() => setTimeOnMarket(o.value)} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${pillClasses(timeOnMarket === o.value)}`}>
@@ -694,7 +694,7 @@ export default function CierresTab({
                   ))}
                 </div>
 
-                <p className="mb-1.5 mt-4 text-xs font-semibold uppercase tracking-[0.1em] text-white/50">{t('cierres.formaPago.label')}</p>
+                <p className="mb-1.5 mt-4 text-xs font-semibold uppercase tracking-[0.1em] text-text-2">{t('cierres.formaPago.label')}</p>
                 <div className="flex flex-wrap gap-2">
                   {FORMA_PAGO_OPTIONS.map((o) => (
                     <button key={o.value} onClick={() => setPaymentMethod(o.value)} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${pillClasses(paymentMethod === o.value)}`}>
@@ -704,19 +704,19 @@ export default function CierresTab({
                 </div>
 
                 {paymentMethod === 'CREDITO' || paymentMethod === 'MIXTO' ? (
-                  <div className="mt-3 space-y-3 rounded-xl border border-white/10 bg-white/5 p-3">
+                  <div className="mt-3 space-y-3 rounded-xl border border-line bg-surface-2 p-3">
                     <select
-                      className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none focus:border-violet-400"
+                      className="w-full rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none focus:border-violet-400"
                       value={financialEntity}
                       onChange={(e) => setFinancialEntity(e.target.value)}
                     >
-                      <option className="bg-[#0b0f1a]" value="">{t('cierres.entidad.placeholder')}</option>
+                      <option className="bg-bg" value="">{t('cierres.entidad.placeholder')}</option>
                       {ENTIDAD_FINANCIERA_OPTIONS.map((entity) => (
-                        <option key={entity} className="bg-[#0b0f1a]" value={entity}>{entity}</option>
+                        <option key={entity} className="bg-bg" value={entity}>{entity}</option>
                       ))}
                     </select>
                     {paymentMethod === 'CREDITO' ? (
-                      <label className="flex items-center gap-2 text-sm text-white/70">
+                      <label className="flex items-center gap-2 text-sm text-text-2">
                         <input type="checkbox" checked={approvalDelayed} onChange={(e) => setApprovalDelayed(e.target.checked)} className="h-4 w-4 rounded" />
                         {t('cierres.aprobacionDemoro')}
                       </label>
@@ -726,9 +726,9 @@ export default function CierresTab({
               </div>
 
               {/* Seccion D */}
-              <div className="border-t border-white/10 pt-5">
+              <div className="border-t border-line pt-5">
                 <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-violet-300">{t('cierres.seccionD')}</p>
-                <label className="flex items-start gap-2.5 text-sm text-white/70">
+                <label className="flex items-start gap-2.5 text-sm text-text-2">
                   <input type="checkbox" checked={declaredAccurate} onChange={(e) => setDeclaredAccurate(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 rounded" />
                   {t('cierres.declaracion')}
                 </label>
@@ -741,12 +741,12 @@ export default function CierresTab({
                 <button
                   onClick={submit}
                   disabled={creating || !declaredAccurate}
-                  className="gradient-btn flex-1 rounded-full px-4 py-2.5 text-sm font-semibold text-white transition-transform duration-200 hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 md:flex-none"
+                  className="gradient-btn flex-1 rounded-full px-4 py-2.5 text-sm font-semibold text-grad-contrast transition-transform duration-200 hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 md:flex-none"
                 >
                   {creating ? t('cierres.form.guardando') : editingId ? t('cierres.guardarCambios') : t('cierres.form.submit')}
                 </button>
                 {editingId ? (
-                  <button onClick={cancelEdit} className="rounded-full border border-white/15 px-4 py-2.5 text-sm font-semibold text-white/70 transition-colors duration-200 hover:bg-white/10">
+                  <button onClick={cancelEdit} className="rounded-full border border-line-strong px-4 py-2.5 text-sm font-semibold text-text-2 transition-colors duration-200 hover:bg-surface-2">
                     {t('cierres.cancelar')}
                   </button>
                 ) : null}
@@ -760,8 +760,8 @@ export default function CierresTab({
       <section className="glass-card rounded-[1.8rem] p-4 fade-up sm:p-6">
         <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
-            <h2 className="text-[20px] font-bold tracking-[-0.01em] text-white">{t('cierres.list.title')}</h2>
-            <p className="text-[13.5px] text-white/60">{t('cierres.list.subtitle')}</p>
+            <h2 className="text-[20px] font-bold tracking-[-0.01em] text-text">{t('cierres.list.title')}</h2>
+            <p className="text-[13.5px] text-text-2">{t('cierres.list.subtitle')}</p>
           </div>
         </div>
 
@@ -769,25 +769,25 @@ export default function CierresTab({
           <div className="flex items-center gap-1 rounded-full border border-[rgba(255,255,255,0.07)] bg-[#1c1930] p-[3px]">
             <button
               onClick={() => setConsultaView('mapa')}
-              className={`rounded-full px-[18px] py-[7px] text-[13px] font-bold transition-colors duration-150 ${consultaView === 'mapa' ? 'bg-violet-400 text-[#1c1330]' : 'text-[#9296b0] hover:text-white'}`}
+              className={`rounded-full px-[18px] py-[7px] text-[13px] font-bold transition-colors duration-150 ${consultaView === 'mapa' ? 'bg-brand text-brand-contrast' : 'text-text-2 hover:text-text'}`}
             >
               {t('cierres.tabMapa')}
             </button>
             <button
               onClick={() => setConsultaView('tabla')}
-              className={`rounded-full px-[18px] py-[7px] text-[13px] font-bold transition-colors duration-150 ${consultaView === 'tabla' ? 'bg-violet-400 text-[#1c1330]' : 'text-[#9296b0] hover:text-white'}`}
+              className={`rounded-full px-[18px] py-[7px] text-[13px] font-bold transition-colors duration-150 ${consultaView === 'tabla' ? 'bg-brand text-brand-contrast' : 'text-text-2 hover:text-text'}`}
             >
               {t('cierres.tabTabla')}
             </button>
           </div>
           <button
             onClick={() => (consultaView === 'mapa' ? setMapFiltersOpen((v) => !v) : setFiltersOpen((v) => !v))}
-            className="rounded-full border border-[rgba(255,255,255,0.07)] px-3 py-1.5 text-[13px] font-semibold text-[#9296b0] transition-colors hover:text-white"
+            className="rounded-full border border-[rgba(255,255,255,0.07)] px-3 py-1.5 text-[13px] font-semibold text-text-2 transition-colors hover:text-text"
           >
             {t('cierres.filtros')} ▾
           </button>
           {deals.length > 0 ? (
-            <span className="text-xs font-semibold text-[#62667f]">
+            <span className="text-xs font-semibold text-text-3">
               {t('cierres.mostrandoCierres')} {consultaView === 'mapa' ? mapCount : tableRows.length}
             </span>
           ) : null}
@@ -797,38 +797,38 @@ export default function CierresTab({
           <EmptyMapState t={t} onRegister={openRegisterAccordion} />
         ) : consultaView === 'mapa' ? (
           <div className="space-y-3">
-            <p className="text-xs text-[#62667f]">{t('cierres.zoomHint')}</p>
+            <p className="text-xs text-text-3">{t('cierres.zoomHint')}</p>
 
             {mapFiltersOpen ? (
-              <div className="flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-white/5 p-3">
+              <div className="flex flex-wrap gap-2 rounded-2xl border border-line bg-surface-2 p-3">
                 <select
-                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs text-white outline-none focus:border-violet-400"
+                  className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2 text-xs text-text outline-none focus:border-violet-400"
                   value={mapFilters.propertyType ?? ''}
                   onChange={(e) => setMapFilters((f) => ({ ...f, propertyType: e.target.value || undefined }))}
                 >
-                  <option className="bg-[#0b0f1a]" value="">{t('cierres.filtro.tipo')}</option>
+                  <option className="bg-bg" value="">{t('cierres.filtro.tipo')}</option>
                   {CLOSED_DEAL_PROPERTY_TYPES.map((v) => (
-                    <option key={v} className="bg-[#0b0f1a]" value={v}>{tProperty(v)}</option>
+                    <option key={v} className="bg-bg" value={v}>{tProperty(v)}</option>
                   ))}
                 </select>
                 <select
-                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs text-white outline-none focus:border-violet-400"
+                  className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2 text-xs text-text outline-none focus:border-violet-400"
                   value={mapFilters.sector ?? ''}
                   onChange={(e) => setMapFilters((f) => ({ ...f, sector: e.target.value || undefined }))}
                 >
-                  <option className="bg-[#0b0f1a]" value="">{t('cierres.filtro.sector')}</option>
+                  <option className="bg-bg" value="">{t('cierres.filtro.sector')}</option>
                   {availableSectors.map((s) => (
-                    <option key={s} className="bg-[#0b0f1a]" value={s}>{s}</option>
+                    <option key={s} className="bg-bg" value={s}>{s}</option>
                   ))}
                 </select>
               </div>
             ) : null}
 
-            <div className="flex gap-2 rounded-full border border-white/10 bg-white/5 p-1 lg:hidden">
-              <button onClick={() => setMobilePanel('mapa')} className={`flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition ${mobilePanel === 'mapa' ? 'gradient-btn text-white' : 'text-white/60'}`}>
+            <div className="flex gap-2 rounded-full border border-line bg-surface-2 p-1 lg:hidden">
+              <button onClick={() => setMobilePanel('mapa')} className={`flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition ${mobilePanel === 'mapa' ? 'gradient-btn text-grad-contrast' : 'text-text-2'}`}>
                 {t('cierres.tabMapa')}
               </button>
-              <button onClick={() => setMobilePanel('resumen')} className={`flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition ${mobilePanel === 'resumen' ? 'gradient-btn text-white' : 'text-white/60'}`}>
+              <button onClick={() => setMobilePanel('resumen')} className={`flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition ${mobilePanel === 'resumen' ? 'gradient-btn text-grad-contrast' : 'text-text-2'}`}>
                 {t('cierres.resumenPorZona')}
               </button>
             </div>
@@ -837,7 +837,7 @@ export default function CierresTab({
               <div className={mobilePanel === 'resumen' ? 'hidden lg:block' : ''}>
                 <div className="relative">
                   <CierresMapa filters={mapFilters} focusZoneKey={focusZoneKey} lang={lang} tProperty={tProperty} onCountChange={setMapCount} />
-                  <div className="pointer-events-none absolute right-3 top-3 space-y-1 rounded-xl border border-white/10 bg-[#0d0b18]/90 p-2 text-[10px] text-white/70">
+                  <div className="pointer-events-none absolute right-3 top-3 space-y-1 rounded-xl border border-line bg-bg/90 p-2 text-[10px] text-text-2">
                     {Object.keys(PROPERTY_PIN_COLORS).map((pt) => (
                       <div key={pt} className="flex items-center gap-1.5">
                         <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: pinColorFor(pt) }} />
@@ -849,14 +849,14 @@ export default function CierresTab({
               </div>
 
               <aside className={`space-y-2 ${mobilePanel === 'mapa' ? 'hidden lg:block' : ''}`}>
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-white/50">{t('cierres.resumenPorZona')}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-text-2">{t('cierres.resumenPorZona')}</p>
                 {zoneStats.map((zs) => {
                   const isExpanded = expandedZone === zs.zone.key;
                   const smallSample = zs.count < MIN_SAMPLE_SIZE;
                   return (
                     <div
                       key={zs.zone.key}
-                      className={`rounded-2xl border p-3 transition-colors duration-200 ${focusZoneKey === zs.zone.key ? 'border-emerald-400/40' : 'border-white/10'}`}
+                      className={`rounded-2xl border p-3 transition-colors duration-200 ${focusZoneKey === zs.zone.key ? 'border-emerald-400/40' : 'border-line'}`}
                       style={{ backgroundColor: zoneColor(zs.avgPpm2, zs.count) }}
                     >
                       <button
@@ -867,22 +867,22 @@ export default function CierresTab({
                         }}
                       >
                         <span>
-                          <p className="text-sm font-bold text-white">{zoneLabel(zs.zone.key, lang)}</p>
-                          <p className="text-xs text-white/60">{zs.count} {t('cierres.cierresRegistrados')}</p>
+                          <p className="text-sm font-bold text-text">{zoneLabel(zs.zone.key, lang)}</p>
+                          <p className="text-xs text-text-2">{zs.count} {t('cierres.cierresRegistrados')}</p>
                         </span>
                         {!smallSample && zs.avgPpm2 ? (
-                          <span className="shrink-0 text-right text-sm font-bold text-white">${Math.round(zs.avgPpm2).toLocaleString('en-US')}/m²</span>
+                          <span className="shrink-0 text-right text-sm font-bold text-text">${Math.round(zs.avgPpm2).toLocaleString('en-US')}/m²</span>
                         ) : (
-                          <span className="shrink-0 text-white/30">—</span>
+                          <span className="shrink-0 text-text-3">—</span>
                         )}
                       </button>
 
                       {smallSample ? (
                         <div className="mt-2">
-                          <p className="text-xs text-white/50">{t('cierres.muestraChica')} ({zs.count}/{MIN_SAMPLE_SIZE})</p>
+                          <p className="text-xs text-text-2">{t('cierres.muestraChica')} ({zs.count}/{MIN_SAMPLE_SIZE})</p>
                         </div>
                       ) : isExpanded ? (
-                        <div className="mt-3 space-y-2 border-t border-white/10 pt-3 text-xs text-white/70">
+                        <div className="mt-3 space-y-2 border-t border-line pt-3 text-xs text-text-2">
                           {zs.minPpm2 && zs.maxPpm2 ? (
                             <p>{t('cierres.rango')}: ${Math.round(zs.minPpm2).toLocaleString('en-US')} - ${Math.round(zs.maxPpm2).toLocaleString('en-US')}/m²</p>
                           ) : null}
@@ -891,11 +891,11 @@ export default function CierresTab({
                           ) : null}
                           {zs.paymentCounts.length > 0 ? (
                             <div>
-                              <p className="mb-1 font-semibold text-white/50">{t('cierres.formaPago.label')}</p>
+                              <p className="mb-1 font-semibold text-text-2">{t('cierres.formaPago.label')}</p>
                               {zs.paymentCounts.map(([method, count]) => (
                                 <div key={method} className="flex items-center gap-2">
                                   <span className="w-20 shrink-0 truncate">{FORMA_PAGO_OPTIONS.find((o) => o.value === method)?.[lang === 'es' ? 'labelEs' : 'labelEn'] ?? method}</span>
-                                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
+                                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2">
                                     <div className="h-full rounded-full bg-violet-400" style={{ width: `${(count / zs.count) * 100}%` }} />
                                   </div>
                                   <span className="w-4 shrink-0 text-right">{count}</span>
@@ -905,7 +905,7 @@ export default function CierresTab({
                           ) : null}
                           {zs.sectorCounts.length > 0 ? (
                             <div>
-                              <p className="mb-1 font-semibold text-white/50">{t('cierres.desglosePorSector')}</p>
+                              <p className="mb-1 font-semibold text-text-2">{t('cierres.desglosePorSector')}</p>
                               {zs.sectorCounts.slice(0, 5).map(([sectorName, count]) => (
                                 <div key={sectorName} className="flex items-center justify-between">
                                   <span className="truncate">{sectorName}</span>
@@ -926,16 +926,16 @@ export default function CierresTab({
           <div>
             {filtersOpen ? (
               <div className="mb-3 flex flex-wrap gap-2">
-                <select className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs text-white outline-none focus:border-violet-400" value={filterPropertyType} onChange={(e) => setFilterPropertyType(e.target.value)}>
-                  <option className="bg-[#0b0f1a]" value="">{t('cierres.filtro.tipo')}</option>
+                <select className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2 text-xs text-text outline-none focus:border-violet-400" value={filterPropertyType} onChange={(e) => setFilterPropertyType(e.target.value)}>
+                  <option className="bg-bg" value="">{t('cierres.filtro.tipo')}</option>
                   {CLOSED_DEAL_PROPERTY_TYPES.map((v) => (
-                    <option key={v} className="bg-[#0b0f1a]" value={v}>{tProperty(v)}</option>
+                    <option key={v} className="bg-bg" value={v}>{tProperty(v)}</option>
                   ))}
                 </select>
-                <select className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs text-white outline-none focus:border-violet-400" value={filterSector} onChange={(e) => setFilterSector(e.target.value)}>
-                  <option className="bg-[#0b0f1a]" value="">{t('cierres.filtro.sector')}</option>
+                <select className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2 text-xs text-text outline-none focus:border-violet-400" value={filterSector} onChange={(e) => setFilterSector(e.target.value)}>
+                  <option className="bg-bg" value="">{t('cierres.filtro.sector')}</option>
                   {availableSectors.map((s) => (
-                    <option key={s} className="bg-[#0b0f1a]" value={s}>{s}</option>
+                    <option key={s} className="bg-bg" value={s}>{s}</option>
                   ))}
                 </select>
               </div>
@@ -985,7 +985,7 @@ export default function CierresTab({
             {canCreate && deals.some((d) => d.canEdit) ? (
               <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {deals.filter((d) => d.canEdit).map((deal) => (
-                  <div key={deal.id} className="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60">
+                  <div key={deal.id} className="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-line bg-surface-2 px-3 py-2 text-xs text-text-2">
                     <span className="min-w-0 truncate">{tProperty(deal.propertyType)} · {zoneLabel(deal.zone ?? '', lang)}</span>
                     <button
                       onClick={() => handleDelete(deal.id)}
@@ -1008,20 +1008,20 @@ export default function CierresTab({
 function EmptyMapState({ t, onRegister }: { t: (k: string) => string; onRegister: () => void }) {
   return (
     <div
-      className="relative min-h-[300px] overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.07)] bg-[#171429] bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:28px_28px]"
+      className="relative min-h-[300px] overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.07)] bg-bg-alt bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:28px_28px]"
     >
       <div className="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(139,92,246,0.35),transparent_70%)]" />
       <div className="pointer-events-none absolute -bottom-20 -right-10 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(139,92,246,0.35),transparent_70%)]" />
       <div className="relative flex min-h-[300px] flex-col items-center justify-center gap-3 px-6 text-center">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.1)] px-3 py-1 text-xs font-semibold text-[#62667f]">
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#b7a5ff]" />
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.1)] px-3 py-1 text-xs font-semibold text-text-3">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
           0 {t('cierres.cierresRegistrados')}
         </span>
-        <h3 className="text-[16.5px] font-bold text-[#f0f1f7]">{t('cierres.estadoVacio.titulo')}</h3>
-        <p className="max-w-xs text-[13.5px] text-[#9296b0]">{t('cierres.estadoVacio.texto')}</p>
+        <h3 className="text-[16.5px] font-bold text-text">{t('cierres.estadoVacio.titulo')}</h3>
+        <p className="max-w-xs text-[13.5px] text-text-2">{t('cierres.estadoVacio.texto')}</p>
         <button
           onClick={onRegister}
-          className="mt-1 rounded-[10px] bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] px-5 py-3 text-sm font-bold text-white transition-[filter] duration-150 hover:brightness-[1.08]"
+          className="mt-1 rounded-[10px] bg-grad px-5 py-3 text-sm font-bold text-grad-contrast transition-[filter] duration-150 hover:brightness-[1.08]"
         >
           {t('cierres.registrarPrimero')}
         </button>

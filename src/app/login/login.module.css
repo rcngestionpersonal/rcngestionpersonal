@@ -1,28 +1,7 @@
+/* Los tokens de color (incluidos --mbadge-glow-*) viven en globals.css
+   (:root / [data-theme="light"]) - este bloque ya no redeclara --bg/--text/etc
+   para no tapar el tema claro. */
 .root {
-  --bg: #0a0812;
-  --bg-alt: #0f0b1c;
-  --surface: #171130;
-  --surface-2: #1e1740;
-  --surface-input: #100c22;
-  --line: rgba(183, 165, 255, 0.13);
-  --line-strong: rgba(183, 165, 255, 0.24);
-  --text: #f3f1fa;
-  --text-2: #a9a1cd;
-  --text-3: #736c96;
-  --teal: #2dd4bf;
-  --teal-soft: #7fe8db;
-  --teal-dim: rgba(45, 212, 191, 0.1);
-  --teal-line: rgba(45, 212, 191, 0.32);
-  --teal-ink: #04201c;
-  --violet: #b7a5ff;
-  --violet-2: #a78bfa;
-  --violet-dim: rgba(167, 139, 250, 0.13);
-  --violet-line: rgba(167, 139, 250, 0.34);
-  --grad: linear-gradient(100deg, #c3aeff, #6ee3d2);
-  --grad-ink: #120c22;
-  --red-soft: #ff9d9d;
-  --red-dim: rgba(255, 130, 130, 0.07);
-
   background: var(--bg);
   color: var(--text);
 }
@@ -47,7 +26,7 @@
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background-image: radial-gradient(rgba(183, 165, 255, 0.2) 1px, transparent 1px);
+  background-image: radial-gradient(var(--dot-color) 1px, transparent 1px);
   background-size: 20px 20px;
   -webkit-mask-image: radial-gradient(ellipse 78% 68% at 50% 22%, #000 26%, transparent 76%);
   mask-image: radial-gradient(ellipse 78% 68% at 50% 22%, #000 26%, transparent 76%);
@@ -55,7 +34,7 @@
 
 .dotsSoft {
   composes: dots;
-  opacity: 0.13;
+  opacity: calc(0.13 * var(--dot-opacity));
 }
 
 .gv {
@@ -63,8 +42,8 @@
   pointer-events: none;
   z-index: 0;
   border-radius: 999px;
-  background: rgba(167, 139, 250, 0.2);
-  filter: blur(90px);
+  background: var(--glow-brand);
+  filter: blur(var(--glow-blur));
 }
 
 .gt {
@@ -72,8 +51,8 @@
   pointer-events: none;
   z-index: 0;
   border-radius: 999px;
-  background: rgba(45, 212, 191, 0.11);
-  filter: blur(90px);
+  background: var(--glow-accent);
+  filter: blur(var(--glow-blur));
 }
 
 .section {
@@ -96,23 +75,23 @@
   height: 36px;
   flex-shrink: 0;
   border-radius: 11px;
-  background: var(--violet-dim);
-  border: 1px solid var(--violet-line);
-  color: var(--violet);
+  background: var(--brand-dim);
+  border: 1px solid var(--brand-line);
+  color: var(--brand);
 }
 
 .sicT {
   composes: sic;
-  background: var(--teal-dim);
-  border-color: var(--teal-line);
-  color: var(--teal);
+  background: var(--accent-dim);
+  border-color: var(--accent-line);
+  color: var(--accent);
 }
 
 .sicR {
   composes: sic;
-  background: var(--red-dim);
+  background: var(--danger-dim);
   border-color: rgba(255, 157, 157, 0.28);
-  color: var(--red-soft);
+  color: var(--danger);
 }
 
 .eyebrow {
@@ -123,7 +102,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: var(--violet);
+  color: var(--brand);
 }
 
 /* ---------- Botones ---------- */
@@ -134,7 +113,7 @@
   justify-content: center;
   gap: 8px;
   background: var(--grad);
-  color: var(--grad-ink);
+  color: var(--grad-contrast);
   font-weight: 700;
   border-radius: 10px;
   transition: filter 180ms, transform 180ms;
@@ -166,7 +145,7 @@
 
 .btnGhost:hover {
   color: var(--text);
-  border-color: var(--violet-line);
+  border-color: var(--brand-line);
 }
 
 /* ---------- Navbar ---------- */
@@ -175,7 +154,7 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(10, 8, 18, 0.85);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--line);
 }
@@ -271,14 +250,14 @@
 }
 
 .h1Grad {
-  background: linear-gradient(180deg, #f7f5ff, #c8bfeb);
+  background: var(--heading-grad);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
 .h1Violet {
-  color: var(--violet);
+  color: var(--brand);
 }
 
 .lead {
@@ -346,7 +325,7 @@
   position: relative;
   z-index: 1;
   background: var(--surface-2);
-  border: 1px solid var(--violet-line);
+  border: 1px solid var(--brand-line);
   border-radius: 15px;
   padding: 14px 15px;
 }
@@ -384,7 +363,7 @@
   padding: 6px 14px;
   border-radius: 999px;
   background: var(--grad);
-  color: #0d0820;
+  color: var(--grad-contrast);
   border: 1px solid rgba(240, 232, 255, 0.6);
   animation: shine 2.4s infinite;
 }
@@ -392,10 +371,10 @@
 @keyframes shine {
   0%,
   100% {
-    box-shadow: 0 0 0 4px #0a0812, 0 0 16px rgba(195, 174, 255, 0.55), 0 0 30px rgba(110, 227, 210, 0.3);
+    box-shadow: 0 0 0 4px var(--bg), 0 0 16px var(--mbadge-glow-1), 0 0 30px var(--mbadge-glow-2);
   }
   50% {
-    box-shadow: 0 0 0 4px #0a0812, 0 0 26px rgba(212, 196, 255, 0.85), 0 0 52px rgba(110, 227, 210, 0.55);
+    box-shadow: 0 0 0 4px var(--bg), 0 0 26px var(--mbadge-glow-3), 0 0 52px var(--mbadge-glow-4);
   }
 }
 
@@ -425,7 +404,7 @@
   height: 34px;
   border-radius: 999px;
   flex-shrink: 0;
-  outline: 1px solid var(--violet-line);
+  outline: 1px solid var(--brand-line);
   outline-offset: 1.5px;
   display: flex;
   align-items: center;
@@ -454,9 +433,9 @@
   font-weight: 600;
   padding: 1.5px 6px;
   border-radius: 999px;
-  color: var(--violet);
-  background: var(--violet-dim);
-  border: 1px solid var(--violet-line);
+  color: var(--brand);
+  background: var(--brand-dim);
+  border: 1px solid var(--brand-line);
 }
 
 .rankNote {
@@ -471,7 +450,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--teal);
+  color: var(--accent);
 }
 
 .halfHeadline {
@@ -481,7 +460,7 @@
 }
 
 .halfPrice {
-  color: var(--teal);
+  color: var(--accent);
   font-weight: 700;
 }
 
@@ -552,7 +531,7 @@
 }
 
 .h2Grad {
-  background: linear-gradient(180deg, #f7f5ff, #c8bfeb);
+  background: var(--heading-grad);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -640,9 +619,9 @@
   height: 24px;
   flex-shrink: 0;
   border-radius: 7px;
-  background: var(--violet-dim);
-  border: 1px solid var(--violet-line);
-  color: var(--violet);
+  background: var(--brand-dim);
+  border: 1px solid var(--brand-line);
+  color: var(--brand);
   font-size: 11px;
   font-weight: 700;
 }
@@ -654,9 +633,9 @@
   margin-top: 14px;
   font-size: 10.5px;
   font-weight: 700;
-  color: var(--teal);
-  background: var(--teal-dim);
-  border: 1px solid var(--teal-line);
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-line);
   padding: 5px 11px;
   border-radius: 999px;
 }
@@ -707,8 +686,8 @@
   flex-shrink: 0;
   margin-top: 1px;
   border-radius: 999px;
-  background: var(--violet-dim);
-  color: var(--violet);
+  background: var(--brand-dim);
+  color: var(--brand);
 }
 
 .bulletText {
@@ -726,7 +705,7 @@
   position: relative;
   overflow: hidden;
   background: var(--surface);
-  border: 1px solid var(--violet-line);
+  border: 1px solid var(--brand-line);
   border-radius: 18px;
   padding: 20px;
 }
@@ -755,7 +734,7 @@
   height: 54px;
   border-radius: 999px;
   flex-shrink: 0;
-  outline: 2px solid var(--violet);
+  outline: 2px solid var(--brand);
   outline-offset: 2px;
   display: flex;
   align-items: center;
@@ -783,9 +762,9 @@
   font-weight: 700;
   padding: 2.5px 8px;
   border-radius: 999px;
-  color: var(--teal);
-  background: var(--teal-dim);
-  border: 1px solid var(--teal-line);
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-line);
 }
 
 .chipViolet {
@@ -793,9 +772,9 @@
   font-weight: 700;
   padding: 2.5px 8px;
   border-radius: 999px;
-  color: var(--violet);
-  background: var(--violet-dim);
-  border: 1px solid var(--violet-line);
+  color: var(--brand);
+  background: var(--brand-dim);
+  border: 1px solid var(--brand-line);
 }
 
 .profileStats {
@@ -827,7 +806,7 @@
   flex-shrink: 0;
   font-size: 13px;
   font-weight: 700;
-  color: var(--teal-soft);
+  color: var(--accent);
 }
 
 .levelBarWrap {
@@ -903,7 +882,7 @@
 .miniVizValue {
   font-size: 23px;
   font-weight: 700;
-  color: var(--teal-soft);
+  color: var(--accent);
 }
 
 .miniVizUnit {
@@ -944,7 +923,7 @@
 }
 
 .miniVizFoot b {
-  color: var(--violet);
+  color: var(--brand);
   font-weight: 700;
 }
 
@@ -980,7 +959,7 @@
   position: relative;
   overflow: hidden;
   background: linear-gradient(165deg, #1c1636, #171130 52%, #1d1540);
-  border: 1px solid var(--violet-line);
+  border: 1px solid var(--brand-line);
   border-radius: 18px;
   padding: 18px 19px 16px;
 }
@@ -1007,7 +986,7 @@
 }
 
 .carnetHeader b {
-  color: var(--violet);
+  color: var(--brand);
 }
 
 .carnetIdentity {
@@ -1023,7 +1002,7 @@
   height: 60px;
   border-radius: 999px;
   flex-shrink: 0;
-  outline: 2px solid var(--teal);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
   display: flex;
   align-items: center;
@@ -1050,7 +1029,7 @@
 }
 
 .carnetZones svg {
-  color: var(--violet);
+  color: var(--brand);
   flex-shrink: 0;
 }
 
@@ -1073,7 +1052,7 @@
 .carnetStatValue {
   font-size: 14px;
   font-weight: 700;
-  color: var(--teal-soft);
+  color: var(--accent);
 }
 
 .carnetStatLabel {
@@ -1090,7 +1069,7 @@
   gap: 10px;
   margin-top: 12px;
   background: rgba(45, 212, 191, 0.07);
-  border: 1px solid var(--teal-line);
+  border: 1px solid var(--accent-line);
   border-radius: 11px;
   padding: 9px 10px;
 }
@@ -1145,7 +1124,7 @@
   max-width: 660px;
   margin: 40px auto 0;
   background: var(--surface);
-  border: 1px solid var(--violet-line);
+  border: 1px solid var(--brand-line);
   border-radius: 20px;
   padding: 32px 30px;
 }
@@ -1169,9 +1148,9 @@
   gap: 6px;
   font-size: 10.5px;
   font-weight: 700;
-  color: var(--violet);
-  background: var(--violet-dim);
-  border: 1px solid var(--violet-line);
+  color: var(--brand);
+  background: var(--brand-dim);
+  border: 1px solid var(--brand-line);
   padding: 6px 13px;
   border-radius: 999px;
 }
@@ -1228,8 +1207,8 @@
   height: 19px;
   flex-shrink: 0;
   border-radius: 999px;
-  background: var(--teal-dim);
-  color: var(--teal);
+  background: var(--accent-dim);
+  color: var(--accent);
 }
 
 .valueText {
@@ -1254,7 +1233,7 @@
   gap: 12px;
   margin-top: 24px;
   background: var(--surface-2);
-  border: 1px dashed var(--teal-line);
+  border: 1px dashed var(--accent-line);
   border-radius: 12px;
   padding: 15px;
 }
@@ -1262,7 +1241,7 @@
 .guaranteeBox svg {
   flex-shrink: 0;
   margin-top: 1px;
-  color: var(--teal);
+  color: var(--accent);
 }
 
 .guaranteeText {
@@ -1388,7 +1367,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--violet);
+  color: var(--brand);
 }
 
 .loginTitle {
@@ -1417,7 +1396,7 @@
 .input {
   width: 100%;
   height: 45px;
-  background: var(--surface-input);
+  background: var(--input-bg);
   border: 1px solid rgba(183, 165, 255, 0.14);
   border-radius: 9px;
   color: var(--text);
@@ -1432,7 +1411,7 @@
 
 .input:focus {
   outline: none;
-  border-color: var(--violet);
+  border-color: var(--brand);
   box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.16);
 }
 
@@ -1440,7 +1419,7 @@
 .input:-webkit-autofill:hover,
 .input:-webkit-autofill:focus {
   -webkit-text-fill-color: var(--text);
-  -webkit-box-shadow: 0 0 0px 1000px var(--surface-input) inset;
+  -webkit-box-shadow: 0 0 0px 1000px var(--input-bg) inset;
   transition: background-color 9999s ease-in-out 0s;
 }
 
@@ -1502,7 +1481,7 @@
 
 .registerLink {
   font-weight: 600;
-  color: var(--violet);
+  color: var(--brand);
   text-decoration: underline;
 }
 
@@ -1534,7 +1513,7 @@
 .input:focus-visible,
 .loginBtn:focus-visible,
 .navCta:focus-visible {
-  outline: 2px solid var(--teal);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 

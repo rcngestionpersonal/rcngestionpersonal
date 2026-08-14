@@ -22,7 +22,7 @@ function Card({ children }: { children: React.ReactNode }) {
         }}
       >
         <p style={{ fontSize: 13, fontWeight: 600 }}>
-          <span style={{ color: '#2dd4bf' }}>✦</span> <span style={{ color: '#f0f1f7' }}>REDINMO</span>
+          <span style={{ color: '#2dd4bf' }}>✦</span> <span style={{ color: 'var(--text)' }}>REDINMO</span>
         </p>
         {children}
       </div>
@@ -44,7 +44,7 @@ export default async function RestablecerPage({ searchParams }: { searchParams: 
 
   return (
     <Card>
-      <h1 style={{ marginTop: 16, fontSize: 22, fontWeight: 800, color: '#f0f1f7' }}>Crear nueva contraseña</h1>
+      <h1 style={{ marginTop: 16, fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>Crear nueva contraseña</h1>
       <p style={{ marginTop: 8, marginBottom: 22, fontSize: 13.5, lineHeight: 1.5, color: '#a09bbb' }}>
         Elige una contraseña nueva para tu cuenta de Redinmo.
       </p>
@@ -56,7 +56,7 @@ export default async function RestablecerPage({ searchParams }: { searchParams: 
 function InvalidLinkCard() {
   return (
     <Card>
-      <h1 style={{ marginTop: 16, fontSize: 22, fontWeight: 800, color: '#f0f1f7' }}>Este enlace ya no es válido</h1>
+      <h1 style={{ marginTop: 16, fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>Este enlace ya no es válido</h1>
       <p style={{ marginTop: 8, marginBottom: 22, fontSize: 13.5, lineHeight: 1.5, color: '#a09bbb' }}>
         El enlace venció (dura 30 minutos) o ya fue utilizado. Solicita uno nuevo para continuar.
       </p>

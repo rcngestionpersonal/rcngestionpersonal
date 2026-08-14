@@ -61,7 +61,7 @@ export default function ForgotAccessForm() {
           background: '#100d1c',
           border: '1px solid rgba(255,255,255,0.09)',
           borderRadius: 9,
-          color: '#f0f1f7',
+          color: 'var(--text)',
           fontSize: 13.5,
           padding: '0 14px',
         }}

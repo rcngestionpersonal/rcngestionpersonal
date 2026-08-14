@@ -39,9 +39,9 @@ export default function LevelUpCelebrationModal({
         aria-modal="true"
         aria-label={t('levelUp.titulo')}
       >
-        <p className="text-[15px] font-bold text-white">🎉 {t('levelUp.titulo')}</p>
+        <p className="text-[15px] font-bold text-text">🎉 {t('levelUp.titulo')}</p>
 
-        <p className="mt-3 text-xs text-[#9296b0]">{t('levelUp.ahoraEres')}</p>
+        <p className="mt-3 text-xs text-text-2">{t('levelUp.ahoraEres')}</p>
         <span
           className="mt-2 inline-flex animate-[levelup-pulse_2.5s_ease-in-out_1] items-center gap-1 rounded-full border px-3 py-1.5 text-[13px] font-bold motion-reduce:animate-none"
           style={{ borderColor: `${levelColor}55`, background: `${levelColor}1f`, color: levelColor }}
@@ -49,26 +49,26 @@ export default function LevelUpCelebrationModal({
           ● {levelLabel}
         </span>
 
-        <p className="mt-4 text-[13px] leading-relaxed text-[#9296b0]">{t('levelUp.mensaje')}</p>
+        <p className="mt-4 text-[13px] leading-relaxed text-text-2">{t('levelUp.mensaje')}</p>
 
-        {!subscriptionActive ? <p className="mt-2 text-[11.5px] text-[#62667f]">{t('levelUp.reactivar')}</p> : null}
+        {!subscriptionActive ? <p className="mt-2 text-[11.5px] text-text-3">{t('levelUp.reactivar')}</p> : null}
 
         <div className="mt-5 space-y-2">
           {subscriptionActive ? (
             <button
               onClick={onShare}
-              className="w-full rounded-[10px] bg-[#2dd4bf] py-2.5 text-sm font-bold text-[#04201c] transition-opacity hover:opacity-90"
+              className="w-full rounded-[10px] bg-[#2dd4bf] py-2.5 text-sm font-bold text-accent-contrast transition-opacity hover:opacity-90"
             >
               {t('levelUp.compartir')}
             </button>
           ) : null}
           <button
             onClick={onViewCarnet}
-            className="w-full rounded-[10px] border border-white/10 py-2.5 text-sm font-semibold text-[#9296b0] transition-colors hover:text-white"
+            className="w-full rounded-[10px] border border-line py-2.5 text-sm font-semibold text-text-2 transition-colors hover:text-text"
           >
             {t('levelUp.verCarnet')}
           </button>
-          <button onClick={onDismiss} className="w-full py-1.5 text-xs font-semibold text-[#62667f] transition-colors hover:text-white/70">
+          <button onClick={onDismiss} className="w-full py-1.5 text-xs font-semibold text-text-3 transition-colors hover:text-text-2">
             {t('levelUp.ahoraNo')}
           </button>
         </div>

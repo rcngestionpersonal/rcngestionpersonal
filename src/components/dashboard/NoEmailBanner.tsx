@@ -55,25 +55,25 @@ export default function NoEmailBanner({ agentId, onSaved }: { agentId: string; o
         <p className="text-sm font-semibold text-[#2dd4bf]">✓ Correo guardado. Ya puedes recuperar tu cuenta si olvidas tu contraseña.</p>
       ) : (
         <>
-          <p className="text-sm font-semibold text-[#f0f1f7]">Agrega tu correo para poder recuperar tu cuenta si olvidas la contraseña</p>
+          <p className="text-sm font-semibold text-text">Agrega tu correo para poder recuperar tu cuenta si olvidas la contraseña</p>
           <div className="mt-2.5 flex flex-col gap-2 sm:flex-row">
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
               placeholder="tucorreo@ejemplo.com"
-              className="min-w-0 flex-1 rounded-[10px] border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-[rgba(45,212,191,0.4)] focus:outline-none"
+              className="min-w-0 flex-1 rounded-[10px] border border-line bg-surface px-3 py-2 text-sm text-text placeholder:text-text-3 focus:border-[rgba(45,212,191,0.4)] focus:outline-none"
             />
             <button
               onClick={() => void submit()}
               disabled={saving || !email.trim()}
-              className="shrink-0 rounded-[10px] bg-[#2dd4bf] px-4 py-2 text-sm font-bold text-[#04201c] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="shrink-0 rounded-[10px] bg-[#2dd4bf] px-4 py-2 text-sm font-bold text-accent-contrast transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? 'Guardando...' : 'Guardar'}
             </button>
             <button
               onClick={() => setVisible(false)}
-              className="shrink-0 rounded-[10px] px-3 py-2 text-sm font-semibold text-[#9296b0] transition-colors hover:text-white"
+              className="shrink-0 rounded-[10px] px-3 py-2 text-sm font-semibold text-text-2 transition-colors hover:text-text"
             >
               Ahora no
             </button>

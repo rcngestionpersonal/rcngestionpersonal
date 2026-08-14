@@ -26,8 +26,8 @@ export type NewOpportunityInput = {
 
 function pillClasses(active: boolean): string {
   return active
-    ? 'gradient-btn border-transparent text-white'
-    : 'border-white/15 text-white/60 hover:bg-white/10';
+    ? 'gradient-btn border-transparent text-grad-contrast'
+    : 'border-line-strong text-text-2 hover:bg-surface-2';
 }
 
 export default function PedidosTab({
@@ -167,13 +167,13 @@ export default function PedidosTab({
 
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <input
-                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400"
+                  className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   placeholder={t('pedidos.form.ciudad.placeholder')}
                 />
                 <input
-                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400"
+                  className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400"
                   value={zone}
                   onChange={(e) => setZone(e.target.value)}
                   placeholder={t('pedidos.form.zona.placeholder')}
@@ -186,10 +186,10 @@ export default function PedidosTab({
                 <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-violet-300">
                   <Lock className="h-3 w-3 shrink-0" strokeWidth={2} /> {t('pedidos.form.datosCliente.titulo')}
                 </p>
-                <p className="mt-1 text-xs text-white/50">{t('pedidos.form.datosCliente.privacidad')}</p>
+                <p className="mt-1 text-xs text-text-2">{t('pedidos.form.datosCliente.privacidad')}</p>
                 <div className="mt-2 grid gap-2 md:grid-cols-2">
                   <input
-                    className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400"
+                    className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400"
                     value={contactName}
                     onChange={(e) => setContactName(e.target.value)}
                     placeholder={t(
@@ -197,7 +197,7 @@ export default function PedidosTab({
                     )}
                   />
                   <input
-                    className="rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-violet-400"
+                    className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400"
                     value={contactPhone}
                     onChange={(e) => setContactPhone(e.target.value)}
                     placeholder={t('pedidos.form.telefonoCliente.placeholder')}
@@ -209,14 +209,14 @@ export default function PedidosTab({
                 <button
                   onClick={submitOpportunity}
                   disabled={creatingOpportunity || !city.trim()}
-                  className="gradient-btn flex-1 rounded-full px-4 py-2.5 text-sm font-semibold text-white transition-transform duration-200 hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 md:flex-none"
+                  className="gradient-btn flex-1 rounded-full px-4 py-2.5 text-sm font-semibold text-grad-contrast transition-transform duration-200 hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 md:flex-none"
                 >
                   {creatingOpportunity ? t('pedidos.form.guardando') : editingId ? t('pedidos.guardarCambios') : t('pedidos.form.submit')}
                 </button>
                 {editingId ? (
                   <button
                     onClick={cancelEdit}
-                    className="rounded-full border border-white/15 px-4 py-2.5 text-sm font-semibold text-white/70 transition-colors duration-200 hover:bg-white/10"
+                    className="rounded-full border border-line-strong px-4 py-2.5 text-sm font-semibold text-text-2 transition-colors duration-200 hover:bg-surface-2"
                   >
                     {t('pedidos.cancelar')}
                   </button>
@@ -226,14 +226,14 @@ export default function PedidosTab({
         </RegisterAccordion>
       ) : !isAdmin ? (
         <section className="glass-card rounded-[1.8rem] p-4 fade-up sm:p-6">
-          <h2 className="text-lg font-bold text-white">{t('pedidos.locked.title')}</h2>
-          <p className="mt-1 text-sm text-white/60">{t('pedidos.locked.detail')}</p>
+          <h2 className="text-lg font-bold text-text">{t('pedidos.locked.title')}</h2>
+          <p className="mt-1 text-sm text-text-2">{t('pedidos.locked.detail')}</p>
         </section>
       ) : null}
 
       <div id="pedidos-panel" className="grid gap-[18px] xl:grid-cols-2">
         {agentOpportunities.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-white/15 p-5 text-sm text-white/50">
+          <div className="rounded-2xl border border-dashed border-line-strong p-5 text-sm text-text-2">
             {isAdmin ? t('pedidos.list.empty.admin') : t('pedidos.list.empty.agent')}
           </div>
         )}
@@ -268,14 +268,14 @@ export default function PedidosTab({
                     <Chip tone="violet">{tOperation(op.operationType)} · {tProperty(op.propertyType)}</Chip>
                     <Chip tone="neutral" uppercase={false}>{origenLabel}</Chip>
                   </div>
-                  <span className="shrink-0 text-[12px] font-medium text-[#62667f]">{dateLabel}</span>
+                  <span className="shrink-0 text-[12px] font-medium text-text-3">{dateLabel}</span>
                 </div>
 
                 {/* Fila 2 */}
-                <h3 className="mt-3 truncate text-[16px] font-bold leading-tight tracking-[-0.01em] text-[#f0f1f7]">
+                <h3 className="mt-3 truncate text-[16px] font-bold leading-tight tracking-[-0.01em] text-text">
                   {abbreviatedTitle(op.propertyType, op.zone || op.city, tProperty, lang)}
                 </h3>
-                <p className="mb-3.5 mt-1 truncate text-[12.5px] font-medium text-[#9296b0]">{zonaLine(op)}</p>
+                <p className="mb-3.5 mt-1 truncate text-[12.5px] font-medium text-text-2">{zonaLine(op)}</p>
 
                 {/* Fila 3 */}
                 <DataBlock
@@ -286,7 +286,7 @@ export default function PedidosTab({
                           label: t('pedidos.contacto').replace(':', ''),
                           value: (
                             <span className="inline-flex items-center gap-1.5" title={t('common.visibleSoloParaTi')}>
-                              <Lock className="h-[11px] w-[11px] shrink-0 text-[#62667f]" strokeWidth={2.2} />
+                              <Lock className="h-[11px] w-[11px] shrink-0 text-text-3" strokeWidth={2.2} />
                               {op.contactName ?? t('pedidos.sinNombre')}
                             </span>
                           ),
@@ -303,7 +303,7 @@ export default function PedidosTab({
                 ) : null}
 
                 {!isAdmin && user?.agentId && op.claimedByAgentId ? (
-                  <p className="mt-2.5 text-xs text-[#62667f]">
+                  <p className="mt-2.5 text-xs text-text-3">
                     {op.claimedByAgentId === user.agentId ? t('pedidos.yaReclamada') : t('pedidos.reclamadaOtro')}
                   </p>
                 ) : null}
@@ -313,8 +313,8 @@ export default function PedidosTab({
                   {matches.length > 0 ? (
                     <>
                       <div className="mb-2 flex items-center gap-1.5">
-                        <span className="text-[10.5px] font-bold uppercase tracking-[0.07em] text-[#62667f]">{t('pedidos.matchesDeEstePedido')}</span>
-                        <span className="rounded-full bg-[rgba(167,139,250,0.13)] px-[7px] py-px text-[10.5px] font-semibold text-[#b7a5ff]">{matches.length}</span>
+                        <span className="text-[10.5px] font-bold uppercase tracking-[0.07em] text-text-3">{t('pedidos.matchesDeEstePedido')}</span>
+                        <span className="rounded-full bg-brand-dim px-[7px] py-px text-[10.5px] font-semibold text-brand">{matches.length}</span>
                       </div>
                       <div className="space-y-2">
                         {matches.map((lm) => {
@@ -338,14 +338,14 @@ export default function PedidosTab({
                       </div>
                     </>
                   ) : (
-                    <p className="text-[12.5px] text-[#62667f]">{t('common.aunSinMatches')}</p>
+                    <p className="text-[12.5px] text-text-3">{t('common.aunSinMatches')}</p>
                   )}
                 </div>
 
                 {/* Fila 5 */}
                 <div className="mt-3.5 flex items-end justify-between gap-3 border-t border-[rgba(255,255,255,0.07)] pt-3">
                   {canEdit ? (
-                    <p className="min-w-0 text-xs leading-relaxed text-[#62667f]">
+                    <p className="min-w-0 text-xs leading-relaxed text-text-3">
                       {withinEditWindow
                         ? `${t('pedidos.editableHastaPrefix')} ${editDeadline.toLocaleString(lang === 'es' ? 'es-EC' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}.`
                         : t('common.editVencido24h')}

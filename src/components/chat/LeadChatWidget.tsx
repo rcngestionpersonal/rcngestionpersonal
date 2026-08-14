@@ -120,12 +120,12 @@ export default function LeadChatWidget() {
     <div className="glass-card mx-auto w-full max-w-lg rounded-3xl p-5 sm:p-6">
       {step !== 'done' && step !== 'error' && (
         <div className="mb-4 space-y-1.5">
-          <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+          <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.14em] text-text-3">
             <span>Paso {progressStep} de {TOTAL_STEPS}</span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
             <div
-              className="h-full rounded-full bg-violet-400 transition-all duration-500 ease-out"
+              className="h-full rounded-full bg-brand transition-all duration-500 ease-out"
               style={{ width: `${(progressStep / TOTAL_STEPS) * 100}%` }}
             />
           </div>
@@ -159,13 +159,13 @@ export default function LeadChatWidget() {
             <BotBubble text="Genial. ¿En qué ciudad y zona te gustaría?" />
             <div className="space-y-2">
               <input
-                className="min-h-[44px] w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-violet-400"
+                className="min-h-[44px] w-full rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none transition placeholder:text-text-3 focus:border-brand"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="Ciudad (obligatorio)"
               />
               <input
-                className="min-h-[44px] w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-violet-400"
+                className="min-h-[44px] w-full rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none transition placeholder:text-text-3 focus:border-brand"
                 value={zone}
                 onChange={(e) => setZone(e.target.value)}
                 placeholder="Zona o barrio (opcional)"
@@ -173,7 +173,7 @@ export default function LeadChatWidget() {
               <button
                 onClick={submitLocation}
                 disabled={!city.trim()}
-                className="gradient-btn min-h-[44px] w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="gradient-btn min-h-[44px] w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-grad-contrast disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Siguiente
               </button>
@@ -188,7 +188,7 @@ export default function LeadChatWidget() {
               <input
                 type="number"
                 min={0}
-                className="min-h-[44px] w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-violet-400"
+                className="min-h-[44px] w-full rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none transition placeholder:text-text-3 focus:border-brand"
                 value={budget}
                 onChange={(e) => setBudget(e.target.value)}
                 placeholder="Monto aproximado en USD"
@@ -196,13 +196,13 @@ export default function LeadChatWidget() {
               <div className="flex gap-2">
                 <button
                   onClick={() => submitBudget(false)}
-                  className="gradient-btn min-h-[44px] flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
+                  className="gradient-btn min-h-[44px] flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-grad-contrast"
                 >
                   Siguiente
                 </button>
                 <button
                   onClick={() => submitBudget(true)}
-                  className="min-h-[44px] flex-1 rounded-xl border border-white/20 px-4 py-2.5 text-sm font-semibold text-white/90 hover:bg-white/10"
+                  className="min-h-[44px] flex-1 rounded-xl border border-line-strong px-4 py-2.5 text-sm font-semibold text-text hover:bg-surface-2"
                 >
                   Prefiero no decir
                 </button>
@@ -216,19 +216,19 @@ export default function LeadChatWidget() {
             <BotBubble text="¡Ya casi terminamos! Dime tu nombre y tu teléfono para que un agente te contacte." />
             <div className="space-y-2">
               <input
-                className="min-h-[44px] w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-violet-400"
+                className="min-h-[44px] w-full rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none transition placeholder:text-text-3 focus:border-brand"
                 value={contactName}
                 onChange={(e) => setContactName(e.target.value)}
                 placeholder="Tu nombre"
               />
               <input
-                className="min-h-[44px] w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-violet-400"
+                className="min-h-[44px] w-full rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none transition placeholder:text-text-3 focus:border-brand"
                 value={contactPhone}
                 onChange={(e) => setContactPhone(e.target.value)}
                 placeholder="Tu telefono de contacto"
               />
               <input
-                className="min-h-[44px] w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-violet-400"
+                className="min-h-[44px] w-full rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none transition placeholder:text-text-3 focus:border-brand"
                 value={contactEmail}
                 onChange={(e) => setContactEmail(e.target.value)}
                 placeholder="Email (opcional)"
@@ -236,7 +236,7 @@ export default function LeadChatWidget() {
               <button
                 onClick={submitContact}
                 disabled={!contactName.trim() || !contactPhone.trim()}
-                className="gradient-btn min-h-[44px] w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="gradient-btn min-h-[44px] w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-grad-contrast disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Enviar
               </button>
@@ -272,7 +272,7 @@ export default function LeadChatWidget() {
             <BotBubble text={errorMessage} />
             <button
               onClick={() => setStep('contact')}
-              className="min-h-[44px] w-full rounded-xl border border-white/20 px-4 py-2.5 text-sm font-semibold text-white/90 hover:bg-white/10"
+              className="min-h-[44px] w-full rounded-xl border border-line-strong px-4 py-2.5 text-sm font-semibold text-text hover:bg-surface-2"
             >
               Intentar de nuevo
             </button>
@@ -285,7 +285,7 @@ export default function LeadChatWidget() {
 
 function BotAvatar() {
   return (
-    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-[13px]">
+    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-grad text-[13px]">
       🤖
     </div>
   );
@@ -295,7 +295,7 @@ function BotBubble({ text, children }: { text?: string; children?: ReactNode }) 
   return (
     <div className="flex items-end gap-2">
       <BotAvatar />
-      <div className="max-w-[80%] rounded-2xl rounded-bl-sm bg-white/10 px-4 py-2.5 text-sm text-white/90">
+      <div className="max-w-[80%] rounded-2xl rounded-bl-sm bg-surface-2 px-4 py-2.5 text-sm text-text">
         {children ?? text}
       </div>
     </div>
@@ -305,16 +305,16 @@ function BotBubble({ text, children }: { text?: string; children?: ReactNode }) 
 function TypingDots() {
   return (
     <span className="inline-flex items-center gap-1">
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/70 [animation-delay:-0.2s]" />
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/70 [animation-delay:-0.1s]" />
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/70" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-3 [animation-delay:-0.2s]" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-3 [animation-delay:-0.1s]" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-3" />
     </span>
   );
 }
 
 function UserBubble({ text }: { text: string }) {
   return (
-    <div className="ml-auto max-w-[80%] rounded-2xl rounded-br-sm bg-violet-500/25 px-4 py-2.5 text-right text-sm text-white">
+    <div className="ml-auto max-w-[80%] rounded-2xl rounded-br-sm bg-brand-dim px-4 py-2.5 text-right text-sm text-text">
       {text}
     </div>
   );
@@ -333,7 +333,7 @@ function OptionButtons<T extends string>({
         <button
           key={option.value}
           onClick={() => onSelect(option.value, option.label)}
-          className="min-h-[44px] rounded-full border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/15"
+          className="min-h-[44px] rounded-full border border-line-strong bg-surface-2 px-4 py-2 text-sm font-semibold text-text transition hover:brightness-125"
         >
           {option.label}
         </button>

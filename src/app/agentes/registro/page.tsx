@@ -104,7 +104,7 @@ function AgentRegisterForm() {
     setTouched((prev) => (prev.has(field) ? prev : new Set(prev).add(field)));
   }
   function fieldClass(field: FieldName, base: string): string {
-    return showError(field) ? `${base} border-pink-400/60 focus:border-pink-400` : `${base} border-white/15 focus:border-violet-400`;
+    return showError(field) ? `${base} border-pink-400/60 focus:border-pink-400` : `${base} border-line-strong focus:border-violet-400`;
   }
 
   function toggleProperty(value: string) {
@@ -181,10 +181,10 @@ function AgentRegisterForm() {
   }
 
   return (
-    <main className="violet-ambient-bg min-h-screen px-4 py-8 text-white sm:py-10">
+    <main className="violet-ambient-bg min-h-screen px-4 py-8 text-text sm:py-10">
       <div className="mx-auto flex max-w-5xl flex-col lg:grid lg:grid-cols-[1fr_320px] lg:items-start lg:gap-6">
         <div className="order-first lg:order-2 lg:sticky lg:top-6">
-          <p className="mb-2 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40 lg:text-left">Vista previa de tu carnet</p>
+          <p className="mb-2 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-text-3 lg:text-left">Vista previa de tu carnet</p>
           <CarnetPreview
             fullName={fullName}
             photoPreview={photoPreview}
@@ -197,14 +197,14 @@ function AgentRegisterForm() {
         </div>
 
         <div className="order-2 mt-6 lg:order-1 lg:mt-0">
-          <section className="grain-overlay relative mb-6 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+          <section className="grain-overlay relative mb-6 overflow-hidden rounded-3xl border border-line bg-surface p-6 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl">
             <div className="absolute -right-10 top-0 h-40 w-40 rounded-full bg-violet-600/25 blur-2xl" />
             <div className="relative z-10 space-y-3">
               <p className="inline-flex rounded-full border border-violet-400/40 bg-violet-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-violet-200">
                 Redinmo.io
               </p>
               <h1 className="gradient-text text-3xl font-bold leading-tight sm:text-4xl">Regístrate como agente</h1>
-              <p className="max-w-xl text-sm text-white/70">
+              <p className="max-w-xl text-sm text-text-2">
                 Activa tu prueba gratuita de {TRIAL_DAYS} días y empieza a recibir matches de tus colegas hoy
               </p>
             </div>
@@ -224,7 +224,7 @@ function AgentRegisterForm() {
                   type="button"
                   onClick={() => photoInputRef.current?.click()}
                   aria-label={photoPreview ? 'Cambiar foto de perfil' : 'Agregar foto de perfil'}
-                  className="group relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-violet-400/40 bg-white/5 transition-colors hover:border-violet-400/70"
+                  className="group relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-violet-400/40 bg-surface-2 transition-colors hover:border-violet-400/70"
                 >
                   {photoPreview ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -233,13 +233,13 @@ function AgentRegisterForm() {
                     <Camera className="h-6 w-6 text-violet-300/70" strokeWidth={1.8} />
                   )}
                 </button>
-                <p className="text-xs text-white/45">{photoPreview ? 'Foto lista' : 'Foto de perfil (opcional)'}</p>
+                <p className="text-xs text-text-3">{photoPreview ? 'Foto lista' : 'Foto de perfil (opcional)'}</p>
               </div>
 
               <div>
                 <input
                   ref={fieldRefs.fullName}
-                  className={fieldClass('fullName', 'w-full rounded-xl border bg-white/5 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/35')}
+                  className={fieldClass('fullName', 'w-full rounded-xl border bg-surface-2 px-3 py-3 text-sm text-text outline-none transition placeholder:text-text-3')}
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   onBlur={() => markTouched('fullName')}
@@ -251,19 +251,19 @@ function AgentRegisterForm() {
               <div>
                 <div className="flex gap-2">
                   <select
-                    className="w-[45%] shrink-0 rounded-xl border border-white/15 bg-white/5 px-2 py-3 text-sm text-white outline-none transition focus:border-violet-400 sm:w-[38%]"
+                    className="w-[45%] shrink-0 rounded-xl border border-line-strong bg-surface-2 px-2 py-3 text-sm text-text outline-none transition focus:border-violet-400 sm:w-[38%]"
                     value={countryCode}
                     onChange={(e) => setCountryCode(e.target.value)}
                   >
                     {COUNTRY_CODES.map((c) => (
-                      <option key={c.code} className="bg-[#0b0f1a]" value={c.code}>
+                      <option key={c.code} className="bg-bg" value={c.code}>
                         {c.label}
                       </option>
                     ))}
                   </select>
                   <input
                     ref={fieldRefs.phone}
-                    className={fieldClass('phone', 'w-full rounded-xl border bg-white/5 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/35')}
+                    className={fieldClass('phone', 'w-full rounded-xl border bg-surface-2 px-3 py-3 text-sm text-text outline-none transition placeholder:text-text-3')}
                     value={phoneLocal}
                     onChange={(e) => setPhoneLocal(e.target.value)}
                     onBlur={() => markTouched('phone')}
@@ -278,7 +278,7 @@ function AgentRegisterForm() {
               <div>
                 <input
                   ref={fieldRefs.email}
-                  className={fieldClass('email', 'w-full rounded-xl border bg-white/5 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/35')}
+                  className={fieldClass('email', 'w-full rounded-xl border bg-surface-2 px-3 py-3 text-sm text-text outline-none transition placeholder:text-text-3')}
                   value={email}
                   type="email"
                   autoComplete="email"
@@ -292,7 +292,7 @@ function AgentRegisterForm() {
               <div>
                 <input
                   ref={fieldRefs.password}
-                  className={fieldClass('password', 'w-full rounded-xl border bg-white/5 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/35')}
+                  className={fieldClass('password', 'w-full rounded-xl border bg-surface-2 px-3 py-3 text-sm text-text outline-none transition placeholder:text-text-3')}
                   value={password}
                   type="password"
                   autoComplete="new-password"
@@ -304,7 +304,7 @@ function AgentRegisterForm() {
               </div>
 
               <input
-                className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-violet-400"
+                className="w-full rounded-xl border border-line-strong bg-surface-2 px-3 py-3 text-sm text-text outline-none transition placeholder:text-text-3 focus:border-violet-400"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="Empresa / inmobiliaria (opcional)"
@@ -318,7 +318,7 @@ function AgentRegisterForm() {
                   <div>
                     <input
                       ref={fieldRefs.idNumber}
-                      className={fieldClass('idNumber', 'w-full rounded-xl border bg-white/5 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/35')}
+                      className={fieldClass('idNumber', 'w-full rounded-xl border bg-surface-2 px-3 py-3 text-sm text-text outline-none transition placeholder:text-text-3')}
                       value={idNumber}
                       onChange={(e) => setIdNumber(e.target.value)}
                       onBlur={() => markTouched('idNumber')}
@@ -327,13 +327,13 @@ function AgentRegisterForm() {
                     {showError('idNumber') ? <p className="mt-1 text-xs text-pink-300">{showError('idNumber')}</p> : null}
                   </div>
                   <input
-                    className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-violet-400"
+                    className="w-full rounded-xl border border-line-strong bg-surface-2 px-3 py-3 text-sm text-text outline-none transition placeholder:text-text-3 focus:border-violet-400"
                     value={licenseNumber}
                     onChange={(e) => setLicenseNumber(e.target.value)}
                     placeholder="Licencia Profesional No. 0000 (opcional)"
                   />
                 </div>
-                <p className="mt-2 text-xs text-white/50">
+                <p className="mt-2 text-xs text-text-2">
                   Tus datos se usan solo para verificar tu identidad y se tratan conforme a la LOPDP (Ley Orgánica de
                   Protección de Datos Personales del Ecuador). No se comparten con otros agentes ni terceros, y puedes
                   solicitar su acceso, corrección o eliminación cuando quieras.
@@ -341,9 +341,9 @@ function AgentRegisterForm() {
               </div>
 
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-white/60">Zonas donde operas</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-text-2">Zonas donde operas</p>
                 <input
-                  className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-violet-400"
+                  className="w-full rounded-xl border border-line-strong bg-surface-2 px-3 py-3 text-sm text-text outline-none transition placeholder:text-text-3 focus:border-violet-400"
                   value={zonesText}
                   onChange={(e) => setZonesText(e.target.value)}
                   placeholder="Separadas por coma (ej: Centro Norte, Cumbayá)"
@@ -351,7 +351,7 @@ function AgentRegisterForm() {
               </div>
 
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-white/60">Tu especialidad</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-text-2">Tu especialidad</p>
                 <div className="flex flex-wrap gap-2">
                   {(['SALE', 'RENT', 'BOTH'] as const).map((value) => (
                     <button
@@ -359,8 +359,8 @@ function AgentRegisterForm() {
                       onClick={() => setSpecialty(value)}
                       className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
                         specialty === value
-                          ? 'gradient-btn border-transparent text-white'
-                          : 'border-white/15 text-white/70 hover:bg-white/10'
+                          ? 'gradient-btn border-transparent text-grad-contrast'
+                          : 'border-line-strong text-text-2 hover:bg-surface-2'
                       }`}
                     >
                       {value === 'SALE' ? 'Venta' : value === 'RENT' ? 'Alquiler' : 'Ambas'}
@@ -370,7 +370,7 @@ function AgentRegisterForm() {
               </div>
 
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-white/60">Tipos de propiedades que manejas</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-text-2">Tipos de propiedades que manejas</p>
                 <div className="flex flex-wrap gap-2">
                   {PROPERTY_OPTIONS.map((option) => (
                     <button
@@ -378,8 +378,8 @@ function AgentRegisterForm() {
                       onClick={() => toggleProperty(option.value)}
                       className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
                         propertyTypesInterest.includes(option.value)
-                          ? 'gradient-btn border-transparent text-white'
-                          : 'border-white/15 text-white/70 hover:bg-white/10'
+                          ? 'gradient-btn border-transparent text-grad-contrast'
+                          : 'border-line-strong text-text-2 hover:bg-surface-2'
                       }`}
                     >
                       {option.label}
@@ -389,7 +389,7 @@ function AgentRegisterForm() {
               </div>
 
               <div>
-                <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-line bg-surface p-3">
                   <input
                     ref={fieldRefs.terms}
                     type="checkbox"
@@ -399,9 +399,9 @@ function AgentRegisterForm() {
                       markTouched('terms');
                     }}
                     onBlur={() => markTouched('terms')}
-                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/30 bg-white/10 accent-violet-500"
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/30 bg-surface-2 accent-violet-500"
                   />
-                  <span className="text-xs text-white/75">
+                  <span className="text-xs text-text">
                     Acepto los{' '}
                     <a href="/soporte" target="_blank" rel="noreferrer" className="font-semibold text-violet-300 underline underline-offset-2">
                       Términos
@@ -419,13 +419,13 @@ function AgentRegisterForm() {
               <button
                 onClick={submit}
                 disabled={loading}
-                className="gradient-btn w-full rounded-xl px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+                className="gradient-btn w-full rounded-xl px-4 py-3 text-sm font-semibold text-grad-contrast disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {loading ? 'Registrando...' : `Crear cuenta, prueba gratuita por ${TRIAL_DAYS} días`}
               </button>
-              <p className="text-center text-xs text-white/45">Luego de tu prueba gratuita: $8,99/mes + IVA. Cancela cuando quieras.</p>
+              <p className="text-center text-xs text-text-3">Luego de tu prueba gratuita: $8,99/mes + IVA. Cancela cuando quieras.</p>
 
-              <a href="/login" className="block text-center text-xs font-semibold text-white/60 underline-offset-4 hover:underline">
+              <a href="/login" className="block text-center text-xs font-semibold text-text-2 underline-offset-4 hover:underline">
                 ¿Ya tienes cuenta? Ingresa aquí
               </a>
             </div>

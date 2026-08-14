@@ -34,7 +34,7 @@ function Step({ step, isLast }: { step: StepDef; isLast: boolean }) {
       {!isLast ? (
         <span
           className={`absolute left-[15px] top-8 w-0.5 transition-colors duration-500 ${
-            step.done ? 'bg-gradient-to-b from-emerald-400 to-emerald-400/15' : 'bg-white/10'
+            step.done ? 'bg-gradient-to-b from-emerald-400 to-emerald-400/15' : 'bg-surface-2'
           }`}
           style={{ height: 'calc(100% - 1.25rem)' }}
         />
@@ -42,24 +42,24 @@ function Step({ step, isLast }: { step: StepDef; isLast: boolean }) {
       <span
         className={`z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm transition-all duration-300 ${
           step.done
-            ? 'border-emerald-400 bg-emerald-500 text-white shadow-[0_0_14px_rgba(52,211,153,0.55)]'
-            : 'border-white/15 bg-white/5 text-white/50'
+            ? 'border-emerald-400 bg-emerald-500 text-text shadow-[0_0_14px_rgba(52,211,153,0.55)]'
+            : 'border-line-strong bg-surface-2 text-text-2'
         }`}
       >
         {step.done ? '✓' : step.icon}
       </span>
       <div className="min-w-0 flex-1 pt-0.5">
         <div className="flex flex-wrap items-center gap-2">
-          <p className={`text-sm ${step.done ? 'font-semibold text-white' : 'text-white/60'}`}>{step.label}</p>
+          <p className={`text-sm ${step.done ? 'font-semibold text-text' : 'text-text-2'}`}>{step.label}</p>
           {step.done ? (
             <span className="fade-up rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
               +{step.points} pts
             </span>
           ) : step.points > 0 ? (
-            <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-white/30">+{step.points} pts</span>
+            <span className="rounded-full border border-line px-2 py-0.5 text-[10px] text-text-3">+{step.points} pts</span>
           ) : null}
         </div>
-        {step.detail ? <p className="mt-0.5 text-xs text-white/40">{step.detail}</p> : null}
+        {step.detail ? <p className="mt-0.5 text-xs text-text-3">{step.detail}</p> : null}
         {step.action ? <div className="mt-2">{step.action}</div> : null}
       </div>
     </div>
@@ -131,7 +131,7 @@ export default function MatchTimeline({
               type="datetime-local"
               value={visitDateTime}
               onChange={(e) => setVisitDateTime(e.target.value)}
-              className="rounded-lg border border-white/15 bg-white/5 px-2 py-1.5 text-xs text-white outline-none focus:border-violet-400"
+              className="rounded-lg border border-line-strong bg-surface-2 px-2 py-1.5 text-xs text-text outline-none focus:border-violet-400"
             />
             <ActionButton
               onClick={() => visitDateTime && onUpdate({ visitScheduledFor: new Date(visitDateTime).toISOString() })}
@@ -154,7 +154,7 @@ export default function MatchTimeline({
       action:
         canEdit && !match.visitCompletedAt ? (
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-white/50">{t('timeline.comoSalioVisita')}</span>
+            <span className="text-xs text-text-2">{t('timeline.comoSalioVisita')}</span>
             <button
               onClick={() => onUpdate({ visitOutcome: 'SATISFACTORIA' })}
               className="rounded-full bg-violet-400 px-3 py-1.5 text-xs font-semibold text-[#1c1330] transition-transform duration-200 hover:scale-[1.04]"
@@ -163,7 +163,7 @@ export default function MatchTimeline({
             </button>
             <button
               onClick={() => onUpdate({ visitOutcome: 'DESCARTADA' })}
-              className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/70 transition-colors duration-200 hover:bg-white/10"
+              className="rounded-full border border-line-strong px-3 py-1.5 text-xs font-semibold text-text-2 transition-colors duration-200 hover:bg-surface-2"
             >
               {t('timeline.descartada')}
             </button>
@@ -205,18 +205,18 @@ export default function MatchTimeline({
   });
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-transparent p-4">
+    <div className="rounded-2xl border border-line bg-gradient-to-br from-white/[0.05] to-transparent p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-bold uppercase tracking-[0.1em] text-white/70">{t('timeline.title')}</h3>
+        <h3 className="text-sm font-bold uppercase tracking-[0.1em] text-text-2">{t('timeline.title')}</h3>
         {responsibleName ? (
-          <span className="text-[11px] text-white/40">
-            {t('timeline.responsable')} <span className="text-white/70">{responsibleName}</span>
+          <span className="text-[11px] text-text-3">
+            {t('timeline.responsable')} <span className="text-text-2">{responsibleName}</span>
           </span>
         ) : null}
       </div>
 
       <div className="mt-3 flex items-center gap-3">
-        <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/10">
+        <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
           <div
             className="h-full rounded-full bg-violet-400 transition-all duration-700 ease-out"
             style={{ width: `${progressPct}%` }}
@@ -237,10 +237,10 @@ export default function MatchTimeline({
         ))}
       </div>
 
-      {!canEdit ? <p className="mt-2 text-[11px] text-white/35">{t('timeline.soloResponsable')}</p> : null}
+      {!canEdit ? <p className="mt-2 text-[11px] text-text-3">{t('timeline.soloResponsable')}</p> : null}
 
       {canEdit && (closed || lost) ? (
-        <button onClick={() => onUpdate({ closedWon: null })} className="mt-2 text-[11px] text-white/40 underline hover:text-white/70">
+        <button onClick={() => onUpdate({ closedWon: null })} className="mt-2 text-[11px] text-text-3 underline hover:text-text-2">
           {t('timeline.reabrir')}
         </button>
       ) : null}

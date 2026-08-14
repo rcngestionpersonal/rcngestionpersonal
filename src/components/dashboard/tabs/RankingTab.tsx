@@ -19,8 +19,8 @@ import type { AgentDashboardBreakdown, AgentItem, PointsRankingEntry, PointsSumm
 
 function SectionHeading({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
-    <h2 className="flex items-center gap-2.5 text-[20px] font-bold tracking-[-0.01em] text-white">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[rgba(167,139,250,0.13)] text-[#b7a5ff]">{icon}</span>
+    <h2 className="flex items-center gap-2.5 text-[20px] font-bold tracking-[-0.01em] text-text">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-dim text-brand">{icon}</span>
       {title}
     </h2>
   );
@@ -59,7 +59,7 @@ export default function RankingTab({
       <div className="space-y-8">
         <section className="glass-card fade-up rounded-[1.8rem] p-4 sm:p-6">
           <SectionHeading icon={<IconPodium className="h-[18px] w-[18px]" />} title={t('gestion.rankingAgentes.title')} />
-          <p className="mt-1 text-sm text-white/60">{t('rankingTab.subtitle')}</p>
+          <p className="mt-1 text-sm text-text-2">{t('rankingTab.subtitle')}</p>
           <TopAgentesList ranking={pointsRanking} myAgentId={myAgentId} t={t} limit={10} />
         </section>
       </div>
@@ -92,7 +92,7 @@ export default function RankingTab({
 
       <section className="fade-up glass-card rounded-[1.8rem] p-4 sm:p-6">
         <SectionHeading icon={<IconPodium className="h-[18px] w-[18px]" />} title={t('ranking.top10.title')} />
-        <p className="mt-1.5 text-sm text-[#9296b0]">{t('ranking.top10.subtitle')}</p>
+        <p className="mt-1.5 text-sm text-text-2">{t('ranking.top10.subtitle')}</p>
         <TopAgentesList ranking={pointsRanking} myAgentId={myAgentId} t={t} limit={10} />
       </section>
 
@@ -208,7 +208,7 @@ function CarnetSection({
   return (
     <section id="carnet" className="fade-up scroll-mt-20">
       {showPhotoNudge ? (
-        <div className="mb-3 rounded-xl border border-[rgba(45,212,191,0.3)] bg-[rgba(45,212,191,0.08)] px-3.5 py-2.5 text-[12.5px] text-[#9296b0]">
+        <div className="mb-3 rounded-xl border border-[rgba(45,212,191,0.3)] bg-[rgba(45,212,191,0.08)] px-3.5 py-2.5 text-[12.5px] text-text-2">
           {t('ranking.carnet.nudgeFoto')}
         </div>
       ) : null}
@@ -218,7 +218,7 @@ function CarnetSection({
       {cardData.specializationZones.length === 0 ? (
         <button
           onClick={() => setEditorOpen(true)}
-          className="mt-3 block w-full text-center text-xs text-[#9296b0] underline decoration-dotted underline-offset-2 transition-colors hover:text-[#2dd4bf]"
+          className="mt-3 block w-full text-center text-xs text-text-2 underline decoration-dotted underline-offset-2 transition-colors hover:text-[#2dd4bf]"
         >
           {t('ranking.carnet.nudgeZonas')} — {t('ranking.carnet.completarPerfil')}
         </button>
@@ -228,7 +228,7 @@ function CarnetSection({
         <button
           onClick={() => setShareOpen(true)}
           aria-label={t('ranking.compartirCarnet')}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-[rgba(255,255,255,0.07)] px-4 py-2.5 text-sm font-semibold text-[#9296b0] transition-colors duration-150 hover:text-[#2dd4bf]"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-[rgba(255,255,255,0.07)] px-4 py-2.5 text-sm font-semibold text-text-2 transition-colors duration-150 hover:text-[#2dd4bf]"
         >
           ↗ {t('ranking.compartirCarnet')}
         </button>
@@ -236,16 +236,16 @@ function CarnetSection({
 
       <button
         onClick={() => setEditorOpen((v) => !v)}
-        className="mt-2 flex w-full items-center justify-between rounded-[10px] px-2 py-2 text-xs font-semibold text-[#62667f] transition-colors hover:text-white"
+        className="mt-2 flex w-full items-center justify-between rounded-[10px] px-2 py-2 text-xs font-semibold text-text-3 transition-colors hover:text-text"
       >
         <span>{t('ranking.carnet.editar')}</span>
         <span>{editorOpen ? '▴' : '▾'}</span>
       </button>
 
       {editorOpen ? (
-        <div className="mt-2 space-y-3 rounded-[14px] border border-white/10 bg-white/[0.02] p-3.5">
+        <div className="mt-2 space-y-3 rounded-[14px] border border-line bg-surface p-3.5">
           <div>
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.06em] text-[#62667f]">{t('ranking.carnet.zonasLabel')}</p>
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.06em] text-text-3">{t('ranking.carnet.zonasLabel')}</p>
             <div className="flex flex-wrap gap-1.5">
               {QUITO_ZONES.map((zone) => {
                 const selected = zonesDraft.includes(zone.key);
@@ -259,8 +259,8 @@ function CarnetSection({
                       selected
                         ? 'border-[rgba(45,212,191,0.4)] bg-[rgba(45,212,191,0.14)] text-[#2dd4bf]'
                         : disabled
-                          ? 'cursor-not-allowed border-white/5 text-white/25'
-                          : 'border-white/10 text-[#9296b0] hover:text-white'
+                          ? 'cursor-not-allowed border-line text-text-3'
+                          : 'border-line text-text-2 hover:text-text'
                     }`}
                   >
                     {lang === 'es' ? zone.labelEs : zone.labelEn}
@@ -271,16 +271,16 @@ function CarnetSection({
           </div>
 
           <div>
-            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[#62667f]">{t('ranking.carnet.mensajeLabel')}</p>
+            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-text-3">{t('ranking.carnet.mensajeLabel')}</p>
             <textarea
               value={messageDraft}
               onChange={(e) => setMessageDraft(e.target.value.slice(0, 220))}
               maxLength={220}
               rows={3}
               placeholder={defaultMessagePreview}
-              className="w-full resize-none rounded-[10px] border border-white/10 bg-white/[0.03] p-2.5 text-[12.5px] text-white placeholder:text-white/25 focus:border-[rgba(45,212,191,0.4)] focus:outline-none"
+              className="w-full resize-none rounded-[10px] border border-line bg-surface p-2.5 text-[12.5px] text-text placeholder:text-text-3 focus:border-[rgba(45,212,191,0.4)] focus:outline-none"
             />
-            <p className="mt-1 flex items-center justify-between text-[10px] text-[#62667f]">
+            <p className="mt-1 flex items-center justify-between text-[10px] text-text-3">
               <span>{t('ranking.carnet.mensajeAyuda')}</span>
               <span>{messageDraft.length}/220</span>
             </p>
@@ -289,7 +289,7 @@ function CarnetSection({
           <button
             onClick={handleSaveProfile}
             disabled={saving}
-            className="w-full rounded-[10px] bg-[#2dd4bf] py-2.5 text-sm font-bold text-[#04201c] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-[10px] bg-[#2dd4bf] py-2.5 text-sm font-bold text-accent-contrast transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? t('ranking.carnet.guardando') : t('ranking.carnet.guardar')}
           </button>
@@ -315,14 +315,14 @@ function LevelLadder({ totalPoints, lang }: { totalPoints: number; lang: 'es' | 
               key={lvl.key}
               className={`min-w-0 rounded-xl border px-1.5 py-2.5 text-center transition-colors duration-150 ${
                 isCurrent
-                  ? 'border-[rgba(167,139,250,0.5)] bg-[rgba(167,139,250,0.13)]'
+                  ? 'border-brand-line bg-brand-dim'
                   : reached
-                    ? 'border-[rgba(167,139,250,0.35)] text-[#b7a5ff]'
+                    ? 'border-brand-line text-brand'
                     : 'border-[rgba(255,255,255,0.07)]'
               }`}
             >
-              <p className={`truncate text-[10.5px] font-bold ${isCurrent ? 'text-[#b7a5ff]' : reached ? 'text-[#b7a5ff]' : 'text-[#62667f]'}`}>{label}</p>
-              <p className="mt-0.5 text-[9.5px] text-[#62667f]">{lvl.min}</p>
+              <p className={`truncate text-[10.5px] font-bold ${isCurrent ? 'text-brand' : reached ? 'text-brand' : 'text-text-3'}`}>{label}</p>
+              <p className="mt-0.5 text-[9.5px] text-text-3">{lvl.min}</p>
             </div>
           );
         })}
@@ -335,7 +335,7 @@ function rankBadgeClasses(rank: number): string {
   if (rank === 1) return 'border-amber-400/50 bg-amber-400/15 text-amber-300';
   if (rank === 2) return 'border-slate-300/40 bg-slate-300/10 text-slate-200';
   if (rank === 3) return 'border-orange-400/40 bg-orange-400/10 text-orange-300';
-  return 'border-white/10 bg-white/5 text-white/60';
+  return 'border-line bg-surface-2 text-text-2';
 }
 
 function barColorFor(rank: number): string {
@@ -362,7 +362,7 @@ function TopAgentesList({
   const leaderPoints = ranking[0]?.totalPoints || 1;
 
   if (ranking.length === 0) {
-    return <p className="mt-3 text-xs text-white/40">{t('ranking.sinDatos')}</p>;
+    return <p className="mt-3 text-xs text-text-3">{t('ranking.sinDatos')}</p>;
   }
 
   function Row({ entry }: { entry: PointsRankingEntry }) {
@@ -371,23 +371,23 @@ function TopAgentesList({
     return (
       <div
         className={`flex min-w-0 items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-transform duration-200 hover:-translate-y-0.5 ${
-          isMe ? 'border border-[rgba(167,139,250,0.45)] bg-gradient-to-r from-[rgba(167,139,250,0.13)] to-transparent' : 'border border-white/5 bg-white/5'
+          isMe ? 'border border-brand-line bg-gradient-to-r from-[rgba(167,139,250,0.13)] to-transparent' : 'border border-line bg-surface-2'
         }`}
       >
         <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-bold ${rankBadgeClasses(entry.rank)}`}>{entry.rank}</span>
         <AvatarInitials name={entry.displayName} size={32} colorHex={levelColorFor(entry.level.key)} photoUrl={entry.photoUrl} />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-1.5">
-            <span className="min-w-0 truncate font-semibold text-white/85">{entry.displayName}</span>
+            <span className="min-w-0 truncate font-semibold text-text">{entry.displayName}</span>
             {isMe ? (
-              <span className="shrink-0 rounded-full bg-[rgba(167,139,250,0.22)] px-2 py-0.5 text-[9px] font-bold text-[#b7a5ff]">{t('ranking.tu').toUpperCase()}</span>
+              <span className="shrink-0 rounded-full bg-brand-dim px-2 py-0.5 text-[9px] font-bold text-brand">{t('ranking.tu').toUpperCase()}</span>
             ) : null}
           </div>
-          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
             <div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${barPct}%`, backgroundColor: barColorFor(entry.rank) }} />
           </div>
         </div>
-        <span className="shrink-0 text-sm font-bold text-[#b7a5ff]">{entry.totalPoints}</span>
+        <span className="shrink-0 text-sm font-bold text-brand">{entry.totalPoints}</span>
       </div>
     );
   }
@@ -399,7 +399,7 @@ function TopAgentesList({
       ))}
       {myEntry && !myEntryInView ? (
         <>
-          <p className="py-1 text-center text-xs text-white/30">···</p>
+          <p className="py-1 text-center text-xs text-text-3">···</p>
           <Row entry={myEntry} />
         </>
       ) : null}
@@ -433,12 +433,12 @@ function PointsGrid({ t, lang }: { t: (k: string) => string; lang: 'es' | 'en' }
   function Category({ title, entries }: { title: string; entries: PointsGridEntry[] }) {
     return (
       <div>
-        <p className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#62667f]">{title}</p>
+        <p className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.08em] text-text-3">{title}</p>
         <div className="grid grid-cols-2 gap-2">
           {entries.map((entry) => (
-            <div key={entry.label} className="min-w-0 rounded-xl border border-white/5 bg-white/5 p-3">
-              <p className="text-base font-extrabold text-[#b7a5ff]">+{entry.points}</p>
-              <p className="mt-0.5 text-xs leading-snug text-[#9296b0]">{entry.label}</p>
+            <div key={entry.label} className="min-w-0 rounded-xl border border-line bg-surface-2 p-3">
+              <p className="text-base font-extrabold text-brand">+{entry.points}</p>
+              <p className="mt-0.5 text-xs leading-snug text-text-2">{entry.label}</p>
             </div>
           ))}
         </div>
@@ -450,18 +450,18 @@ function PointsGrid({ t, lang }: { t: (k: string) => string; lang: 'es' | 'en' }
     <section className="fade-up glass-card space-y-5 rounded-[1.8rem] p-4 sm:p-6">
       <div>
         <SectionHeading icon={<span className="text-[15px]">&#8853;</span>} title={t('ranking.puntosGrid.title')} />
-        <p className="mt-1.5 text-sm text-[#9296b0]">{t('ranking.puntosGrid.subtitle')}</p>
+        <p className="mt-1.5 text-sm text-text-2">{t('ranking.puntosGrid.subtitle')}</p>
       </div>
 
-      <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-[rgba(167,139,250,0.42)] bg-[rgba(167,139,250,0.13)] p-3.5">
-        <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-[rgba(167,139,250,0.22)] text-[#b7a5ff]">
+      <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-brand-line bg-brand-dim p-3.5">
+        <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-brand-dim text-brand">
           <IconTarget className="h-4 w-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-[#f0f1f7]">{lang === 'es' ? featured.labelEs : featured.labelEn}</p>
-          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.07em] text-[#b7a5ff]">{t('ranking.puntosGrid.destacada')}</p>
+          <p className="truncate text-sm font-semibold text-text">{lang === 'es' ? featured.labelEs : featured.labelEn}</p>
+          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.07em] text-brand">{t('ranking.puntosGrid.destacada')}</p>
         </div>
-        <span className="shrink-0 text-[19px] font-extrabold text-[#b7a5ff]">+{featured.points}</span>
+        <span className="shrink-0 text-[19px] font-extrabold text-brand">+{featured.points}</span>
       </div>
 
       <Category title={t('ranking.puntosGrid.categoria.diaria')} entries={diaria} />

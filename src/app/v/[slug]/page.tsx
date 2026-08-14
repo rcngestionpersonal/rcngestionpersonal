@@ -66,11 +66,11 @@ export default async function PublicCarnetPage({ params }: { params: Promise<{ s
 
   if (!agent) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#0b0d14] px-4 text-center text-white">
+      <main className="flex min-h-screen items-center justify-center bg-bg px-4 text-center text-text">
         <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#2dd4bf]">✦ Redinmo</p>
+          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-accent">✦ Redinmo</p>
           <h1 className="mt-3 text-xl font-bold">Carnet no encontrado</h1>
-          <p className="mt-2 text-sm text-[#9296b0]">Este enlace de verificación no corresponde a ningún agente activo.</p>
+          <p className="mt-2 text-sm text-text-2">Este enlace de verificación no corresponde a ningún agente activo.</p>
         </div>
       </main>
     );
@@ -90,7 +90,9 @@ export default async function PublicCarnetPage({ params }: { params: Promise<{ s
   const zones = agent.specializationZones.map((key) => zoneLabel(key, 'es')).filter(Boolean);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-[#0b0d14] px-4 py-12 text-white">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-bg px-4 py-12 text-text">
+      {/* El carnet conserva siempre su misma identidad de tarjeta oscura (igual
+          que la imagen exportada para compartir) - no sigue el tema de la app. */}
       <div
         className="relative w-full max-w-[340px] overflow-hidden rounded-[20px] border p-6 text-center"
         style={{ background: 'linear-gradient(165deg, #131a22 0%, #10141f 45%, #141225 100%)', borderColor: 'rgba(45,212,191,0.35)' }}
@@ -148,8 +150,8 @@ export default async function PublicCarnetPage({ params }: { params: Promise<{ s
         <p className="relative mt-3 text-[10.5px] text-[#62667f]">Agente en Redinmo desde {joinYear}</p>
       </div>
 
-      <p className="mt-6 text-[10px] text-[#62667f]">
-        <span className="font-bold text-[#2dd4bf]">redinmo.io</span> · el hub que conecta colegas
+      <p className="mt-6 text-[10px] text-text-3">
+        <span className="font-bold text-accent">redinmo.io</span> · el hub que conecta colegas
       </p>
     </main>
   );

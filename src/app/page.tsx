@@ -857,7 +857,7 @@ function DashboardPage() {
       {activeTab === 'metricas' && isAdmin && <MetricasTab months={churnMonths} />}
 
       {loading && (
-        <div className="glass-card mt-6 rounded-2xl p-4 text-sm text-white/60">
+        <div className="glass-card mt-6 rounded-2xl p-4 text-sm text-text-2">
           {t('common.cargando')}
         </div>
       )}

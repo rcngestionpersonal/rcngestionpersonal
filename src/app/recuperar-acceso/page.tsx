@@ -21,9 +21,9 @@ export default function RecuperarAccesoPage() {
         }}
       >
         <p style={{ fontSize: 13, fontWeight: 600 }}>
-          <span style={{ color: '#2dd4bf' }}>✦</span> <span style={{ color: '#f0f1f7' }}>REDINMO</span>
+          <span style={{ color: '#2dd4bf' }}>✦</span> <span style={{ color: 'var(--text)' }}>REDINMO</span>
         </p>
-        <h1 style={{ marginTop: 16, fontSize: 22, fontWeight: 800, color: '#f0f1f7' }}>Recuperar acceso</h1>
+        <h1 style={{ marginTop: 16, fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>Recuperar acceso</h1>
         <p style={{ marginTop: 8, marginBottom: 22, fontSize: 13.5, lineHeight: 1.5, color: '#a09bbb' }}>
           Ingresa el correo o teléfono de tu cuenta y te enviamos un enlace para crear una nueva contraseña.
         </p>

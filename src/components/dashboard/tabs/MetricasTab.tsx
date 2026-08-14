@@ -7,8 +7,8 @@ import type { ChurnMonth } from '../types';
 const GOOD = '#34d399';
 const WARNING = '#fbbf24';
 const CRITICAL = '#fb7185';
-const NEUTRAL = '#9296b0';
-const ALTAS_COLOR = '#b7a5ff';
+const NEUTRAL = 'var(--text-2)';
+const ALTAS_COLOR = 'var(--brand)';
 const BAJAS_COLOR = '#fb7185';
 
 function churnColor(pct: number | null): string {
@@ -19,7 +19,7 @@ function churnColor(pct: number | null): string {
 }
 
 function churnBadgeClasses(pct: number | null): string {
-  if (pct === null) return 'border-white/15 bg-white/5 text-white/40';
+  if (pct === null) return 'border-line-strong bg-surface-2 text-text-3';
   if (pct <= 5) return 'border-emerald-400/30 bg-emerald-500/10 text-emerald-300';
   if (pct <= 8) return 'border-amber-400/30 bg-amber-500/10 text-amber-300';
   return 'border-pink-400/30 bg-pink-500/10 text-pink-300';
@@ -35,9 +35,9 @@ function formatUsd(value: number): string {
 
 function SummaryCard({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.1em] text-white/45">{label}</p>
-      <p className="mt-2 text-2xl font-bold" style={tone ? { color: tone } : { color: '#f0f1f7' }}>
+    <div className="rounded-2xl border border-line bg-surface p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.1em] text-text-3">{label}</p>
+      <p className="mt-2 text-2xl font-bold" style={tone ? { color: tone } : { color: 'var(--text)' }}>
         {value}
       </p>
     </div>
@@ -81,10 +81,10 @@ function ChurnLineChart({ months }: { months: ChurnMonth[] }) {
   );
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+    <div className="rounded-2xl border border-line bg-surface p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-white">{t('metricas.churnChart.title')}</p>
-        <div className="flex items-center gap-3 text-[11px] text-white/50">
+        <p className="text-sm font-semibold text-text">{t('metricas.churnChart.title')}</p>
+        <div className="flex items-center gap-3 text-[11px] text-text-2">
           <span className="flex items-center gap-1">
             <span className="h-2 w-2 rounded-full" style={{ background: GOOD }} /> {t('metricas.leyenda.bueno')}
           </span>
@@ -125,11 +125,11 @@ function ChurnLineChart({ months }: { months: ChurnMonth[] }) {
           })}
         </svg>
         {hovered !== null ? (
-          <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 -translate-y-full rounded-lg border border-white/15 bg-[#131624] px-2.5 py-1.5 text-xs text-white shadow-lg">
+          <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 -translate-y-full rounded-lg border border-line-strong bg-surface-2 px-2.5 py-1.5 text-xs text-text shadow-lg">
             <span className="font-semibold">{months[hovered].label}</span>: {formatPct(months[hovered].churnPct)}
           </div>
         ) : null}
-        <div className="mt-1 flex justify-between text-[10px] text-white/35">
+        <div className="mt-1 flex justify-between text-[10px] text-text-3">
           {months
             .filter((_, i) => i % 2 === 0 || months.length <= 6)
             .map((m) => (
@@ -156,10 +156,10 @@ function AltasBajasBarChart({ months }: { months: ChurnMonth[] }) {
   const yFor = (v: number) => (v / maxValue) * (height - padY * 2);
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+    <div className="rounded-2xl border border-line bg-surface p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-white">{t('metricas.altasBajasChart.title')}</p>
-        <div className="flex items-center gap-3 text-[11px] text-white/50">
+        <p className="text-sm font-semibold text-text">{t('metricas.altasBajasChart.title')}</p>
+        <div className="flex items-center gap-3 text-[11px] text-text-2">
           <span className="flex items-center gap-1">
             <span className="h-2 w-2 rounded-full" style={{ background: ALTAS_COLOR }} /> {t('metricas.leyenda.altas')}
           </span>
@@ -203,11 +203,11 @@ function AltasBajasBarChart({ months }: { months: ChurnMonth[] }) {
           <line x1={padX} x2={width - padX} y1={height - padY} y2={height - padY} stroke="rgba(255,255,255,0.15)" strokeWidth={1} />
         </svg>
         {hovered !== null ? (
-          <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 -translate-y-full rounded-lg border border-white/15 bg-[#131624] px-2.5 py-1.5 text-xs text-white shadow-lg">
+          <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 -translate-y-full rounded-lg border border-line-strong bg-surface-2 px-2.5 py-1.5 text-xs text-text shadow-lg">
             <span className="font-semibold">{months[hovered].label}</span>: +{months[hovered].altas} / -{months[hovered].bajas}
           </div>
         ) : null}
-        <div className="mt-1 flex justify-between text-[10px] text-white/35">
+        <div className="mt-1 flex justify-between text-[10px] text-text-3">
           {months
             .filter((_, i) => i % 2 === 0 || months.length <= 6)
             .map((m) => (
@@ -228,24 +228,24 @@ export default function MetricasTab({ months }: { months: ChurnMonth[] | null })
   if (!months) {
     return (
       <div className="space-y-10">
-        <section className="fade-up text-white">
-          <h1 className="text-2xl font-bold text-white sm:text-3xl">{t('metricas.title')}</h1>
-          <p className="mt-2 max-w-2xl text-sm text-[#9296b0]">{t('metricas.subtitle')}</p>
+        <section className="fade-up text-text">
+          <h1 className="text-2xl font-bold text-text sm:text-3xl">{t('metricas.title')}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-text-2">{t('metricas.subtitle')}</p>
         </section>
-        <p className="text-sm text-white/50">{t('metricas.cargando')}</p>
+        <p className="text-sm text-text-2">{t('metricas.cargando')}</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-10">
-      <section className="fade-up text-white">
-        <h1 className="text-2xl font-bold text-white sm:text-3xl">{t('metricas.title')}</h1>
-        <p className="mt-2 max-w-2xl text-sm text-[#9296b0]">{t('metricas.subtitle')}</p>
+      <section className="fade-up text-text">
+        <h1 className="text-2xl font-bold text-text sm:text-3xl">{t('metricas.title')}</h1>
+        <p className="mt-2 max-w-2xl text-sm text-text-2">{t('metricas.subtitle')}</p>
       </section>
 
       {!anyActivity ? (
-        <p className="rounded-2xl border border-dashed border-white/15 p-4 text-sm text-white/50">{t('metricas.notaVacio')}</p>
+        <p className="rounded-2xl border border-dashed border-line-strong p-4 text-sm text-text-2">{t('metricas.notaVacio')}</p>
       ) : null}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -264,35 +264,35 @@ export default function MetricasTab({ months }: { months: ChurnMonth[] | null })
         <AltasBajasBarChart months={months} />
       </section>
 
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-        <p className="mb-3 text-sm font-semibold text-white">{t('metricas.tabla.title')}</p>
+      <section className="rounded-2xl border border-line bg-surface p-4">
+        <p className="mb-3 text-sm font-semibold text-text">{t('metricas.tabla.title')}</p>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] border-collapse text-left text-xs">
             <thead>
-              <tr className="text-white/45">
-                <th className="border-b border-white/10 py-2 pr-3 font-semibold uppercase tracking-[0.06em]">{t('metricas.tabla.mes')}</th>
-                <th className="border-b border-white/10 py-2 pr-3 font-semibold uppercase tracking-[0.06em]">{t('metricas.tabla.activosInicio')}</th>
-                <th className="border-b border-white/10 py-2 pr-3 font-semibold uppercase tracking-[0.06em]">{t('metricas.tabla.altas')}</th>
-                <th className="border-b border-white/10 py-2 pr-3 font-semibold uppercase tracking-[0.06em]">{t('metricas.tabla.bajasVoluntarias')}</th>
-                <th className="border-b border-white/10 py-2 pr-3 font-semibold uppercase tracking-[0.06em]">{t('metricas.tabla.bajasInvoluntarias')}</th>
-                <th className="border-b border-white/10 py-2 pr-3 font-semibold uppercase tracking-[0.06em]">{t('metricas.tabla.churn')}</th>
-                <th className="border-b border-white/10 py-2 pr-3 font-semibold uppercase tracking-[0.06em]">{t('metricas.tabla.mrr')}</th>
+              <tr className="text-text-3">
+                <th className="border-b border-line py-2 pr-3 font-semibold uppercase tracking-[0.06em]">{t('metricas.tabla.mes')}</th>
+                <th className="border-b border-line py-2 pr-3 font-semibold uppercase tracking-[0.06em]">{t('metricas.tabla.activosInicio')}</th>
+                <th className="border-b border-line py-2 pr-3 font-semibold uppercase tracking-[0.06em]">{t('metricas.tabla.altas')}</th>
+                <th className="border-b border-line py-2 pr-3 font-semibold uppercase tracking-[0.06em]">{t('metricas.tabla.bajasVoluntarias')}</th>
+                <th className="border-b border-line py-2 pr-3 font-semibold uppercase tracking-[0.06em]">{t('metricas.tabla.bajasInvoluntarias')}</th>
+                <th className="border-b border-line py-2 pr-3 font-semibold uppercase tracking-[0.06em]">{t('metricas.tabla.churn')}</th>
+                <th className="border-b border-line py-2 pr-3 font-semibold uppercase tracking-[0.06em]">{t('metricas.tabla.mrr')}</th>
               </tr>
             </thead>
             <tbody>
               {months.map((m) => (
-                <tr key={m.month} className="text-white/80">
-                  <td className="border-b border-white/5 py-2 pr-3 font-semibold text-white">{m.label}</td>
-                  <td className="border-b border-white/5 py-2 pr-3">{m.activeAtStart}</td>
-                  <td className="border-b border-white/5 py-2 pr-3 text-violet-300">{m.hasActivity ? `+${m.altas}` : '—'}</td>
-                  <td className="border-b border-white/5 py-2 pr-3">{m.hasActivity ? m.bajasVoluntary : '—'}</td>
-                  <td className="border-b border-white/5 py-2 pr-3">{m.hasActivity ? m.bajasInvoluntary : '—'}</td>
-                  <td className="border-b border-white/5 py-2 pr-3">
+                <tr key={m.month} className="text-text">
+                  <td className="border-b border-line py-2 pr-3 font-semibold text-text">{m.label}</td>
+                  <td className="border-b border-line py-2 pr-3">{m.activeAtStart}</td>
+                  <td className="border-b border-line py-2 pr-3 text-violet-300">{m.hasActivity ? `+${m.altas}` : '—'}</td>
+                  <td className="border-b border-line py-2 pr-3">{m.hasActivity ? m.bajasVoluntary : '—'}</td>
+                  <td className="border-b border-line py-2 pr-3">{m.hasActivity ? m.bajasInvoluntary : '—'}</td>
+                  <td className="border-b border-line py-2 pr-3">
                     <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${churnBadgeClasses(m.churnPct)}`}>
                       {formatPct(m.churnPct)}
                     </span>
                   </td>
-                  <td className="border-b border-white/5 py-2 pr-3">{formatUsd(m.mrr)}</td>
+                  <td className="border-b border-line py-2 pr-3">{formatUsd(m.mrr)}</td>
                 </tr>
               ))}
             </tbody>

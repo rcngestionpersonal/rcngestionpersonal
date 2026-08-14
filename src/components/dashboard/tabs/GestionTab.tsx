@@ -79,7 +79,7 @@ function RecentAchievements({ deals, myAgentId, t, lang }: { deals: RecentClosed
 
   return (
     <section className="fade-up glass-card rounded-[1.8rem] p-4 sm:p-6">
-      <h2 className="flex items-center gap-2 text-xl font-bold text-white">
+      <h2 className="flex items-center gap-2 text-xl font-bold text-text">
         <IconBell className="h-[18px] w-[18px] text-amber-300" strokeWidth={2} />
         {t('gestion.logros.title')}
       </h2>
@@ -153,10 +153,10 @@ function AgentGestionView({
 
       {/* Saludo */}
       <div className="min-w-0">
-        <h1 className="truncate text-[20px] font-bold tracking-[-0.01em] text-[#f0f1f7]">
+        <h1 className="truncate text-[20px] font-bold tracking-[-0.01em] text-text">
           {t('gestion.saludo.hola')}, {firstNameOf(myAgent?.fullName)}
         </h1>
-        <p className="mt-1 text-[13px] text-[#62667f]">
+        <p className="mt-1 text-[13px] text-text-3">
           {todayLabel}
           {brokerSinceLabel ? ` · ${t('gestion.saludo.brokerDesde')} ${brokerSinceLabel}` : null}
         </p>
@@ -180,23 +180,23 @@ function AgentGestionView({
                 {levelLabel}
               </span>
               {myRankEntry ? (
-                <span className="inline-flex items-center rounded-full border border-[rgba(167,139,250,0.42)] bg-[rgba(167,139,250,0.13)] px-2.5 py-1 text-xs font-bold text-[#b7a5ff]">
+                <span className="inline-flex items-center rounded-full border border-brand-line bg-brand-dim px-2.5 py-1 text-xs font-bold text-brand">
                   #{myRankEntry.rank} {t('ranking.de')} {pointsRanking.length}
                 </span>
               ) : null}
             </div>
-            <p className="mt-3 text-sm text-[#9296b0]">
+            <p className="mt-3 text-sm text-text-2">
               {nextLevel ? (
                 <>
-                  {t('gestion.hero.faltanPrefix')} <strong className="font-bold text-[#f0f1f7]">{nextLevel.min - totalPoints} pts</strong>{' '}
-                  {t('gestion.hero.faltanMiddle')} <strong className="font-bold text-[#f0f1f7]">{nextLevelLabel}</strong> {t('gestion.hero.faltanSuffix')}
+                  {t('gestion.hero.faltanPrefix')} <strong className="font-bold text-text">{nextLevel.min - totalPoints} pts</strong>{' '}
+                  {t('gestion.hero.faltanMiddle')} <strong className="font-bold text-text">{nextLevelLabel}</strong> {t('gestion.hero.faltanSuffix')}
                 </>
               ) : (
                 t('gestion.hero.nivelMaximoRed')
               )}
             </p>
             <div className="mt-3 flex flex-col items-center gap-1.5 sm:flex-row sm:items-center sm:gap-3.5 sm:justify-start">
-              <button onClick={() => onNavigateTab('ranking')} className="text-[12.5px] font-bold text-[#b7a5ff] transition-colors hover:text-[#d5c9ff]">
+              <button onClick={() => onNavigateTab('ranking')} className="text-[12.5px] font-bold text-brand transition-colors hover:text-[#d5c9ff]">
                 {t('gestion.hero.verRanking')} →
               </button>
               {onGoToCarnet ? (
@@ -287,19 +287,19 @@ function NextPlayCard({
       className="fade-up rounded-[18px] border p-4 sm:p-5"
       style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.18), rgba(109,40,217,0.06))', borderColor: 'rgba(167,139,250,0.42)' }}
     >
-      <p className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.09em] text-[#b7a5ff]">
+      <p className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.09em] text-brand">
         <span>&#10022;</span> {t('gestion.nextplay.label')}
       </p>
-      <h3 className="mt-1.5 min-w-0 text-[17.5px] font-extrabold text-[#f0f1f7]">{title}</h3>
-      <p className="mt-1 min-w-0 text-[13px] text-[#9296b0]">{subtitle}</p>
+      <h3 className="mt-1.5 min-w-0 text-[17.5px] font-extrabold text-text">{title}</h3>
+      <p className="mt-1 min-w-0 text-[13px] text-text-2">{subtitle}</p>
       {ctaLabel && targetTab ? (
         <button
           onClick={() => onNavigateTab(targetTab as DashboardTab)}
-          className="mt-3 inline-flex items-center gap-2 rounded-[10px] bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] px-4 py-2.5 text-sm font-bold text-white transition-[filter] duration-150 hover:brightness-[1.08]"
+          className="mt-3 inline-flex items-center gap-2 rounded-[10px] bg-grad px-4 py-2.5 text-sm font-bold text-grad-contrast transition-[filter] duration-150 hover:brightness-[1.08]"
         >
           {ctaLabel}
           {ctaPoints ? (
-            <span className="rounded-full bg-white/15 px-2 py-0.5 text-xs">
+            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs">
               +{ctaPoints}
               {perUnit ? ` ${t('gestion.nextplay.perUnit')}` : ''}
             </span>
@@ -356,8 +356,8 @@ function TuOperacion({
 
   return (
     <section className="fade-up">
-      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#62667f]">{t('gestion.operacion.title')}</p>
-      <div className="min-w-0 divide-y divide-[rgba(255,255,255,0.07)] overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.07)] bg-[#171429]">
+      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-text-3">{t('gestion.operacion.title')}</p>
+      <div className="min-w-0 divide-y divide-[rgba(255,255,255,0.07)] overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.07)] bg-bg-alt">
         {rows.map((row) => {
           const isOpen = expanded === row.key;
           const items = itemsFor(row.key);
@@ -366,16 +366,16 @@ function TuOperacion({
               <button
                 onClick={() => (row.expandable ? setExpanded(isOpen ? null : row.key) : onNavigateTab(row.tab))}
                 aria-expanded={row.expandable ? isOpen : undefined}
-                className="flex w-full min-w-0 items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-white/[0.03]"
+                className="flex w-full min-w-0 items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-surface"
               >
-                <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[9px] bg-[rgba(167,139,250,0.13)] text-[#b7a5ff]">{row.icon}</span>
-                <span className="min-w-0 flex-1 truncate text-sm font-medium text-[#f0f1f7]">{row.label}</span>
+                <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[9px] bg-brand-dim text-brand">{row.icon}</span>
+                <span className="min-w-0 flex-1 truncate text-sm font-medium text-text">{row.label}</span>
                 {row.value === 0 && row.pointsIfZero ? (
-                  <span className="shrink-0 rounded-full bg-[rgba(167,139,250,0.13)] px-2 py-0.5 text-[10px] font-bold text-[#b7a5ff]">+{row.pointsIfZero} pts</span>
+                  <span className="shrink-0 rounded-full bg-brand-dim px-2 py-0.5 text-[10px] font-bold text-brand">+{row.pointsIfZero} pts</span>
                 ) : null}
-                <span className={`shrink-0 text-[17px] font-extrabold ${row.value === 0 ? 'text-[#62667f]' : 'text-[#f0f1f7]'}`}>{row.value}</span>
+                <span className={`shrink-0 text-[17px] font-extrabold ${row.value === 0 ? 'text-text-3' : 'text-text'}`}>{row.value}</span>
                 <span
-                  className={`shrink-0 text-[#62667f] ${row.expandable ? 'text-xs transition-transform duration-200 motion-reduce:transition-none' : ''} ${isOpen ? 'rotate-180' : ''}`}
+                  className={`shrink-0 text-text-3 ${row.expandable ? 'text-xs transition-transform duration-200 motion-reduce:transition-none' : ''} ${isOpen ? 'rotate-180' : ''}`}
                 >
                   {row.expandable ? '▼' : '→'}
                 </span>
@@ -383,26 +383,26 @@ function TuOperacion({
 
               {isOpen && row.key === 'seguimientos' ? (
                 <div className="fade-up space-y-1.5 px-4 pb-3.5 pl-[46px]">
-                  <p className="text-[13px] text-[#9296b0]">
+                  <p className="text-[13px] text-text-2">
                     <span className="font-bold text-[#2dd4bf]">{alDia}</span> {t('gestion.operacion.seguimientosAlDia')}
                   </p>
-                  <p className="text-[13px] text-[#9296b0]">
-                    <span className="font-bold text-[#b7a5ff]">{porGestionar}</span> {t('gestion.operacion.seguimientosPorGestionar')}
+                  <p className="text-[13px] text-text-2">
+                    <span className="font-bold text-brand">{porGestionar}</span> {t('gestion.operacion.seguimientosPorGestionar')}
                   </p>
                 </div>
               ) : isOpen ? (
                 <div className="fade-up space-y-1 px-4 pb-3.5 pl-[46px]">
                   {items.length === 0 ? (
-                    <p className="text-[13px] text-[#62667f]">{t('gestion.operacion.sinItems')}</p>
+                    <p className="text-[13px] text-text-3">{t('gestion.operacion.sinItems')}</p>
                   ) : (
                     <>
                       {items.slice(0, OPERACION_ITEM_LIMIT).map((item) => (
-                        <p key={item.id} className="truncate text-[13px] text-[#9296b0]">
+                        <p key={item.id} className="truncate text-[13px] text-text-2">
                           {item.label}
                         </p>
                       ))}
                       {items.length > OPERACION_ITEM_LIMIT ? (
-                        <button onClick={() => onNavigateTab(row.tab)} className="text-[12.5px] font-semibold text-[#b7a5ff] hover:text-[#d5c9ff]">
+                        <button onClick={() => onNavigateTab(row.tab)} className="text-[12.5px] font-semibold text-brand hover:text-[#d5c9ff]">
                           +{items.length - OPERACION_ITEM_LIMIT} {t('gestion.operacion.masVerTodo')}
                         </button>
                       ) : null}
@@ -454,20 +454,20 @@ function TuSemana({ events, lang, t }: { events: PointsHistoryEntryClient[]; lan
   return (
     <section className="fade-up">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-[19px] font-extrabold text-[#f0f1f7]">{t('gestion.semana.title')}</h2>
-        <span className="shrink-0 text-sm font-bold text-[#b7a5ff]">+{weekTotal} pts</span>
+        <h2 className="text-[19px] font-extrabold text-text">{t('gestion.semana.title')}</h2>
+        <span className="shrink-0 text-sm font-bold text-brand">+{weekTotal} pts</span>
       </div>
-      <p className="mt-0.5 text-[13px] text-[#9296b0]">{t('gestion.semana.subtitle')}</p>
+      <p className="mt-0.5 text-[13px] text-text-2">{t('gestion.semana.subtitle')}</p>
 
       {days.length === 0 ? (
-        <p className="mt-4 text-sm text-[#62667f]">{t('gestion.semana.sinActividad')}</p>
+        <p className="mt-4 text-sm text-text-3">{t('gestion.semana.sinActividad')}</p>
       ) : (
         <div className="relative mt-5 space-y-5 pl-5">
-          <div className="absolute bottom-0 left-[3.5px] top-1 w-[2px] bg-gradient-to-b from-[#b7a5ff] to-transparent" />
+          <div className="absolute bottom-0 left-[3.5px] top-1 w-[2px] bg-gradient-to-b from-brand to-transparent" />
           {days.map(({ dayKey, date, actions }) => (
             <div key={dayKey} className="relative">
-              <span className="absolute -left-5 top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#b7a5ff] bg-[#0d0b18]" />
-              <p className="text-xs font-bold uppercase tracking-[0.06em] text-[#9296b0]">
+              <span className="absolute -left-5 top-0.5 h-2.5 w-2.5 rounded-full border-2 border-brand bg-bg" />
+              <p className="text-xs font-bold uppercase tracking-[0.06em] text-text-2">
                 {capitalize(date.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'short' }))}
               </p>
               <div className="mt-1.5 space-y-1">
@@ -477,12 +477,12 @@ function TuSemana({ events, lang, t }: { events: PointsHistoryEntryClient[]; lan
                   const label = def ? (lang === 'es' ? def.pastLabelEs : def.pastLabelEn) : eventType;
                   return (
                     <div key={eventType} className="flex items-center gap-2">
-                      <span className={`shrink-0 rounded-full ${featured ? 'h-1.5 w-1.5 bg-[#b7a5ff]' : 'h-1 w-1 bg-[#62667f]'}`} />
-                      <span className={`min-w-0 flex-1 truncate font-semibold ${featured ? 'text-[15px] text-[#f0f1f7]' : 'text-[13.5px] text-[#9296b0]'}`}>
+                      <span className={`shrink-0 rounded-full ${featured ? 'h-1.5 w-1.5 bg-brand' : 'h-1 w-1 bg-text-3'}`} />
+                      <span className={`min-w-0 flex-1 truncate font-semibold ${featured ? 'text-[15px] text-text' : 'text-[13.5px] text-text-2'}`}>
                         {label}
                         {count > 1 ? ` ×${count}` : ''}
                       </span>
-                      <span className="shrink-0 text-sm font-bold text-[#b7a5ff]">+{points}</span>
+                      <span className="shrink-0 text-sm font-bold text-brand">+{points}</span>
                     </div>
                   );
                 })}
@@ -493,7 +493,7 @@ function TuSemana({ events, lang, t }: { events: PointsHistoryEntryClient[]; lan
       )}
 
       {hasMore ? (
-        <button className="mt-4 text-sm font-bold text-[#b7a5ff] transition-colors hover:text-[#d5c9ff]">{t('gestion.semana.verTodo')} →</button>
+        <button className="mt-4 text-sm font-bold text-brand transition-colors hover:text-[#d5c9ff]">{t('gestion.semana.verTodo')} →</button>
       ) : null}
     </section>
   );
@@ -519,12 +519,12 @@ function AdminGestionView({
 
   return (
     <div className="space-y-10">
-      <section className="fade-up text-white">
+      <section className="fade-up text-text">
         <div className="grid gap-5 sm:gap-8 lg:grid-cols-[1.25fr,1fr] lg:items-end">
           <div className="space-y-4">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/50">{t('brand.name')}</p>
-            <h1 className="text-2xl font-bold leading-tight text-white sm:text-4xl">{t('resumen.hero.title.admin')}</h1>
-            <p className="max-w-2xl text-xs text-[#9296b0] sm:text-base">{t('resumen.hero.subtitle.admin')}</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-text-2">{t('brand.name')}</p>
+            <h1 className="text-2xl font-bold leading-tight text-text sm:text-4xl">{t('resumen.hero.title.admin')}</h1>
+            <p className="max-w-2xl text-xs text-text-2 sm:text-base">{t('resumen.hero.subtitle.admin')}</p>
           </div>
           <div className="grid gap-3 rounded-3xl p-4 sm:p-5">
             <MetricLite label={t('metric.agentesActivos')} value={metrics?.activeAgents ?? 0} />
@@ -544,11 +544,11 @@ function AdminGestionView({
 
       <section className="grid gap-6 lg:grid-cols-2 fade-up" style={{ animationDelay: '120ms' }}>
         <div className="glass-card rounded-[1.8rem] p-4 sm:p-6">
-          <h2 className="text-xl font-bold text-white">{t('resumen.topZonas.title')}</h2>
+          <h2 className="text-xl font-bold text-text">{t('resumen.topZonas.title')}</h2>
           <div className="mt-4 space-y-2">
-            {topZones.length === 0 && <p className="text-sm text-white/50">{t('resumen.topZonas.empty')}</p>}
+            {topZones.length === 0 && <p className="text-sm text-text-2">{t('resumen.topZonas.empty')}</p>}
             {topZones.map((zone) => (
-              <div key={zone.city} className="flex items-center justify-between rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-sm text-white/80">
+              <div key={zone.city} className="flex items-center justify-between rounded-xl border border-line bg-surface-2 px-3 py-2 text-sm text-text">
                 <span>{zone.city}</span>
                 <span className="font-semibold text-cyan-300">{zone._count.city}</span>
               </div>
@@ -557,12 +557,12 @@ function AdminGestionView({
         </div>
 
         <div className="glass-card rounded-[1.8rem] p-4 sm:p-6">
-          <h2 className="text-xl font-bold text-white">{t('resumen.onboarding.title')}</h2>
-          <p className="mt-2 text-sm text-white/60">{t('resumen.onboarding.detail')}</p>
+          <h2 className="text-xl font-bold text-text">{t('resumen.onboarding.title')}</h2>
+          <p className="mt-2 text-sm text-text-2">{t('resumen.onboarding.detail')}</p>
           <button
             onClick={bootstrapDemo}
             disabled={bootstrapping}
-            className="gradient-btn mt-4 w-full rounded-full px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
+            className="gradient-btn mt-4 w-full rounded-full px-4 py-2 text-sm font-semibold text-grad-contrast transition disabled:cursor-not-allowed disabled:opacity-60"
           >
             {bootstrapping ? t('resumen.onboarding.buttonLoading') : t('resumen.onboarding.button')}
           </button>
@@ -571,22 +571,22 @@ function AdminGestionView({
 
       {platformStats ? (
         <section className="glass-card rounded-[1.8rem] p-4 fade-up sm:p-6" style={{ animationDelay: '200ms' }}>
-          <h2 className="text-xl font-bold text-white">{t('stats.title')}</h2>
-          <p className="mt-1 text-sm text-white/60">{t('stats.subtitle')}</p>
+          <h2 className="text-xl font-bold text-text">{t('stats.title')}</h2>
+          <p className="mt-1 text-sm text-text-2">{t('stats.subtitle')}</p>
 
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <StatLeaderboard title={t('stats.masInmuebles')} entries={platformStats.masInmuebles} suffix="" />
             <StatLeaderboard title={t('stats.masPedidos')} entries={platformStats.masPedidos} suffix="" />
             <StatLeaderboard title={t('stats.masVisitas')} entries={platformStats.masVisitas} suffix="" />
             <StatLeaderboard title={t('stats.masCierres')} entries={platformStats.masCierres} suffix="" />
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-white/50">{t('stats.masRapidoInfo')}</p>
+            <div className="rounded-2xl border border-line bg-surface-2 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-text-2">{t('stats.masRapidoInfo')}</p>
               <div className="mt-2 space-y-1.5">
                 {platformStats.masRapidoInfo.length === 0 ? (
-                  <p className="text-xs text-white/40">{t('stats.sinDatos')}</p>
+                  <p className="text-xs text-text-3">{t('stats.sinDatos')}</p>
                 ) : (
                   platformStats.masRapidoInfo.map((entry, idx) => (
-                    <div key={entry.agentId} className="flex items-center justify-between text-sm text-white/80">
+                    <div key={entry.agentId} className="flex items-center justify-between text-sm text-text">
                       <span>{idx + 1}. {entry.agentName}</span>
                       <span className="font-semibold text-cyan-300">{entry.avgHours.toFixed(1)}h</span>
                     </div>
@@ -594,10 +594,10 @@ function AdminGestionView({
                 )}
               </div>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-white/50">{t('stats.masMapaPrecios')}</p>
-              <p className="mt-2 text-2xl font-bold text-white">{platformStats.totalClosedDeals}</p>
-              <p className="mt-1 text-xs text-white/40">{t('stats.mapaPreciosNota')}</p>
+            <div className="rounded-2xl border border-line bg-surface-2 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-text-2">{t('stats.masMapaPrecios')}</p>
+              <p className="mt-2 text-2xl font-bold text-text">{platformStats.totalClosedDeals}</p>
+              <p className="mt-1 text-xs text-text-3">{t('stats.mapaPreciosNota')}</p>
             </div>
           </div>
         </section>
@@ -608,14 +608,14 @@ function AdminGestionView({
 
 function StatLeaderboard({ title, entries, suffix }: { title: string; entries: AgentStatEntry[]; suffix: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.1em] text-white/50">{title}</p>
+    <div className="rounded-2xl border border-line bg-surface-2 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.1em] text-text-2">{title}</p>
       <div className="mt-2 space-y-1.5">
         {entries.length === 0 ? (
-          <p className="text-xs text-white/40">Sin datos suficientes.</p>
+          <p className="text-xs text-text-3">Sin datos suficientes.</p>
         ) : (
           entries.map((entry, idx) => (
-            <div key={entry.agentId} className="flex items-center justify-between text-sm text-white/80">
+            <div key={entry.agentId} className="flex items-center justify-between text-sm text-text">
               <span>{idx + 1}. {entry.agentName}</span>
               <span className="font-semibold text-cyan-300">{entry.value}{suffix}</span>
             </div>
@@ -628,8 +628,8 @@ function StatLeaderboard({ title, entries, suffix }: { title: string; entries: A
 
 function MetricLite({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="flex items-center justify-between border-b border-white/10 pb-2 text-sm last:border-b-0 last:pb-0">
-      <span className="text-white/70">{label}</span>
+    <div className="flex items-center justify-between border-b border-line pb-2 text-sm last:border-b-0 last:pb-0">
+      <span className="text-text-2">{label}</span>
       <span className="font-semibold text-cyan-300">{value}</span>
     </div>
   );
@@ -655,9 +655,9 @@ function KpiCard({
 
   return (
     <article className={`min-w-[220px] snap-start rounded-[1.5rem] border p-4 backdrop-blur-xl transition-transform duration-200 hover:-translate-y-0.5 sm:min-w-0 ${toneMap[tone]}`}>
-      <p className="text-xs uppercase tracking-[0.14em] text-white/50">{label}</p>
-      <p className="mt-2 text-2xl font-bold text-white">{value}</p>
-      <p className="mt-1 text-xs text-white/50">{detail}</p>
+      <p className="text-xs uppercase tracking-[0.14em] text-text-2">{label}</p>
+      <p className="mt-2 text-2xl font-bold text-text">{value}</p>
+      <p className="mt-1 text-xs text-text-2">{detail}</p>
     </article>
   );
 }
