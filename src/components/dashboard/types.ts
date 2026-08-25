@@ -94,6 +94,7 @@ export type AgentItem = {
   subscriptionStatus: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'INACTIVE';
   idNumber?: string;
   licenseNumber?: string;
+  yearsExperience?: number | null;
   phoneVerifiedAt?: string | null;
   rankingAlias?: string | null;
   useRankingAlias?: boolean;
@@ -268,4 +269,4 @@ export type AuthUser = {
   email?: string;
 };
 
-export type DashboardTab = 'resumen' | 'ranking' | 'suscripcion' | 'inmuebles' | 'pedidos' | 'matches' | 'cierres' | 'invitar' | 'metricas';
+export type DashboardTab = 'resumen' | 'ranking' | 'suscripcion' | 'inmuebles' | 'pedidos' | 'matches' | 'registrocierre' | 'cierres' | 'invitar' | 'metricas';

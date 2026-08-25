@@ -9,7 +9,8 @@ import SuscripcionTab from '@/components/dashboard/tabs/SuscripcionTab';
 import InmueblesTab, { type NewListingInput } from '@/components/dashboard/tabs/InmueblesTab';
 import PedidosTab, { type NewOpportunityInput } from '@/components/dashboard/tabs/PedidosTab';
 import MatchesTab from '@/components/dashboard/tabs/MatchesTab';
-import CierresTab, { type NewClosedDealInput } from '@/components/dashboard/tabs/CierresTab';
+import CierresTab from '@/components/dashboard/tabs/CierresTab';
+import RegistrarCierreTab, { type NewClosedDealInput } from '@/components/dashboard/tabs/RegistrarCierreTab';
 import InvitarTab from '@/components/dashboard/tabs/InvitarTab';
 import MetricasTab from '@/components/dashboard/tabs/MetricasTab';
 import LevelUpCelebrationModal from '@/components/dashboard/LevelUpCelebrationModal';
@@ -842,8 +843,8 @@ function DashboardPage() {
           onUpdateProgress={updateMatchProgress}
         />
       )}
-      {activeTab === 'cierres' && (
-        <CierresTab
+      {activeTab === 'registrocierre' && (
+        <RegistrarCierreTab
           canAccess={canManageInventory}
           canCreate={canManageInventory}
           deals={closedDeals}
@@ -851,6 +852,13 @@ function DashboardPage() {
           onUpdateDeal={updateClosedDeal}
           onDeleteDeal={deleteClosedDeal}
           creating={creatingClosedDeal}
+        />
+      )}
+      {activeTab === 'cierres' && (
+        <CierresTab
+          canAccess={canManageInventory}
+          deals={closedDeals}
+          onGoToRegister={() => setActiveTab('registrocierre')}
         />
       )}
       {activeTab === 'invitar' && isAgent && <InvitarTab myAgentId={user?.agentId} agents={agents} />}

@@ -45,7 +45,7 @@ export default function InvitarTab({ myAgentId, agents }: { myAgentId?: string; 
             readOnly
             value={inviteUrl}
             onClick={(e) => e.currentTarget.select()}
-            className="min-w-0 flex-1 truncate rounded-[10px] border border-[rgba(255,255,255,0.07)] bg-[#171a26] px-3 py-2.5 text-sm text-text outline-none"
+            className="min-w-0 flex-1 truncate rounded-[10px] border border-line bg-surface-2 px-3 py-2.5 text-sm text-text outline-none"
           />
           <button
             onClick={copyLink}

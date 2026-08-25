@@ -57,16 +57,49 @@ function fmtUsd(n: number): string {
   return `$${Math.round(n).toLocaleString('en-US')}`;
 }
 
-function coloredDivIcon(color: string, recent: boolean): L.DivIcon {
+// Glifo monolínea (18x18, centrado en 9,9) por tipo de inmueble - mismo lenguaje
+// visual que los iconos lucide del resto del dashboard, para que el pin del mapa
+// se lea de un vistazo (casa, edificio, bodega...) en vez de ser un punto ciego.
+function propertyGlyph(propertyType: string): string {
+  const s = 'fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
+  switch (propertyType) {
+    case 'HOUSE':
+      return `<path d="M3 9.5 9 4l6 5.5" ${s}/><path d="M4.5 8v6.5h9V8" ${s}/><path d="M7.5 14.5v-4h3v4" ${s}/>`;
+    case 'APARTMENT':
+    case 'SUITE':
+      return `<rect x="5" y="2.5" width="8" height="13" rx="0.8" ${s}/><path d="M7 5.5h.01M11 5.5h.01M7 8.5h.01M11 8.5h.01M7 11.5h.01M11 11.5h.01" ${s}/>`;
+    case 'OFFICE':
+      return `<rect x="3" y="7" width="12" height="8" rx="0.8" ${s}/><path d="M6.5 7V5.3c0-.7.6-1.3 1.3-1.3h2.4c.7 0 1.3.6 1.3 1.3V7" ${s}/>`;
+    case 'COMMERCIAL':
+      return `<path d="M3 6.5 4 3h10l1 3.5" ${s}/><path d="M3.5 6.5v8h11v-8" ${s}/><path d="M7.3 14.5V10h3.4v4.5" ${s}/>`;
+    case 'WAREHOUSE':
+      return `<path d="M2.5 8 9 3.5 15.5 8" ${s}/><rect x="3.5" y="8" width="11" height="6.5" ${s}/><path d="M6 14.5V11h2.5v3.5" ${s}/>`;
+    case 'LAND':
+      return `<path d="M9 2.5 15.5 6v6L9 15.5 2.5 12V6z" ${s}/><path d="M9 2.5v13M2.5 6l6.5 3.5M15.5 6 9 9.5" ${s}/>`;
+    case 'FARM':
+      return `<path d="M9 15V8" ${s}/><path d="M9 8c0-2.5-2-4-4.5-4C4.8 6.7 6.5 8.7 9 8Z" ${s}/><path d="M9 10c0-2.2 1.8-3.5 4-3.5-.2 2.4-1.8 4.1-4 3.5Z" ${s}/>`;
+    default:
+      return `<circle cx="9" cy="9" r="3" ${s}/>`;
+  }
+}
+
+function coloredDivIcon(color: string, propertyType: string, recent: boolean): L.DivIcon {
   const halo = recent
-    ? `<div style="position:absolute;inset:-5px;border-radius:50%;border:2px solid #34d399;animation:pulseHalo 1.8s ease-out infinite;"></div>`
+    ? `<div style="position:absolute;inset:-6px;border-radius:50%;border:2px solid #34d399;animation:pulseHalo 1.8s ease-out infinite;"></div>`
     : '';
+  // Pin "gota" clasico (36x44) con el glifo del tipo de inmueble centrado en el
+  // circulo superior - mismo lenguaje visual que un mapa de puntos de interes.
+  const svg = `
+    <svg width="34" height="42" viewBox="0 0 34 42" xmlns="http://www.w3.org/2000/svg" style="display:block;filter:drop-shadow(0 3px 4px rgba(0,0,0,0.35))">
+      <path d="M17 0C7.6 0 0 7.6 0 17c0 11.3 14.3 22.6 16.3 24.1a1.1 1.1 0 0 0 1.4 0C19.7 39.6 34 28.3 34 17 34 7.6 26.4 0 17 0Z" fill="${color}" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/>
+      <g transform="translate(8,3)">${propertyGlyph(propertyType)}</g>
+    </svg>`;
   return L.divIcon({
     className: '',
-    html: `<div style="position:relative;width:16px;height:16px;">${halo}<div style="width:16px;height:16px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,0.9);box-shadow:0 0 4px rgba(0,0,0,0.5);"></div></div>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
-    popupAnchor: [0, -10],
+    html: `<div style="position:relative;width:34px;height:42px;">${halo}${svg}</div>`,
+    iconSize: [34, 42],
+    iconAnchor: [17, 40],
+    popupAnchor: [0, -38],
   });
 }
 
@@ -229,7 +262,7 @@ export default function CierresMapa({
     const recentMs = RECENT_MS;
     for (const deal of filteredDeals) {
       const marker = L.marker([deal.latitude as number, deal.longitude as number], {
-        icon: coloredDivIcon(pinColorFor(deal.propertyType), Date.now() - new Date(deal.closedAt).getTime() < recentMs),
+        icon: coloredDivIcon(pinColorFor(deal.propertyType), deal.propertyType, Date.now() - new Date(deal.closedAt).getTime() < recentMs),
       });
       marker.bindPopup(buildPopupHtml(deal, lang, tProperty), { maxWidth: 260 });
       cluster.addLayer(marker);

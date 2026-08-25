@@ -111,6 +111,9 @@ model Agent {
   specializationZones   String[]           @default([])
   carnetMessage         String?
   carnetSlug            String?            @unique
+  // Anos de experiencia en el mercado inmobiliario (autodeclarados por el
+  // agente) - se muestran en el Carnet como dato de confianza para la comunidad.
+  yearsExperience       Int?
   // Preferencia de tema claro/oscuro/automatico - localStorage es el respaldo
   // inmediato (evita parpadeo), esto es la fuente de verdad multi-dispositivo.
   themePreference       ThemePreference    @default(DARK)

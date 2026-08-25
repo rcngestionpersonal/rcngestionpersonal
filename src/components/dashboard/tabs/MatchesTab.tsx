@@ -4,14 +4,10 @@ import { useState } from 'react';
 import { Trophy } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import MatchTimeline from '../MatchTimeline';
-import { Card, DataBlock, ModuleHeader, firstName, pedidoBrief, relativeLabel } from '../CardKit';
+import { Card, ModuleHeader, firstName, pedidoBrief, relativeLabel } from '../CardKit';
 import { IconStar, IconWhatsapp } from '../icons';
 import { pointsForMilestoneKey } from '@/lib/real-estate/ranking';
 import { isAgentVerified, type AgentItem, type ListingMatchItem, type OpportunityItem, type ProgressPatch } from '../types';
-
-// El gradiente violeta->teal que marca "el momento match" (fusion inmueble +
-// pedido) en toda la app - inspirado en el acento de Linear/Stripe/Raycast.
-const MATCH_GRADIENT = 'linear-gradient(90deg, #b7a5ff, #3ee8d2)';
 
 function onlyDigits(phone: string): string {
   return phone.replace(/[^\d]/g, '');
@@ -57,17 +53,47 @@ function lastMilestone(
   return null;
 }
 
-// Badge "✦ MATCH": anillo + texto en el gradiente violeta->teal de la marca
-// (el "momento match"), en vez del pill solido teal que se usaba antes.
+// Badge "✦ MATCH": mismo pill degradado violeta->teal que la vitrina de
+// muestra en la landing (login .mbadge) - un solo elemento visual, sin texto
+// en gradiente por separado ni anillo extra alrededor.
 function MatchBadge({ label }: { label: string }) {
   return (
-    <span className="inline-flex rounded-full p-px" style={{ background: MATCH_GRADIENT }}>
-      <span className="flex items-center gap-1 rounded-full bg-bg-alt px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.08em]">
-        <span style={{ backgroundImage: MATCH_GRADIENT, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
-          &#10022; {label}
-        </span>
-      </span>
+    <span className="inline-flex items-center gap-1 rounded-full bg-grad px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.08em] text-grad-contrast">
+      &#10022; {label}
     </span>
+  );
+}
+
+// Mitad de la tarjeta de match: mismo concepto que la vitrina de la landing
+// (dos "medias tarjetas" + el badge flotando entre ambas) - una por cada lado
+// del match, en vez de una lista de datos plana.
+function MatchHalf({
+  sideLabel,
+  title,
+  detail,
+  name,
+  verified,
+}: {
+  sideLabel: string;
+  title: string;
+  detail?: string;
+  name?: string;
+  verified?: boolean;
+}) {
+  return (
+    <div className="rounded-2xl border border-line bg-surface-2 px-3.5 py-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-text-3">{sideLabel}</span>
+        {name ? (
+          <span className="flex min-w-0 items-center gap-1 text-[11.5px] font-semibold text-text-2">
+            <span className="truncate">{name}</span>
+            {verified ? <span className="shrink-0 text-brand">✓</span> : null}
+          </span>
+        ) : null}
+      </div>
+      <p className="mt-1 truncate text-[13.5px] font-semibold text-text">{title}</p>
+      {detail ? <p className="mt-0.5 truncate text-[11.5px] text-text-3">{detail}</p> : null}
+    </div>
   );
 }
 
@@ -145,7 +171,6 @@ export default function MatchesTab({
             const amListingSide = !isAdmin && (listingMatch.managingAgentId === myAgentId || listingMatch.referredByAgentId === myAgentId);
             const amRequestSide = !isAdmin && listingMatch.createdByAgentId === myAgentId;
 
-            let mineLabelMin = t('matches.tuInmuebleMin');
             let counterpartName: string | undefined = agentFullName(listingMatch.createdByAgentId);
             let counterpartPhone: string | undefined = agentPhone(listingMatch.createdByAgentId) ?? opportunity.contactPhone;
             let counterpartVerified = agentVerified(listingMatch.createdByAgentId);
@@ -156,7 +181,6 @@ export default function MatchesTab({
                 : `👋 Hi ${counterpartName ?? ''}, this is ${myName}. Your request matched my listing "${myDescription}", please send me more information. Thanks! 🙌`;
 
             if (amRequestSide && !amListingSide) {
-              mineLabelMin = t('matches.tuPedidoMin');
               counterpartName = agentFullName(listingMatch.managingAgentId);
               counterpartPhone = agentPhone(listingMatch.managingAgentId);
               counterpartVerified = agentVerified(listingMatch.managingAgentId);
@@ -189,7 +213,7 @@ export default function MatchesTab({
                 <Card key={listingMatch.id}>
                   <div className="flex items-center justify-between gap-2">
                     <MatchBadge label={t('matches.badgeMatch')} />
-                    <span className="text-right text-[13px] font-semibold text-violet-300">{listingMatch.score.toFixed(0)}%</span>
+                    <span className="text-right text-[13px] font-semibold text-brand">{listingMatch.score.toFixed(0)}%</span>
                   </div>
                   <p className="mt-3 pb-3 text-[13.5px] font-semibold text-text">
                     {agentFullName(listingMatch.managingAgentId) ?? '—'}
@@ -202,39 +226,31 @@ export default function MatchesTab({
               );
             }
 
+            // Igual que la vitrina de la landing: "mi lado" arriba, el lado de la
+            // contraparte abajo (con su nombre + verificado), y el badge de match
+            // flotando entre ambas mitades - una sola idea visual, no una lista de datos.
+            const topHalf = amListingSide
+              ? { sideLabel: t('matches.dataBlock.tuInmueble'), title: listingValue }
+              : { sideLabel: t('matches.dataBlock.suInmueble'), title: listingValue, name: counterpartName, verified: counterpartVerified };
+            const bottomHalf = amListingSide
+              ? { sideLabel: t('matches.dataBlock.suPedido'), title: pedidoValue, name: counterpartName, verified: counterpartVerified }
+              : { sideLabel: t('matches.dataBlock.tuPedido'), title: pedidoValue };
+
             return (
               <Card key={listingMatch.id}>
                 {/* Fila 1 */}
-                <div className="flex items-center justify-between gap-2">
-                  <MatchBadge label={t('matches.badgeMatch')} />
-                  <span className="text-[12px] font-medium text-text-3">{matchDateLabel}</span>
+                <div className="flex items-center justify-end gap-2">
+                  <span className="text-[11px] font-medium text-text-3">{matchDateLabel}</span>
                 </div>
 
-                {/* Fila 2 */}
-                <div className="mt-3 flex items-center gap-1.5">
-                  <h3 className="text-[16.5px] font-bold leading-tight tracking-[-0.01em] text-text">{counterpartName ?? '—'}</h3>
-                  {counterpartName && counterpartVerified ? (
-                    <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-brand-line bg-brand-dim text-[10px] font-bold text-brand">
-                      ✓
-                    </span>
-                  ) : null}
+                {/* Fila 2: las dos mitades + el badge de match flotando entre ambas */}
+                <div className="relative mt-1">
+                  <MatchHalf sideLabel={topHalf.sideLabel} title={topHalf.title} name={topHalf.name} verified={topHalf.verified} />
+                  <div className="relative z-10 -my-3 flex justify-center">
+                    <MatchBadge label={`${t('matches.badgeMatch')} · ${listingMatch.score.toFixed(0)}%`} />
+                  </div>
+                  <MatchHalf sideLabel={bottomHalf.sideLabel} title={bottomHalf.title} name={bottomHalf.name} verified={bottomHalf.verified} />
                 </div>
-
-                {/* Fila 3 */}
-                <p
-                  className="mb-3.5 mt-1 text-[12px] font-semibold"
-                  style={{ backgroundImage: MATCH_GRADIENT, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}
-                >
-                  {listingMatch.score.toFixed(0)}% {t('matches.compatibleCon')} {mineLabelMin}
-                </p>
-
-                {/* Fila 4 */}
-                <DataBlock
-                  rows={[
-                    { label: amListingSide ? t('matches.dataBlock.tuInmueble') : t('matches.dataBlock.suInmueble'), value: listingValue },
-                    { label: amListingSide ? t('matches.dataBlock.suPedido') : t('matches.dataBlock.tuPedido'), value: pedidoValue },
-                  ]}
-                />
 
                 {/* Fila 5: antes de contactar, boton de WhatsApp; una vez contactado, el
                     boton desaparece y se reemplaza por la ultima accion + fecha + puntos
@@ -245,7 +261,7 @@ export default function MatchesTab({
                       <span className="min-w-0 truncate text-[13px] font-semibold text-text">
                         {lastAction.label} <span className="font-normal text-text-3">· {fmtShortDate(lastAction.dateIso, lang)}</span>
                       </span>
-                      <span className="shrink-0 rounded-full bg-[rgba(45,212,191,0.12)] px-2 py-0.5 text-[10.5px] font-bold text-[#2dd4bf]">+{lastAction.points} pts</span>
+                      <span className="shrink-0 rounded-full bg-accent-dim px-2 py-0.5 text-[10.5px] font-bold text-accent">+{lastAction.points} pts</span>
                     </div>
                   ) : null
                 ) : (
@@ -261,7 +277,7 @@ export default function MatchesTab({
                           rel="noreferrer"
                           onClick={() => onContact(listingMatch.id)}
                           aria-label={`${t('matches.contactaA')} ${counterpartName ?? ''} ${t('matches.porWhatsapp')}`}
-                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#25D366] text-text shadow-[0_4px_14px_rgba(37,211,102,0.35)] transition-transform duration-150 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366]"
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_4px_14px_rgba(37,211,102,0.35)] transition-transform duration-150 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366]"
                         >
                           <IconWhatsapp className="h-[22px] w-[22px]" />
                         </a>

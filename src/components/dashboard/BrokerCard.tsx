@@ -77,6 +77,9 @@ export type BrokerCardData = {
   subscriptionActive: boolean;
   carnetMessage?: string | null;
   carnetSlug?: string | null;
+  yearsExperience?: number | null;
+  licenseNumber?: string | null;
+  company?: string | null;
 };
 
 export function BrokerCard({
@@ -133,6 +136,21 @@ export function BrokerCard({
       </div>
 
       {zones.length > 0 ? <p className="relative mt-3 text-[11.5px] text-[#9296b0]">{zones.join(' · ')}</p> : null}
+
+      {data.yearsExperience || data.licenseNumber ? (
+        <div className="relative mt-3 flex flex-wrap items-center justify-center gap-1.5">
+          {data.yearsExperience ? (
+            <span className="inline-flex items-center rounded-full border border-[rgba(255,255,255,0.12)] bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold text-[#f0f1f7]">
+              {data.yearsExperience}+ {lang === 'es' ? 'años de experiencia' : 'years of experience'}
+            </span>
+          ) : null}
+          {data.licenseNumber ? (
+            <span className="inline-flex items-center rounded-full border border-[rgba(255,255,255,0.12)] bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold text-[#f0f1f7]">
+              {lang === 'es' ? 'Lic.' : 'Lic.'} {data.licenseNumber}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="relative mt-4 grid grid-cols-3 gap-2">
         {audience === 'colegas' ? (

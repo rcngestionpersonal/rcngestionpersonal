@@ -17,6 +17,7 @@ const profileSchema = z.object({
   carnetMessage: z.string().trim().max(220, 'Máximo 220 caracteres.').optional(),
   email: z.string().trim().email('Ingresa un correo electrónico válido.').optional(),
   themePreference: z.enum(['LIGHT', 'DARK', 'SYSTEM']).optional(),
+  yearsExperience: z.number().int().min(0, 'No puede ser negativo.').max(70, 'Revisa el valor.').nullable().optional(),
 });
 
 export async function PATCH(request: NextRequest) {
@@ -36,10 +37,12 @@ export async function PATCH(request: NextRequest) {
     carnetMessage?: string | null;
     email?: string;
     themePreference?: 'LIGHT' | 'DARK' | 'SYSTEM';
+    yearsExperience?: number | null;
   } = {};
   if (parsed.data.specializationZones) data.specializationZones = parsed.data.specializationZones;
   if (parsed.data.carnetMessage !== undefined) data.carnetMessage = parsed.data.carnetMessage || null;
   if (parsed.data.themePreference) data.themePreference = parsed.data.themePreference;
+  if (parsed.data.yearsExperience !== undefined) data.yearsExperience = parsed.data.yearsExperience;
 
   if (parsed.data.email) {
     if (shouldUseMockStore()) {

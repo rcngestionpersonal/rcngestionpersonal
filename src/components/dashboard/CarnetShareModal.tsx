@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { BrokerCard, DEFAULT_CARNET_MESSAGE_ES, DEFAULT_CARNET_MESSAGE_EN, type BrokerCardData } from './BrokerCard';
-import { generateCarnetImage } from './carnet-image';
+import { generateCarnetImage, generateCarnetPrintImage } from './carnet-image';
 
 // Modal de "Compartir mi carnet": toggle Colegas/Clientes con vista previa en
 // vivo (el MISMO BrokerCard que se ve en Ranking, solo cambia el prop
@@ -22,6 +22,7 @@ export default function CarnetShareModal({
 }) {
   const [audience, setAudience] = useState<'colegas' | 'clientes'>(initialAudience);
   const [sharing, setSharing] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const [toast, setToast] = useState('');
 
   async function handleShare() {
@@ -54,6 +55,8 @@ export default function CarnetShareModal({
         subscriptionActive: data.subscriptionActive,
         vigenteLabel,
         carnetSlug: data.carnetSlug,
+        yearsExperience: data.yearsExperience,
+        licenseNumber: data.licenseNumber,
         lang,
       });
       const file = new File([blob], 'carnet-redinmo.png', { type: 'image/png' });
@@ -75,6 +78,43 @@ export default function CarnetShareModal({
       // soportado); no es una accion critica, se ignora en silencio.
     } finally {
       setSharing(false);
+    }
+  }
+
+  // Version "credencial fisica" (CR80, 600 DPI) - pensada para imprimir y
+  // plastificar, no para compartir en redes. El QR apunta a la verificacion
+  // publica del carnet, no a WhatsApp (Parte "alta resolucion para imprimir").
+  async function handleDownloadPrint() {
+    setPrinting(true);
+    try {
+      const levelLabel = lang === 'es' ? data.level.labelEs : data.level.labelEn;
+      const blob = await generateCarnetPrintImage({
+        displayName: data.displayName,
+        photoUrl: data.photoUrl,
+        levelLabel,
+        levelColor: '#b7a5ff',
+        verified: data.verified,
+        yearsExperience: data.yearsExperience,
+        licenseNumber: data.licenseNumber,
+        company: data.company,
+        zones: data.specializationZones,
+        phone: data.phone,
+        carnetSlug: data.carnetSlug,
+        lang,
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'carnet-redinmo-imprimir.png';
+      a.click();
+      URL.revokeObjectURL(url);
+      setToast(t('ranking.carnet.imagenLista'));
+      setTimeout(() => setToast(''), 3000);
+    } catch {
+      // No bloqueante: si el canvas falla, el agente sigue teniendo la
+      // version para compartir.
+    } finally {
+      setPrinting(false);
     }
   }
 
@@ -128,6 +168,16 @@ export default function CarnetShareModal({
         >
           ↗ {sharing ? t('ranking.carnet.generando') : t('ranking.compartirCarnet')}
         </button>
+
+        <button
+          onClick={handleDownloadPrint}
+          disabled={printing}
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-[12px] border border-line-strong px-4 py-3 text-sm font-bold text-text-2 transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          ⬇ {printing ? t('ranking.carnet.generando') : t('ranking.carnet.descargarImprimir')}
+        </button>
+        <p className="mt-1.5 text-center text-[11px] text-text-3">{t('ranking.carnet.descargarImprimirAyuda')}</p>
+
         {toast ? <p className="mt-2 text-center text-xs text-accent">{toast}</p> : null}
       </div>
     </div>

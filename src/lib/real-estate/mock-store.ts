@@ -32,6 +32,7 @@ type AgentRecord = {
   specializationZones?: string[];
   carnetMessage?: string;
   carnetSlug?: string;
+  yearsExperience?: number;
   zones: string[];
   propertyTypesInterest: string[];
   minBudget?: number;

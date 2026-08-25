@@ -133,6 +133,7 @@ function CarnetSection({
   const [shareOpen, setShareOpen] = useState(false);
   const [zonesDraft, setZonesDraft] = useState<string[]>(myAgent?.specializationZones ?? []);
   const [messageDraft, setMessageDraft] = useState(myAgent?.carnetMessage ?? '');
+  const [yearsExpDraft, setYearsExpDraft] = useState(myAgent?.yearsExperience != null ? String(myAgent.yearsExperience) : '');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
 
@@ -141,6 +142,7 @@ function CarnetSection({
   useEffect(() => {
     setZonesDraft(myAgent?.specializationZones ?? []);
     setMessageDraft(myAgent?.carnetMessage ?? '');
+    setYearsExpDraft(myAgent?.yearsExperience != null ? String(myAgent.yearsExperience) : '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myAgentId]);
 
@@ -181,6 +183,9 @@ function CarnetSection({
     subscriptionActive,
     carnetMessage: myAgent?.carnetMessage,
     carnetSlug: carnetSlug ?? myAgent?.carnetSlug,
+    yearsExperience: myAgent?.yearsExperience,
+    licenseNumber: myAgent?.licenseNumber,
+    company: myAgent?.company,
   };
 
   const firstName = (myAgent?.fullName ?? '').trim().split(/\s+/)[0] ?? '';
@@ -193,7 +198,11 @@ function CarnetSection({
       const res = await fetch('/api/real-estate/agents/me/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ specializationZones: zonesDraft, carnetMessage: messageDraft }),
+        body: JSON.stringify({
+          specializationZones: zonesDraft,
+          carnetMessage: messageDraft,
+          yearsExperience: yearsExpDraft.trim() ? Number(yearsExpDraft) : null,
+        }),
       });
       if (res.ok) {
         setSaveMsg(t('ranking.carnet.guardado'));
@@ -268,6 +277,20 @@ function CarnetSection({
                 );
               })}
             </div>
+          </div>
+
+          <div>
+            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-text-3">{t('ranking.carnet.experienciaLabel')}</p>
+            <input
+              type="number"
+              min={0}
+              max={70}
+              value={yearsExpDraft}
+              onChange={(e) => setYearsExpDraft(e.target.value)}
+              placeholder={t('ranking.carnet.experienciaPlaceholder')}
+              className="w-full rounded-[10px] border border-line bg-surface p-2.5 text-[12.5px] text-text placeholder:text-text-3 focus:border-[rgba(45,212,191,0.4)] focus:outline-none"
+            />
+            <p className="mt-1 text-[10px] text-text-3">{t('ranking.carnet.experienciaAyuda')}</p>
           </div>
 
           <div>

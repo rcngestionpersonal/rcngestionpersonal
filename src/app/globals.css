@@ -40,8 +40,8 @@
 	--shadow-sm: none;
 	--shadow-md: 0 12px 30px rgba(0, 0, 0, 0.42);
 
-	--dot-color: rgba(255, 255, 255, 0.5);
-	--dot-opacity: 0.12;
+	--dot-color: rgba(255, 255, 255, 0.4);
+	--dot-opacity: 0.06;
 	--glow-brand: rgba(139, 92, 246, 0.22);
 	--glow-accent: rgba(45, 212, 191, 0.11);
 	--glow-blur: 90px;
@@ -90,7 +90,7 @@
 	--shadow-md: 0 1px 3px rgba(26, 19, 48, 0.06), 0 8px 24px rgba(26, 19, 48, 0.04);
 
 	/* Punteado violeta tenue en vez de blanco (ensuciaria sobre fondo claro). */
-	--dot-color: rgba(109, 74, 255, 0.08);
+	--dot-color: rgba(109, 74, 255, 0.05);
 	--dot-opacity: 1;
 	/* Glow de esquina a mitad de intensidad y mas difuminado que en oscuro. */
 	--glow-brand: rgba(139, 92, 246, 0.11);
