@@ -99,8 +99,17 @@ model Agent {
   isActive              Boolean            @default(true)
   trialEndsAt           DateTime
   subscriptionStatus    SubscriptionStatus @default(TRIAL)
+  // PayPal queda inactivo (ver src/lib/real-estate/payments/paypal.ts) - estos
+  // dos campos se conservan sin uso activo para no romper el historico ni la
+  // reactivacion futura del adaptador para agentes fuera de Ecuador.
   paypalSubscriptionId  String?
   paypalPayerId         String?
+  // Pago activo via Payphone (Cajita de Pagos - un cobro puntual que extiende
+  // el acceso, no una suscripcion recurrente real): subscriptionPaidUntil es
+  // la fecha hasta la que el ultimo pago cubre el acceso.
+  lastPaymentProvider   String?
+  payphoneTransactionId String?
+  subscriptionPaidUntil DateTime?
   referredByAgentId     String?
   rankingAlias          String?
   useRankingAlias       Boolean            @default(false)

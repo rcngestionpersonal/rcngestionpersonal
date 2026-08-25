@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { sendEmailNotification } from '@/lib/real-estate/email';
 import { buildMatchCreatedEmail } from '@/lib/real-estate/email-templates';
 import { scoreListingForOpportunity, shouldNotify } from '@/lib/real-estate/matching';
-import { getAppUrl } from '@/lib/real-estate/paypal';
+import { getAppUrl } from '@/lib/real-estate/subscription-config';
 import { awardMatchReceived } from '@/lib/real-estate/points-log';
 
 type ListingLike = {

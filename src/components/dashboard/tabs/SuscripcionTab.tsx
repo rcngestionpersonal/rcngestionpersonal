@@ -1,14 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
-import PayPalSubscribeButton, { isPaypalButtonConfigured } from '../PayPalSubscribeButton';
 import { isAgentVerified, type AgentItem } from '../types';
-
-function daysRemaining(trialEndsAt?: string): number {
-  if (!trialEndsAt) return 0;
-  const ms = new Date(trialEndsAt).getTime() - Date.now();
-  return Math.max(0, Math.ceil(ms / (24 * 60 * 60 * 1000)));
-}
+import { daysRemaining, resolveEffectiveSubscriptionStatus } from '@/lib/real-estate/subscription-status';
 
 export default function SuscripcionTab({
   isAdmin,
@@ -16,20 +11,20 @@ export default function SuscripcionTab({
   myAgentId,
   activateSubscription,
   activating,
-  onSubscriptionConfirmed,
 }: {
   isAdmin: boolean;
   agents: AgentItem[];
   myAgentId?: string;
   activateSubscription: (agentId: string) => void;
   activating: string | null;
-  onSubscriptionConfirmed: () => void | Promise<void>;
 }) {
   const { t, tSubscriptionStatus } = useLanguage();
 
   if (!isAdmin) {
     const myAgent = agents.find((a) => a.id === myAgentId);
     const verified = isAgentVerified(myAgent);
+    const effectiveStatus = myAgent ? resolveEffectiveSubscriptionStatus(myAgent) : undefined;
+    const needsPayment = effectiveStatus === 'TRIAL' || effectiveStatus === 'INACTIVE' || effectiveStatus === 'PAST_DUE';
 
     return (
       <div className="space-y-10">
@@ -45,28 +40,20 @@ export default function SuscripcionTab({
               </p>
               <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <span className="rounded-full border border-line-strong bg-surface-2 px-2 py-1 text-xs font-semibold text-text">
-                  {tSubscriptionStatus(myAgent.subscriptionStatus)}
+                  {tSubscriptionStatus(effectiveStatus ?? myAgent.subscriptionStatus)}
                 </span>
-                {myAgent.subscriptionStatus !== 'ACTIVE' && !isPaypalButtonConfigured() ? (
-                  <button
-                    onClick={() => activateSubscription(myAgent.id)}
-                    disabled={activating === myAgent.id}
-                    className="gradient-btn w-full rounded-full px-3 py-2 text-xs font-semibold transition-transform duration-200 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:py-1.5"
+                {needsPayment ? (
+                  <Link
+                    href="/agentes/suscripcion/pagar"
+                    className="gradient-btn w-full rounded-full px-3 py-2 text-center text-xs font-semibold transition-transform duration-200 hover:scale-[1.02] sm:w-auto sm:py-1.5"
                   >
-                    {activating === myAgent.id ? (
-                      t('suscripcion.activando')
-                    ) : (
-                      <span className="flex flex-col items-center leading-tight">
-                        <span>{t('suscripcion.activar')}</span>
-                        <span className="text-[10px] font-normal opacity-80">{t('suscripcion.masIva')}</span>
-                      </span>
-                    )}
-                  </button>
-                ) : myAgent.subscriptionStatus === 'ACTIVE' ? (
+                    {t('suscripcion.activar')}
+                  </Link>
+                ) : effectiveStatus === 'ACTIVE' ? (
                   <span className="text-xs font-semibold text-emerald-400">{t('suscripcion.pagoActivo')}</span>
                 ) : null}
               </div>
-              {myAgent.subscriptionStatus === 'TRIAL' ? (
+              {effectiveStatus === 'TRIAL' ? (
                 <p className="mt-2 text-xs text-text-2">
                   {t('suscripcion.diasRestantes')} <span className="font-semibold text-text">{daysRemaining(myAgent.trialEndsAt)}</span>
                 </p>
@@ -80,12 +67,6 @@ export default function SuscripcionTab({
           ) : (
             <p className="mt-4 text-sm text-text-2">{t('suscripcion.sinRegistro')}</p>
           )}
-
-          {myAgent && myAgent.subscriptionStatus !== 'ACTIVE' ? (
-            <div className="mt-4">
-              <PayPalSubscribeButton onSuccess={onSubscriptionConfirmed} />
-            </div>
-          ) : null}
         </section>
       </div>
     );

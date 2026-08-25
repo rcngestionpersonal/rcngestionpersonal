@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logSubscriptionActivation, logSubscriptionCancellation } from '@/lib/real-estate/churn';
 import { registerPaypalEvent, shouldUseMockStore, updateSubscriptionByPaypalId } from '@/lib/real-estate/mock-store';
-import { verifyPaypalWebhookSignature } from '@/lib/real-estate/paypal';
+import { verifyPaypalWebhookSignature } from '@/lib/real-estate/payments/paypal';
 
 function mapPaypalStatus(status: string): 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'INACTIVE' {
   switch (status) {

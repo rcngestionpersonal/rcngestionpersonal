@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getAppUrl } from '@/lib/real-estate/paypal';
+import { getAppUrl } from '@/lib/real-estate/subscription-config';
 import { sendEmailNotification } from '@/lib/real-estate/email';
 import { buildPasswordResetEmail } from '@/lib/real-estate/email-templates';
 import { shouldUseMockStore } from '@/lib/real-estate/mock-store';

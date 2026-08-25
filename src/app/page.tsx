@@ -17,6 +17,7 @@ import LevelUpCelebrationModal from '@/components/dashboard/LevelUpCelebrationMo
 import NoEmailBanner from '@/components/dashboard/NoEmailBanner';
 import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageProvider';
 import type { NextPlayInput } from '@/lib/real-estate/next-play';
+import { daysRemaining, resolveEffectiveSubscriptionStatus } from '@/lib/real-estate/subscription-status';
 import {
   isAgentVerified,
   type AgentDashboardBreakdown,
@@ -83,9 +84,21 @@ function DashboardPage() {
   const isAgent = user?.role === 'agent';
   const myAgent = useMemo(() => agents.find((a) => a.id === user?.agentId), [agents, user]);
   const displayName = isAdmin ? t('shell.role.admin') : myAgent?.fullName ?? t('shell.role.agent');
-  const myAgentActive = Boolean(myAgent && ACTIVE_SUBSCRIPTION_STATUSES.has(myAgent.subscriptionStatus));
+  const myEffectiveStatus = myAgent ? resolveEffectiveSubscriptionStatus(myAgent) : undefined;
+  const myAgentActive = Boolean(myEffectiveStatus && ACTIVE_SUBSCRIPTION_STATUSES.has(myEffectiveStatus));
   const myAgentVerified = isAgentVerified(myAgent);
   const canManageInventory = isAdmin || (myAgentActive && myAgentVerified);
+  // Indicador persistente de dias de prueba restantes (item 10 del pedido de
+  // Payphone/trial) - solo aplica a agentes, nunca al admin.
+  const trialInfo = useMemo(() => {
+    if (isAdmin || !myAgent) return null;
+    if (myEffectiveStatus === 'ACTIVE') return null;
+    if (myEffectiveStatus === 'INACTIVE' && myAgent.subscriptionStatus === 'TRIAL') {
+      return { daysRemaining: 0, expired: true };
+    }
+    if (myEffectiveStatus !== 'TRIAL') return null;
+    return { daysRemaining: daysRemaining(myAgent.trialEndsAt), expired: false };
+  }, [isAdmin, myAgent, myEffectiveStatus]);
   // Oportunidades relevantes para el agente en un sentido amplio (incluye matches de
   // inventario, es decir, pedidos que coincidieron con un inmueble que gestiona). Se usa
   // para Resumen y Matches, donde SI corresponde ver ese cruce.
@@ -483,7 +496,7 @@ function DashboardPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error ?? 'No se pudo iniciar el checkout de PayPal.');
+        throw new Error(data.error ?? 'No se pudo activar la suscripción.');
       }
 
       if (data.url) {
@@ -493,7 +506,7 @@ function DashboardPage() {
 
       await loadData();
       if (data.mode === 'mock') {
-        setError('PayPal no configurado: se activó modo demo para esta suscripción.');
+        setError('Suscripción activada manualmente (modo demo, sin cobro real).');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error iniciando suscripción');
@@ -753,6 +766,8 @@ function DashboardPage() {
       isVerified={myAgentVerified}
       photoUrl={myAgent?.photoUrl}
       onLogout={logout}
+      trialInfo={trialInfo}
+      onGoToSuscripcion={() => setActiveTab('suscripcion')}
     >
       {isAgent && myAgent && !myAgent.email && user?.agentId ? (
         <NoEmailBanner agentId={user.agentId} onSaved={() => loadData(false)} />
@@ -800,7 +815,6 @@ function DashboardPage() {
           myAgentId={user?.agentId}
           activateSubscription={activateSubscription}
           activating={activating}
-          onSubscriptionConfirmed={() => loadData(false)}
         />
       )}
       {activeTab === 'inmuebles' && (

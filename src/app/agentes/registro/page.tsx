@@ -4,7 +4,7 @@ import { Suspense, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Camera } from 'lucide-react';
 import { compressImage } from '@/lib/real-estate/image-compress';
-import { TRIAL_DAYS } from '@/lib/real-estate/paypal';
+import { TRIAL_DAYS } from '@/lib/real-estate/subscription-config';
 import CarnetPreview from './_components/CarnetPreview';
 
 const PROPERTY_OPTIONS: Array<{ value: string; label: string }> = [

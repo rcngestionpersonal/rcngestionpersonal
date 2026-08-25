@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { hashPassword } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { bootstrapDemoAgents, DEMO_AGENT_PASSWORD, shouldUseMockStore } from '@/lib/real-estate/mock-store';
-import { TRIAL_DAYS } from '@/lib/real-estate/paypal';
+import { TRIAL_DAYS } from '@/lib/real-estate/subscription-config';
 
 export async function POST() {
   if (shouldUseMockStore()) {

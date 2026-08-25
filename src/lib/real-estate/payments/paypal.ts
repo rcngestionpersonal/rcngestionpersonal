@@ -1,14 +1,13 @@
-export function getAppUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-}
-
-export function getPriceAmountUsd(): number {
-  return 8.99;
-}
-
-// Fuente unica de verdad para la duracion del trial gratuito - nunca hardcodear
-// el numero de dias en otro archivo, siempre importar de aqui.
-export const TRIAL_DAYS = 30;
+// Adaptador de PayPal - INACTIVO por diseno.
+//
+// Redinmo opera hoy exclusivamente en Ecuador, donde PayPal no es el metodo de
+// pago preferido ni el mas confiable para cobros recurrentes locales; por eso
+// el selector de proveedor (subscription-config.ts) siempre devuelve
+// 'PAYPHONE'. Este adaptador NO se borra: se reactivara el dia que Redinmo
+// empiece a operar agentes fuera de Ecuador (donde PayPal si tiene sentido
+// como opcion de cobro). Hasta entonces, ninguna pantalla debe importar ni
+// renderizar nada de este archivo - solo queda disponible para ese futuro.
+import { getAppUrl } from '../subscription-config';
 
 function getPaypalBaseUrl(): string {
   return process.env.PAYPAL_MODE === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';

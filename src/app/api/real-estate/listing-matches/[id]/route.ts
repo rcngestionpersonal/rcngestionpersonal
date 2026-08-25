@@ -14,7 +14,7 @@ import {
   updateListingMatchProgress,
   type ListingMatchProgressPatch,
 } from '@/lib/real-estate/mock-store';
-import { getAppUrl } from '@/lib/real-estate/paypal';
+import { getAppUrl } from '@/lib/real-estate/subscription-config';
 import { awardMatchContacted, awardVisitScheduled } from '@/lib/real-estate/points-log';
 
 const progressSchema = z.object({

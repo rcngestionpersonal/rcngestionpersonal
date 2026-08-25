@@ -3,7 +3,7 @@ import { hashPassword } from '@/lib/auth';
 import { sendEmailNotification } from '@/lib/real-estate/email';
 import { buildMatchCreatedEmail } from '@/lib/real-estate/email-templates';
 import { operationActionLabelEs, propertyTypeLabelEs } from '@/lib/real-estate/labels';
-import { getAppUrl, TRIAL_DAYS } from '@/lib/real-estate/paypal';
+import { getAppUrl, getBillingCycleMs, TRIAL_DAYS } from '@/lib/real-estate/subscription-config';
 import { buildRanking, milestonePoints, type AgentRankingEntry } from '@/lib/real-estate/ranking';
 import { zoneCentroid } from '@/lib/real-estate/quito-zones';
 import {
@@ -43,6 +43,9 @@ type AgentRecord = {
   subscriptionStatus: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'INACTIVE';
   paypalSubscriptionId?: string;
   paypalPayerId?: string;
+  lastPaymentProvider?: string;
+  payphoneTransactionId?: string;
+  subscriptionPaidUntil?: string;
   themePreference: 'LIGHT' | 'DARK' | 'SYSTEM';
   createdAt: string;
   updatedAt: string;
@@ -704,7 +707,8 @@ export function deleteListing(listingId: string, managingAgentId?: string): bool
 }
 
 export function activateSubscription(agentId: string): AgentRecord | null {
-  return updateAgent(agentId, { subscriptionStatus: 'ACTIVE' });
+  const subscriptionPaidUntil = new Date(Date.now() + getBillingCycleMs()).toISOString();
+  return updateAgent(agentId, { subscriptionStatus: 'ACTIVE', subscriptionPaidUntil, lastPaymentProvider: 'MANUAL' });
 }
 
 export function setPaypalForAgent(

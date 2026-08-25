@@ -134,6 +134,43 @@ export function buildPasswordChangedEmail(firstName: string, dateStr: string): {
   return { subject, text, html };
 }
 
+// Avisos automaticos durante el trial gratuito (dia 23, 28 y 30 de un trial de
+// 30 dias = 7, 2 y 0 dias restantes). Los 3 enlazan directo a la pantalla de
+// pago, no al panel general - el objetivo es la conversion, no solo informar.
+export function buildTrialReminderEmail(
+  agentName: string,
+  daysLeft: 7 | 2 | 0,
+  payUrl: string,
+): { subject: string; text: string; html: string } {
+  const copy =
+    daysLeft === 7
+      ? {
+          subject: '⏳ Te quedan 7 días de prueba gratuita en Redinmo',
+          lead: 'Tu prueba gratuita de Redinmo termina en 7 días.',
+          detail: 'Para no perder acceso a tus inmuebles, pedidos y matches, activa tu suscripción cuando quieras: solo toma un minuto.',
+        }
+      : daysLeft === 2
+        ? {
+            subject: '⏳ Tu prueba gratuita termina en 2 días',
+            lead: 'Tu prueba gratuita de Redinmo termina en 2 días.',
+            detail: 'Activa tu suscripción ahora para seguir recibiendo matches de tus colegas sin interrupciones.',
+          }
+        : {
+            subject: 'Tu prueba gratuita terminó — activa tu suscripción',
+            lead: 'Tu prueba gratuita de Redinmo ya terminó.',
+            detail: 'Activa tu suscripción para recuperar el acceso completo a la plataforma: tus inmuebles, pedidos y matches siguen ahí, esperándote.',
+          };
+
+  const text = wrap(`Hola ${agentName},`, [copy.lead, '', copy.detail].join('\n'), { label: 'Activar mi suscripción', url: payUrl });
+  const html = wrapHtml(
+    copy.lead,
+    `<p style="margin:0 0 8px;">Hola ${agentName},</p>
+     <p style="margin:0;">${copy.detail}</p>`,
+    { label: 'Activar mi suscripción', url: payUrl },
+  );
+  return { subject: copy.subject, text, html };
+}
+
 export function buildMilestoneEmail(input: {
   recipientName: string;
   actorName: string;

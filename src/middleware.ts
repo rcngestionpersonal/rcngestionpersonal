@@ -9,6 +9,7 @@ function isPublicPath(pathname: string): boolean {
   if (pathname === '/recuperar-acceso') return true;
   if (pathname === '/restablecer') return true;
   if (pathname === '/soporte') return true;
+  if (pathname === '/politica-cancelacion') return true;
   if (pathname.startsWith('/v/')) return true;
   if (pathname.startsWith('/api/auth/')) return true;
   if (pathname === '/api/health') return true;
@@ -17,6 +18,8 @@ function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith('/api/real-estate/paypal/webhook')) return true;
   if (pathname.startsWith('/api/real-estate/leads/web-chat')) return true;
   if (pathname.startsWith('/api/real-estate/agents/register')) return true;
+  // Protegido por su propio chequeo de CRON_SECRET, no por sesion de usuario.
+  if (pathname.startsWith('/api/real-estate/cron/')) return true;
   return false;
 }
 
@@ -54,6 +57,7 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/api/real-estate/listings') ||
       pathname.startsWith('/api/real-estate/paypal/checkout') ||
       pathname.startsWith('/api/real-estate/paypal/confirm') ||
+      pathname.startsWith('/api/real-estate/billing/payphone') ||
       pathname.startsWith('/api/real-estate/closed-deals') ||
       pathname.startsWith('/api/real-estate/listing-matches') ||
       pathname.startsWith('/api/real-estate/agents/verify-phone') ||

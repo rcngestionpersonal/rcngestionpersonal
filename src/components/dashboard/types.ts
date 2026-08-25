@@ -99,6 +99,7 @@ export type AgentItem = {
   rankingAlias?: string | null;
   useRankingAlias?: boolean;
   trialEndsAt?: string;
+  subscriptionPaidUntil?: string | null;
   referredByAgentId?: string | null;
   createdAt?: string;
 };

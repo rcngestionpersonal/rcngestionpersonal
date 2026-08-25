@@ -92,6 +92,8 @@ export default function DashboardShell({
   isVerified,
   photoUrl,
   onLogout,
+  trialInfo,
+  onGoToSuscripcion,
   children,
 }: {
   activeTab: DashboardTab;
@@ -101,6 +103,8 @@ export default function DashboardShell({
   isVerified?: boolean;
   photoUrl?: string | null;
   onLogout: () => void;
+  trialInfo?: { daysRemaining: number; expired: boolean } | null;
+  onGoToSuscripcion?: () => void;
   children: ReactNode;
 }) {
   const { t } = useLanguage();
@@ -229,9 +233,43 @@ export default function DashboardShell({
             ) : null}
           </section>
 
+          {trialInfo ? <TrialBanner trialInfo={trialInfo} onGoToSuscripcion={onGoToSuscripcion} /> : null}
+
           {children}
         </div>
       </div>
     </main>
+  );
+}
+
+// Indicador discreto y permanente de la prueba gratuita, visible en cualquier
+// tab (no solo dentro de Suscripcion) - se acentua cuando quedan pocos dias o
+// ya vencio (item 10 del pedido de limpieza de Payphone/trial).
+function TrialBanner({
+  trialInfo,
+  onGoToSuscripcion,
+}: {
+  trialInfo: { daysRemaining: number; expired: boolean };
+  onGoToSuscripcion?: () => void;
+}) {
+  const { t } = useLanguage();
+  const urgent = trialInfo.expired || trialInfo.daysRemaining <= 5;
+
+  const label = trialInfo.expired
+    ? t('trial.banner.vencida')
+    : trialInfo.daysRemaining <= 1
+      ? t('trial.banner.diaFinal')
+      : t('trial.banner.diasRestantes').replace('{dias}', String(trialInfo.daysRemaining));
+
+  return (
+    <button
+      onClick={onGoToSuscripcion}
+      className={`fade-up flex w-full items-center justify-between gap-2 rounded-2xl border px-4 py-2.5 text-left text-[13px] font-semibold transition-colors duration-200 ${
+        urgent ? 'border-accent-line bg-accent-dim text-accent hover:brightness-125' : 'border-line bg-surface-2 text-text-2 hover:text-text'
+      }`}
+    >
+      <span className="truncate">{label}</span>
+      <span className="shrink-0 underline decoration-dotted underline-offset-2">{t('trial.banner.cta')} →</span>
+    </button>
   );
 }

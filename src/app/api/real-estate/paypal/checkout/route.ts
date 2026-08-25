@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { activateSubscription, findAgentById, shouldUseMockStore } from '@/lib/real-estate/mock-store';
-import { createPaypalSubscription, isPaypalConfigured } from '@/lib/real-estate/paypal';
+import { createPaypalSubscription, isPaypalConfigured } from '@/lib/real-estate/payments/paypal';
 
 export async function POST(request: NextRequest) {
   try {

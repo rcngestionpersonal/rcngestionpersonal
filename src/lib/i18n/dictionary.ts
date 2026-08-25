@@ -1,4 +1,4 @@
-import { TRIAL_DAYS } from '@/lib/real-estate/paypal';
+import { TRIAL_DAYS } from '@/lib/real-estate/subscription-config';
 
 export type Language = 'es' | 'en';
 
@@ -195,12 +195,6 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'suscripcion.masIva': 'más IVA',
     'suscripcion.activando': 'Activando...',
 
-    'paypal.tituloSeguro': 'Pago seguro con PayPal',
-    'paypal.detalle': 'US$8.99/mes + IVA. Cancela cuando quieras desde tu cuenta de PayPal.',
-    'paypal.exito': '¡Suscripción activada! Ya tienes acceso completo a la plataforma.',
-    'paypal.confirmando': 'Confirmando tu suscripción...',
-    'paypal.error': 'Hubo un problema confirmando el pago. Si PayPal ya te cobró, contáctanos.',
-    'paypal.cancelacion': 'Se renueva automáticamente cada mes. Puedes cancelar en cualquier momento.',
     'suscripcion.pagoActivo': 'Pago activo',
     'suscripcion.sinRegistro': 'No encontramos tu registro de agente. Si acabas de registrarte, recarga la página en unos segundos.',
     'suscripcion.diasRestantes': 'Días restantes de tu prueba gratuita:',
@@ -208,6 +202,23 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'suscripcion.zonas': 'Zonas:',
     'suscripcion.noDefinidas': 'No definidas',
     'suscripcion.sinEmpresa': 'Sin empresa',
+
+    'suscripcion.pagar.eyebrow': 'Suscripción mensual Redinmo',
+    'suscripcion.pagar.titulo': 'Activa tu suscripción',
+    'suscripcion.pagar.planLabel': 'Plan mensual Redinmo',
+    'suscripcion.pagar.ivaLabel': 'IVA',
+    'suscripcion.pagar.totalLabel': 'Total a pagar',
+    'suscripcion.pagar.notaSeguridad': 'Pago seguro procesado por Payphone. Redinmo no almacena los datos de tu tarjeta.',
+    'suscripcion.pagar.politicaCancelacion': 'Política de Cancelación',
+    'suscripcion.pagar.confirmando': 'Confirmando tu pago...',
+    'suscripcion.pagar.exito': '¡Pago confirmado! Ya tienes acceso completo por 30 días más. Redirigiendo a tu panel...',
+    'suscripcion.pagar.errorConfirmacion': 'No pudimos confirmar tu pago. Si Payphone ya te cobró, contáctanos por WhatsApp.',
+    'suscripcion.pagar.noDisponible': 'El pago no está disponible en este momento. Intenta de nuevo en unos minutos.',
+
+    'trial.banner.diasRestantes': 'Prueba gratuita · te quedan {dias} días',
+    'trial.banner.diaFinal': 'Prueba gratuita · último día',
+    'trial.banner.vencida': 'Tu prueba gratuita terminó · activa tu suscripción',
+    'trial.banner.cta': 'Suscribirme',
 
     'inmuebles.form.title': 'Registrar un Inmueble',
     'inmuebles.form.subtitle': 'En cuanto haya un pedido compatible, el sistema te avisa con un match.',
@@ -835,12 +846,6 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'suscripcion.masIva': 'plus tax',
     'suscripcion.activando': 'Activating...',
 
-    'paypal.tituloSeguro': 'Secure payment with PayPal',
-    'paypal.detalle': 'US$8.99/month + tax. Cancel anytime from your PayPal account.',
-    'paypal.exito': 'Subscription activated! You now have full access to the platform.',
-    'paypal.confirmando': 'Confirming your subscription...',
-    'paypal.error': "There was a problem confirming the payment. If PayPal already charged you, contact us.",
-    'paypal.cancelacion': 'Renews automatically every month. You can cancel anytime.',
     'suscripcion.pagoActivo': 'Payment active',
     'suscripcion.sinRegistro': "We couldn't find your agent record. If you just signed up, reload the page in a few seconds.",
     'suscripcion.diasRestantes': 'Days left in your free trial:',
@@ -848,6 +853,23 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'suscripcion.zonas': 'Areas:',
     'suscripcion.noDefinidas': 'Not defined',
     'suscripcion.sinEmpresa': 'No company',
+
+    'suscripcion.pagar.eyebrow': 'Redinmo monthly subscription',
+    'suscripcion.pagar.titulo': 'Activate your subscription',
+    'suscripcion.pagar.planLabel': 'Redinmo monthly plan',
+    'suscripcion.pagar.ivaLabel': 'Tax',
+    'suscripcion.pagar.totalLabel': 'Total to pay',
+    'suscripcion.pagar.notaSeguridad': 'Secure payment processed by Payphone. Redinmo never stores your card data.',
+    'suscripcion.pagar.politicaCancelacion': 'Cancellation Policy',
+    'suscripcion.pagar.confirmando': 'Confirming your payment...',
+    'suscripcion.pagar.exito': 'Payment confirmed! You have full access for 30 more days. Redirecting to your dashboard...',
+    'suscripcion.pagar.errorConfirmacion': "We couldn't confirm your payment. If Payphone already charged you, contact us on WhatsApp.",
+    'suscripcion.pagar.noDisponible': 'Payment is not available right now. Please try again in a few minutes.',
+
+    'trial.banner.diasRestantes': 'Free trial · {dias} days left',
+    'trial.banner.diaFinal': 'Free trial · last day',
+    'trial.banner.vencida': 'Your free trial ended · activate your subscription',
+    'trial.banner.cta': 'Subscribe',
 
     'inmuebles.form.title': 'Register a Listing',
     'inmuebles.form.subtitle': "As soon as there's a matching request, the system notifies you with a match.",

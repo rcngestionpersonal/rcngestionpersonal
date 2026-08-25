@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import PayPalSubscribeButton, { isPaypalButtonConfigured } from '@/components/dashboard/PayPalSubscribeButton';
+import Link from 'next/link';
 import { LanguageProvider } from '@/lib/i18n/LanguageProvider';
-import { TRIAL_DAYS } from '@/lib/real-estate/paypal';
+import { TRIAL_DAYS } from '@/lib/real-estate/subscription-config';
 
 type MeAgent = {
   id: string;
@@ -88,13 +88,18 @@ function SuscripcionOnboardingContent() {
         </section>
 
         <section className="glass-card rounded-3xl p-5 sm:p-6">
-          {agent.subscriptionStatus !== 'ACTIVE' && isPaypalButtonConfigured() ? (
-            <PayPalSubscribeButton onSuccess={goToDashboard} />
+          {agent.subscriptionStatus !== 'ACTIVE' ? (
+            <Link
+              href="/agentes/suscripcion/pagar"
+              className="gradient-btn flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-grad-contrast transition hover:opacity-90"
+            >
+              Suscribirme ahora →
+            </Link>
           ) : null}
 
           <button
             onClick={goToDashboard}
-            className="mt-4 w-full rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-sm font-semibold text-text transition hover:bg-surface-2"
+            className="mt-3 w-full rounded-xl border border-line-strong bg-surface-2 px-4 py-3 text-sm font-semibold text-text transition hover:bg-surface-2"
           >
             {agent.subscriptionStatus === 'ACTIVE' ? 'Ir a mi panel →' : 'Continuar con mi prueba gratuita →'}
           </button>

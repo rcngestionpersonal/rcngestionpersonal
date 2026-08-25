@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { buildWelcomeEmail } from '@/lib/real-estate/email-templates';
 import { sendEmailNotification } from '@/lib/real-estate/email';
 import { createAgent, findAgentById, findAgentByPhone, shouldUseMockStore } from '@/lib/real-estate/mock-store';
-import { getAppUrl, TRIAL_DAYS } from '@/lib/real-estate/paypal';
+import { getAppUrl, TRIAL_DAYS } from '@/lib/real-estate/subscription-config';
 import { awardReferralSignup } from '@/lib/real-estate/points-log';
 
 const registerSchema = z.object({
