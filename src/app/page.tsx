@@ -767,7 +767,6 @@ function DashboardPage() {
       photoUrl={myAgent?.photoUrl}
       onLogout={logout}
       trialInfo={trialInfo}
-      onGoToSuscripcion={() => setActiveTab('suscripcion')}
     >
       {isAgent && myAgent && !myAgent.email && user?.agentId ? (
         <NoEmailBanner agentId={user.agentId} onSaved={() => loadData(false)} />

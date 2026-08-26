@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type ReactNode, type SVGProps } from 'react';
+import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import { AvatarInitials } from './CardKit';
 import { IconClipboard, IconGrid, IconHouse, IconInvite, IconMapPin, IconPodium, IconStar, IconSubscription, IconTarget } from './icons';
@@ -93,7 +94,6 @@ export default function DashboardShell({
   photoUrl,
   onLogout,
   trialInfo,
-  onGoToSuscripcion,
   children,
 }: {
   activeTab: DashboardTab;
@@ -104,7 +104,6 @@ export default function DashboardShell({
   photoUrl?: string | null;
   onLogout: () => void;
   trialInfo?: { daysRemaining: number; expired: boolean } | null;
-  onGoToSuscripcion?: () => void;
   children: ReactNode;
 }) {
   const { t } = useLanguage();
@@ -233,7 +232,7 @@ export default function DashboardShell({
             ) : null}
           </section>
 
-          {trialInfo ? <TrialBanner trialInfo={trialInfo} onGoToSuscripcion={onGoToSuscripcion} /> : null}
+          {trialInfo ? <TrialBanner trialInfo={trialInfo} /> : null}
 
           {children}
         </div>
@@ -245,13 +244,7 @@ export default function DashboardShell({
 // Indicador discreto y permanente de la prueba gratuita, visible en cualquier
 // tab (no solo dentro de Suscripcion) - se acentua cuando quedan pocos dias o
 // ya vencio (item 10 del pedido de limpieza de Payphone/trial).
-function TrialBanner({
-  trialInfo,
-  onGoToSuscripcion,
-}: {
-  trialInfo: { daysRemaining: number; expired: boolean };
-  onGoToSuscripcion?: () => void;
-}) {
+function TrialBanner({ trialInfo }: { trialInfo: { daysRemaining: number; expired: boolean } }) {
   const { t } = useLanguage();
   const urgent = trialInfo.expired || trialInfo.daysRemaining <= 5;
 
@@ -262,14 +255,14 @@ function TrialBanner({
       : t('trial.banner.diasRestantes').replace('{dias}', String(trialInfo.daysRemaining));
 
   return (
-    <button
-      onClick={onGoToSuscripcion}
+    <Link
+      href="/agentes/suscripcion/pagar"
       className={`fade-up flex w-full items-center justify-between gap-2 rounded-2xl border px-4 py-2.5 text-left text-[13px] font-semibold transition-colors duration-200 ${
         urgent ? 'border-accent-line bg-accent-dim text-accent hover:brightness-125' : 'border-line bg-surface-2 text-text-2 hover:text-text'
       }`}
     >
       <span className="truncate">{label}</span>
-      <span className="shrink-0 underline decoration-dotted underline-offset-2">{t('trial.banner.cta')} →</span>
-    </button>
+      <span className="shrink-0 font-semibold underline-offset-2 hover:underline">{t('trial.banner.cta')} →</span>
+    </Link>
   );
 }
