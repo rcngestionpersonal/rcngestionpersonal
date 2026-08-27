@@ -48,3 +48,48 @@ export function compressImage(file: File, maxDim = 800, quality = 0.8): Promise<
     img.src = objectUrl;
   });
 }
+
+// Recorte cuadrado centrado (cover-fit) para la foto de perfil del Editar
+// Perfil (Fase 7, seccion 3.1): toma el lado mas corto de la imagen original
+// y recorta el excedente del lado largo desde el centro, sin pedirle al
+// agente que reposicione manualmente - la vista previa que consume este blob
+// ya muestra el resultado final antes de guardar.
+export function cropImageToSquare(file: File, size = 500, quality = 0.85): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const side = Math.min(img.width, img.height);
+      const sx = (img.width - side) / 2;
+      const sy = (img.height - side) / 2;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Canvas no soportado.'));
+        return;
+      }
+      ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error('No se pudo recortar la imagen.'));
+            return;
+          }
+          resolve(blob);
+        },
+        'image/jpeg',
+        quality,
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('No se pudo leer la imagen.'));
+    };
+    img.src = objectUrl;
+  });
+}

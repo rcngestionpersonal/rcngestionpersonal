@@ -95,6 +95,7 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'shell.role.admin': 'Administrador',
     'shell.role.agent': 'Agente',
     'shell.logout': 'Cerrar sesión',
+    'shell.editarPerfil': 'Editar perfil',
     'shell.menu': 'Menú',
     'shell.verificado': 'Verificado',
 
@@ -803,6 +804,7 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'shell.role.admin': 'Administrator',
     'shell.role.agent': 'Agent',
     'shell.logout': 'Log out',
+    'shell.editarPerfil': 'Edit profile',
     'shell.menu': 'Menu',
     'shell.verificado': 'Verified',
 

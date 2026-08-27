@@ -4,6 +4,7 @@ import { Suspense, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Camera } from 'lucide-react';
 import { compressImage } from '@/lib/real-estate/image-compress';
+import { buildPhoneE164 } from '@/lib/real-estate/phone';
 import { TRIAL_DAYS } from '@/lib/real-estate/subscription-config';
 import CarnetPreview from './_components/CarnetPreview';
 
@@ -133,7 +134,7 @@ function AgentRegisterForm() {
     setLoading(true);
     setError('');
     try {
-      const phone = `${countryCode}${phoneLocal.trim()}`;
+      const phone = buildPhoneE164(countryCode, phoneLocal);
       const res = await fetch('/api/real-estate/agents/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

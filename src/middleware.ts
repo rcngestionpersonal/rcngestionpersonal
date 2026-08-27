@@ -18,6 +18,9 @@ function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith('/api/real-estate/paypal/webhook')) return true;
   if (pathname.startsWith('/api/real-estate/leads/web-chat')) return true;
   if (pathname.startsWith('/api/real-estate/agents/register')) return true;
+  // El enlace de confirmacion viaja por correo - el agente puede abrirlo sin
+  // sesion activa en ese navegador/dispositivo.
+  if (pathname.startsWith('/api/real-estate/agents/me/email-change/confirm')) return true;
   // Protegido por su propio chequeo de CRON_SECRET, no por sesion de usuario.
   if (pathname.startsWith('/api/real-estate/cron/')) return true;
   return false;

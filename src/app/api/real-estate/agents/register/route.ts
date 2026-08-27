@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { buildWelcomeEmail } from '@/lib/real-estate/email-templates';
 import { sendEmailNotification } from '@/lib/real-estate/email';
 import { createAgent, findAgentById, findAgentByPhone, shouldUseMockStore } from '@/lib/real-estate/mock-store';
+import { isValidPhone, repairPhone } from '@/lib/real-estate/phone';
 import { getAppUrl, TRIAL_DAYS } from '@/lib/real-estate/subscription-config';
 import { awardReferralSignup } from '@/lib/real-estate/points-log';
 
@@ -35,6 +36,13 @@ export async function POST(request: NextRequest) {
   }
 
   const input = parsed.data;
+  // Red de seguridad server-side: el cliente ya normaliza (buildPhoneE164),
+  // pero nunca confiamos solo en eso - repara aqui tambien por si el numero
+  // llega con el prefijo de pais duplicado o un 0 de marcado local.
+  input.phone = repairPhone(input.phone);
+  if (!isValidPhone(input.phone)) {
+    return NextResponse.json({ error: 'Ingresa un número de teléfono válido.' }, { status: 400 });
+  }
   const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
 
   try {

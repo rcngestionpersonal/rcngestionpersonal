@@ -172,6 +172,14 @@ export default function DashboardShell({
               </div>
 
               <div className="hidden items-center gap-2 lg:flex">
+                {!isAdmin ? (
+                  <Link
+                    href="/agentes/perfil"
+                    className="inline-flex h-10 items-center rounded-full border border-line bg-surface-2 px-4 text-xs font-semibold text-text-2 transition-all duration-200 hover:scale-[1.03] hover:bg-surface"
+                  >
+                    {t('shell.editarPerfil')}
+                  </Link>
+                ) : null}
                 <ThemeSwitch isAdmin={isAdmin} />
                 <LanguageSwitch />
                 <button
@@ -217,6 +225,14 @@ export default function DashboardShell({
                   );
                 })}
                 <div className="space-y-2 border-t border-line pt-3">
+                  {!isAdmin ? (
+                    <Link
+                      href="/agentes/perfil"
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-text-2 transition-colors duration-150 hover:bg-surface-2 hover:text-text"
+                    >
+                      {t('shell.editarPerfil')}
+                    </Link>
+                  ) : null}
                   <ThemeSwitch isAdmin={isAdmin} showLabel />
                   <div className="flex items-center justify-between gap-2">
                     <LanguageSwitch />

@@ -21,6 +21,7 @@ type AgentRecord = {
   fullName: string;
   phone: string;
   email?: string;
+  pendingEmail?: string;
   passwordHash?: string;
   photoUrl?: string;
   company?: string;
@@ -202,6 +203,16 @@ type PasswordResetTokenRecord = {
   requestIp?: string;
 };
 
+type EmailChangeTokenRecord = {
+  id: string;
+  agentId: string;
+  newEmail: string;
+  tokenHash: string;
+  expiresAt: string;
+  usedAt?: string;
+  createdAt: string;
+};
+
 type Store = {
   agents: AgentRecord[];
   opportunities: OpportunityRecord[];
@@ -210,6 +221,7 @@ type Store = {
   closedDeals: ClosedDealRecord[];
   paypalEvents: Set<string>;
   passwordResetTokens: PasswordResetTokenRecord[];
+  emailChangeTokens: EmailChangeTokenRecord[];
 };
 
 function nowIso(): string {
@@ -294,6 +306,7 @@ function getStore(): Store {
       closedDeals: [],
       paypalEvents: new Set<string>(),
       passwordResetTokens: [],
+      emailChangeTokens: [],
     };
     // El modo mock existe para poder probar la plataforma sin configurar nada:
     // se siembran los agentes demo de una vez, sin depender de que un admin
@@ -513,6 +526,43 @@ export function invalidateOtherMockResetTokens(agentId: string, exceptTokenHash:
   const store = getStore();
   const now = nowIso();
   for (const t of store.passwordResetTokens) {
+    if (t.agentId === agentId && t.tokenHash !== exceptTokenHash && !t.usedAt) {
+      t.usedAt = now;
+    }
+  }
+}
+
+// Espejo en memoria de EmailChangeToken (ver prisma/schema.prisma) - mismo
+// patron que los tokens de recuperacion de contrasena de arriba.
+export function createMockEmailChangeToken(input: { agentId: string; newEmail: string; tokenHash: string; expiresAt: string }): EmailChangeTokenRecord {
+  const store = getStore();
+  const record: EmailChangeTokenRecord = {
+    id: uid('ect'),
+    agentId: input.agentId,
+    newEmail: input.newEmail,
+    tokenHash: input.tokenHash,
+    expiresAt: input.expiresAt,
+    createdAt: nowIso(),
+  };
+  store.emailChangeTokens.push(record);
+  return record;
+}
+
+export function findMockEmailChangeTokenByHash(tokenHash: string): EmailChangeTokenRecord | null {
+  const store = getStore();
+  return store.emailChangeTokens.find((t) => t.tokenHash === tokenHash) ?? null;
+}
+
+export function markMockEmailChangeTokenUsed(tokenHash: string): void {
+  const store = getStore();
+  const record = store.emailChangeTokens.find((t) => t.tokenHash === tokenHash);
+  if (record) record.usedAt = nowIso();
+}
+
+export function invalidateOtherMockEmailChangeTokens(agentId: string, exceptTokenHash: string): void {
+  const store = getStore();
+  const now = nowIso();
+  for (const t of store.emailChangeTokens) {
     if (t.agentId === agentId && t.tokenHash !== exceptTokenHash && !t.usedAt) {
       t.usedAt = now;
     }

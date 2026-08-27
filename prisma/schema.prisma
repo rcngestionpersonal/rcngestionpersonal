@@ -85,6 +85,10 @@ model Agent {
   fullName              String
   phone                 String             @unique
   email                 String?            @unique
+  // Correo nuevo a la espera de verificacion (seccion 3.4 - editar perfil): el
+  // correo actual sigue vigente hasta que se confirme el nuevo via
+  // EmailChangeToken. Nunca se escribe directo a "email" antes de confirmar.
+  pendingEmail          String?
   passwordHash          String?
   // Cuentas de prueba (QA) creadas durante desarrollo: se excluyen del ranking publico
   // y de los contadores, pero no se borran (conservan el historial de pruebas).
@@ -151,6 +155,7 @@ model Agent {
   notificationLogs      NotificationLog[]
   interactions          InteractionLog[]
   passwordResetTokens   PasswordResetToken[]
+  emailChangeTokens     EmailChangeToken[]
 }
 
 model Listing {
@@ -349,6 +354,25 @@ model PasswordResetToken {
   usedAt    DateTime?
   createdAt DateTime  @default(now())
   requestIp String?
+
+  @@index([tokenHash])
+  @@index([agentId])
+}
+
+// Verificacion de cambio de correo (seccion 3.4 de editar perfil): igual patron
+// que PasswordResetToken (hash del token, un solo uso, vencimiento). newEmail
+// vive en el token, no en Agent.pendingEmail exclusivamente, para poder
+// invalidar tokens viejos si el agente pide el cambio mas de una vez sin
+// perder de vista a que correo apuntaba cada intento.
+model EmailChangeToken {
+  id        String    @id @default(cuid())
+  agent     Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentId   String
+  newEmail  String
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([tokenHash])
   @@index([agentId])

@@ -120,6 +120,27 @@ export function buildPasswordResetEmail(firstName: string, link: string): { subj
   return { subject, text, html };
 }
 
+export function buildEmailChangeVerificationEmail(firstName: string, link: string): { subject: string; text: string; html: string } {
+  const subject = 'Confirma tu nuevo correo en Redinmo';
+  const text = wrap(
+    `Hola ${firstName},`,
+    [
+      'Pediste cambiar el correo de tu cuenta de Redinmo a esta dirección.',
+      'Usa el siguiente enlace para confirmarlo. El enlace vence en 30 minutos y solo puede usarse una vez. Tu correo actual sigue funcionando hasta que confirmes el nuevo.',
+      '',
+      'Si no pediste este cambio, ignora este correo: tu correo actual no se modifica.',
+    ].join('\n'),
+    { label: 'Confirmar nuevo correo', url: link },
+  );
+  const html = wrapHtml(
+    'Confirma tu nuevo correo',
+    `<p style="margin:0 0 8px;">Hola ${firstName},</p>
+     <p style="margin:0;">Pediste cambiar el correo de tu cuenta de Redinmo a esta dirección. Toca el botón para confirmarlo. El enlace vence en 30 minutos y solo puede usarse una vez. Tu correo actual sigue funcionando hasta que confirmes el nuevo.</p>`,
+    { label: 'Confirmar nuevo correo', url: link },
+  );
+  return { subject, text, html };
+}
+
 export function buildPasswordChangedEmail(firstName: string, dateStr: string): { subject: string; text: string; html: string } {
   const subject = 'Tu contraseña de Redinmo fue actualizada';
   const text = wrap(
