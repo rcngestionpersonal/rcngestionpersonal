@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { getSessionFromRequest } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logSubscriptionActivation } from '@/lib/real-estate/churn';
@@ -10,7 +11,18 @@ import {
   parsePlanFromClientTransactionId,
 } from '@/lib/real-estate/payments/payphone';
 import { getBillingCycleMs } from '@/lib/real-estate/subscription-config';
-import { getCheckoutAmountsInCents } from '@/config/planes';
+import { getCheckoutAmountsInCents, PLANES } from '@/config/planes';
+
+// Precio fundador (Fase 7, seccion 9.4): decide si esta activacion de Basico
+// debe cobrar el precio vigente (y fijarlo como nuevo precio fundador) o el
+// precio fundador ya congelado del agente. Es "nueva/reiniciada" cuando el
+// agente todavia no tiene precioFundadorBasico, o cuando venia de CANCELED/
+// INACTIVE (cancelo y se re-suscribe: pierde el precio fundador anterior).
+// Pro nunca toca este campo - se preserva tal cual para que, si el agente
+// vuelve a Basico sin haber cancelado, recupere su precio fundador.
+function esActivacionNuevaOReiniciada(previo: { subscriptionStatus: string; precioFundadorBasico: number | null }): boolean {
+  return !previo.precioFundadorBasico || previo.subscriptionStatus === 'CANCELED' || previo.subscriptionStatus === 'INACTIVE';
+}
 
 // Confirma un pago de la Cajita de Payphone. El agente vuelve del pago con
 // ?id=...&clientTransactionId=... en la URL; esta ruta hace la llamada
@@ -52,7 +64,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, fallback: true, alreadyProcessed: true });
       }
       const paidUntil = new Date(Date.now() + getBillingCycleMs()).toISOString();
-      updateAgent(authSession.agentId, {
+      const patch: Record<string, unknown> = {
         subscriptionStatus: 'ACTIVE',
         subscriptionPaidUntil: paidUntil,
         lastPaymentProvider: 'PAYPHONE',
@@ -60,16 +72,34 @@ export async function POST(request: NextRequest) {
         plan,
         planDesde: new Date().toISOString(),
         planSiguiente: undefined,
-      });
+      };
+      if (plan === 'BASICO' && esActivacionNuevaOReiniciada({
+        subscriptionStatus: agent?.subscriptionStatus ?? 'INACTIVE',
+        precioFundadorBasico: agent?.precioFundadorBasico ?? null,
+      })) {
+        patch.precioFundadorBasico = PLANES.BASICO.total;
+      }
+      updateAgent(authSession.agentId, patch);
       return NextResponse.json({ success: true, fallback: true });
     }
+
+    const previoAgent = await prisma.agent.findUnique({
+      where: { id: authSession.agentId },
+      select: { subscriptionStatus: true, precioFundadorBasico: true },
+    });
+    const nuevaOReiniciada = plan === 'BASICO' && previoAgent && esActivacionNuevaOReiniciada(previoAgent);
+    // Precio esperado: si es una activacion nueva/reiniciada de Basico se
+    // cobra el vigente (y ese pasa a ser su nuevo precio fundador); si no, se
+    // espera el precio fundador ya congelado del agente. Pro siempre al
+    // precio vigente.
+    const founderTotalCents = plan === 'BASICO' && !nuevaOReiniciada ? previoAgent?.precioFundadorBasico : null;
 
     const result = await confirmPayphoneTransaction({ id: body.id, clientTransactionId: body.clientTransactionId });
 
     if (result.transactionStatus !== 'Approved') {
       return NextResponse.json({ error: 'El pago no fue aprobado por Payphone.', status: result.transactionStatus }, { status: 402 });
     }
-    if (!isExpectedCheckoutAmount(result.amount, plan)) {
+    if (!isExpectedCheckoutAmount(result.amount, plan, founderTotalCents)) {
       return NextResponse.json({ error: 'El monto confirmado no coincide con el precio del plan.' }, { status: 400 });
     }
 
@@ -84,20 +114,22 @@ export async function POST(request: NextRequest) {
     }
 
     const paidUntil = new Date(Date.now() + getBillingCycleMs());
-    const amounts = getCheckoutAmountsInCents(plan);
+    const amounts = getCheckoutAmountsInCents(plan, founderTotalCents);
+    const agentUpdateData: Prisma.AgentUpdateInput = {
+      subscriptionStatus: 'ACTIVE',
+      subscriptionPaidUntil: paidUntil,
+      lastPaymentProvider: 'PAYPHONE',
+      payphoneTransactionId: String(result.transactionId),
+      plan,
+      planDesde: new Date(),
+      planSiguiente: null,
+      ...(nuevaOReiniciada ? { precioFundadorBasico: PLANES.BASICO.total } : {}),
+    };
     try {
       await prisma.$transaction([
         prisma.agent.update({
           where: { id: authSession.agentId },
-          data: {
-            subscriptionStatus: 'ACTIVE',
-            subscriptionPaidUntil: paidUntil,
-            lastPaymentProvider: 'PAYPHONE',
-            payphoneTransactionId: String(result.transactionId),
-            plan,
-            planDesde: new Date(),
-            planSiguiente: null,
-          },
+          data: agentUpdateData,
         }),
         prisma.transaccion.create({
           data: {
@@ -122,6 +154,7 @@ export async function POST(request: NextRequest) {
         plan,
         planDesde: new Date().toISOString(),
         planSiguiente: undefined,
+        ...(nuevaOReiniciada ? { precioFundadorBasico: PLANES.BASICO.total } : {}),
       });
     }
 

@@ -94,6 +94,11 @@ export type AgentItem = {
   subscriptionStatus: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'INACTIVE';
   idNumber?: string;
   licenseNumber?: string;
+  direccion?: string | null;
+  referenciaDireccion?: string | null;
+  ciudad?: string | null;
+  provincia?: string | null;
+  codigoPostal?: string | null;
   yearsExperience?: number | null;
   phoneVerifiedAt?: string | null;
   rankingAlias?: string | null;
@@ -103,6 +108,7 @@ export type AgentItem = {
   plan?: 'BASICO' | 'PRO';
   planDesde?: string | null;
   planSiguiente?: 'BASICO' | 'PRO' | null;
+  precioFundadorBasico?: number | null;
   referredByAgentId?: string | null;
   createdAt?: string;
 };

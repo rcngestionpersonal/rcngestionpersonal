@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import { isAgentVerified, type AgentItem } from '../types';
 import { daysRemaining, resolveEffectiveSubscriptionStatus } from '@/lib/real-estate/subscription-status';
+import { PLANES, formatUsd } from '@/config/planes';
 
 function fmtFecha(iso?: string | null): string {
   if (!iso) return '';
@@ -216,6 +217,28 @@ export default function SuscripcionTab({
             <p className="mt-2 text-xs text-text-2">
               {t('suscripcion.zonas')} {agent.zones.join(', ') || t('suscripcion.noDefinidas')}
             </p>
+            {agent.plan && (agent.subscriptionStatus === 'ACTIVE' || agent.subscriptionStatus === 'PAST_DUE' || agent.subscriptionStatus === 'CANCELED') ? (
+              // Precio fundador (Fase 7, seccion 9.6): el admin necesita ver que
+              // precio paga cada agente y si tiene un precio fundador activo,
+              // para auditar cobros y saber cuantos fundadores hay antes de
+              // decidir subir el precio vigente. Solo se muestra si el agente
+              // ya pago alguna vez (nunca para TRIAL/INACTIVE, que no pagan
+              // nada todavia - mostrarles un precio seria enganoso).
+              <p className="mt-1 text-xs text-text-2">
+                {t('suscripcion.admin.pagaLabel')}:{' '}
+                <span className="font-semibold text-text">
+                  ${formatUsd(agent.plan === 'PRO' ? PLANES.PRO.total : (agent.precioFundadorBasico ?? PLANES.BASICO.total))}
+                </span>{' '}
+                <span className="text-text-3">
+                  ·{' '}
+                  {agent.plan === 'PRO'
+                    ? t('suscripcion.admin.proTarifaVigente')
+                    : agent.precioFundadorBasico
+                      ? t('suscripcion.admin.precioFundadorActivo')
+                      : t('suscripcion.admin.precioVigente')}
+                </span>
+              </p>
+            ) : null}
             <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <span className="rounded-full border border-line-strong bg-surface-2 px-2 py-1 text-xs font-semibold text-text">
                 {tSubscriptionStatus(agent.subscriptionStatus)}

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSessionFromRequest } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { findAgentByPhone, findAgentById, shouldUseMockStore, updateAgent } from '@/lib/real-estate/mock-store';
+import { findAgentByPhone, findAgentById, sanitizeAgent, shouldUseMockStore, updateAgent } from '@/lib/real-estate/mock-store';
 import { QUITO_ZONES } from '@/lib/real-estate/quito-zones';
 import { buildPhoneE164, isValidPhone } from '@/lib/real-estate/phone';
 
@@ -23,6 +23,13 @@ const profileSchema = z.object({
   specialty: z.enum(['SALE', 'RENT', 'BOTH']).optional(),
   propertyTypesInterest: z.array(z.enum(PROPERTY_TYPES)).optional(),
   licenseNumber: z.string().trim().max(60).nullable().optional(),
+  // Direccion profesional (Fase 7, seccion 8.2/8.7) - misma validacion que en
+  // registro cuando se manda; se permite null para poder borrarla.
+  direccion: z.string().trim().min(10, 'Ingresa tu dirección completa (mínimo 10 caracteres).').nullable().optional(),
+  referenciaDireccion: z.string().trim().max(120).nullable().optional(),
+  ciudad: z.string().trim().min(2, 'La ciudad es obligatoria.').nullable().optional(),
+  provincia: z.string().trim().min(2, 'La provincia es obligatoria.').nullable().optional(),
+  codigoPostal: z.string().trim().max(20).nullable().optional(),
   countryCode: z.string().trim().optional(),
   phoneLocal: z.string().trim().optional(),
   specializationZones: z.array(z.enum(ZONE_KEYS)).max(3, 'Máximo 3 zonas.').optional(),
@@ -52,6 +59,11 @@ export async function PATCH(request: NextRequest) {
   if (parsed.data.specialty) data.specialty = parsed.data.specialty;
   if (parsed.data.propertyTypesInterest) data.propertyTypesInterest = parsed.data.propertyTypesInterest;
   if (parsed.data.licenseNumber !== undefined) data.licenseNumber = parsed.data.licenseNumber || null;
+  if (parsed.data.direccion !== undefined) data.direccion = parsed.data.direccion || null;
+  if (parsed.data.referenciaDireccion !== undefined) data.referenciaDireccion = parsed.data.referenciaDireccion || null;
+  if (parsed.data.ciudad !== undefined) data.ciudad = parsed.data.ciudad || null;
+  if (parsed.data.provincia !== undefined) data.provincia = parsed.data.provincia || null;
+  if (parsed.data.codigoPostal !== undefined) data.codigoPostal = parsed.data.codigoPostal || null;
   if (parsed.data.specializationZones) data.specializationZones = parsed.data.specializationZones;
   if (parsed.data.carnetMessage !== undefined) data.carnetMessage = parsed.data.carnetMessage || null;
   if (parsed.data.themePreference) data.themePreference = parsed.data.themePreference;
@@ -94,12 +106,12 @@ export async function PATCH(request: NextRequest) {
 
   if (shouldUseMockStore()) {
     const updated = updateAgent(session.agentId, data);
-    return NextResponse.json({ success: true, fallback: true, agent: updated });
+    return NextResponse.json({ success: true, fallback: true, agent: sanitizeAgent(updated ?? {}) });
   }
 
   try {
     const updated = await prisma.agent.update({ where: { id: session.agentId }, data });
-    return NextResponse.json({ success: true, agent: updated });
+    return NextResponse.json({ success: true, agent: sanitizeAgent(updated) });
   } catch (error) {
     if (error instanceof Error && 'code' in error && (error as { code?: string }).code === 'P2002') {
       return NextResponse.json({ error: 'Ese dato ya está en uso por otra cuenta.' }, { status: 409 });

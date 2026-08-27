@@ -27,6 +27,11 @@ type AgentRecord = {
   company?: string;
   idNumber?: string;
   licenseNumber?: string;
+  direccion?: string;
+  referenciaDireccion?: string;
+  ciudad?: string;
+  provincia?: string;
+  codigoPostal?: string;
   phoneVerifiedAt?: string;
   otpCode?: string;
   otpExpiresAt?: string;
@@ -51,6 +56,7 @@ type AgentRecord = {
   plan: PlanTipo;
   planDesde?: string;
   planSiguiente?: PlanTipo;
+  precioFundadorBasico?: number | null;
   themePreference: 'LIGHT' | 'DARK' | 'SYSTEM';
   createdAt: string;
   updatedAt: string;
@@ -213,6 +219,17 @@ type EmailChangeTokenRecord = {
   createdAt: string;
 };
 
+// Aviso de cambio de precio (Fase 7, seccion 9.5) - ver src/lib/real-estate/price-schedule.ts.
+export type ScheduledPriceChangeRecord = {
+  id: string;
+  plan: PlanTipo;
+  newTotalCents: number;
+  effectiveAt: string;
+  notifiedAt?: string;
+  appliedAt?: string;
+  createdAt: string;
+};
+
 type Store = {
   agents: AgentRecord[];
   opportunities: OpportunityRecord[];
@@ -222,6 +239,7 @@ type Store = {
   paypalEvents: Set<string>;
   passwordResetTokens: PasswordResetTokenRecord[];
   emailChangeTokens: EmailChangeTokenRecord[];
+  scheduledPriceChanges: ScheduledPriceChangeRecord[];
 };
 
 function nowIso(): string {
@@ -307,6 +325,7 @@ function getStore(): Store {
       paypalEvents: new Set<string>(),
       passwordResetTokens: [],
       emailChangeTokens: [],
+      scheduledPriceChanges: [],
     };
     // El modo mock existe para poder probar la plataforma sin configurar nada:
     // se siembran los agentes demo de una vez, sin depender de que un admin
@@ -333,6 +352,14 @@ function getStore(): Store {
 
   if (!(globalStore.__realEstateMockStore as Partial<Store>).passwordResetTokens) {
     globalStore.__realEstateMockStore.passwordResetTokens = [];
+  }
+
+  if (!(globalStore.__realEstateMockStore as Partial<Store>).emailChangeTokens) {
+    globalStore.__realEstateMockStore.emailChangeTokens = [];
+  }
+
+  if (!(globalStore.__realEstateMockStore as Partial<Store>).scheduledPriceChanges) {
+    globalStore.__realEstateMockStore.scheduledPriceChanges = [];
   }
 
   return globalStore.__realEstateMockStore;
@@ -397,6 +424,11 @@ export async function createAgent(input: {
   company?: string;
   idNumber?: string;
   licenseNumber?: string;
+  direccion?: string;
+  referenciaDireccion?: string;
+  ciudad?: string;
+  provincia?: string;
+  codigoPostal?: string;
   zones?: string[];
   propertyTypesInterest?: string[];
   minBudget?: number;
@@ -416,6 +448,11 @@ export async function createAgent(input: {
     company: input.company,
     idNumber: input.idNumber,
     licenseNumber: input.licenseNumber,
+    direccion: input.direccion,
+    referenciaDireccion: input.referenciaDireccion,
+    ciudad: input.ciudad,
+    provincia: input.provincia,
+    codigoPostal: input.codigoPostal,
     referredByAgentId: input.referredByAgentId,
     zones: input.zones ?? [],
     propertyTypesInterest: input.propertyTypesInterest ?? [],
@@ -567,6 +604,46 @@ export function invalidateOtherMockEmailChangeTokens(agentId: string, exceptToke
       t.usedAt = now;
     }
   }
+}
+
+// Espejo en memoria de ScheduledPriceChange (ver prisma/schema.prisma y
+// src/lib/real-estate/price-schedule.ts) - aviso de cambio de precio, Fase 7 seccion 9.5.
+export function createMockScheduledPriceChange(input: { plan: PlanTipo; newTotalCents: number; effectiveAt: string }): ScheduledPriceChangeRecord {
+  const store = getStore();
+  const record: ScheduledPriceChangeRecord = {
+    id: uid('spc'),
+    plan: input.plan,
+    newTotalCents: input.newTotalCents,
+    effectiveAt: input.effectiveAt,
+    createdAt: nowIso(),
+  };
+  store.scheduledPriceChanges.push(record);
+  return record;
+}
+
+export function listMockScheduledPriceChanges(): ScheduledPriceChangeRecord[] {
+  return [...getStore().scheduledPriceChanges].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+// El aviso "activo" para un plan: el mas proximo aun no aplicado (independiente
+// de si ya se notifico) - es lo que se muestra en el panel del agente y lo que
+// el cron marca como aplicado cuando llega la fecha.
+export function getActiveMockScheduledPriceChangeForPlan(plan: PlanTipo): ScheduledPriceChangeRecord | null {
+  const candidates = getStore().scheduledPriceChanges.filter((c) => c.plan === plan && !c.appliedAt);
+  if (candidates.length === 0) return null;
+  return candidates.sort((a, b) => new Date(a.effectiveAt).getTime() - new Date(b.effectiveAt).getTime())[0];
+}
+
+export function markMockScheduledPriceChangeNotified(id: string): void {
+  const store = getStore();
+  const record = store.scheduledPriceChanges.find((c) => c.id === id);
+  if (record) record.notifiedAt = nowIso();
+}
+
+export function markMockScheduledPriceChangeApplied(id: string): void {
+  const store = getStore();
+  const record = store.scheduledPriceChanges.find((c) => c.id === id);
+  if (record) record.appliedAt = nowIso();
 }
 
 export const DEMO_AGENT_PASSWORD = 'demo1234';

@@ -26,6 +26,7 @@ export default function PayphoneCheckoutBox({
   email,
   phone,
   idNumber,
+  founderTotalCents,
   lang,
 }: {
   agentId: string;
@@ -33,6 +34,11 @@ export default function PayphoneCheckoutBox({
   email?: string | null;
   phone?: string | null;
   idNumber?: string | null;
+  // Precio fundador (Fase 7, seccion 9.4): cuando el agente ya tiene un
+  // precio Basico congelado y aplica, este total (en centavos, con IVA)
+  // reemplaza el vigente para que el widget cobre exactamente lo que el
+  // servidor validara al confirmar.
+  founderTotalCents?: number | null;
   lang: 'es' | 'en';
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -53,7 +59,7 @@ export default function PayphoneCheckoutBox({
       // configura una vez en su dashboard y no conserva nuestro ?plan=.
       const clientTransactionId = `${agentId}::${plan}::${Date.now()}`;
       const storeId = process.env.NEXT_PUBLIC_PAYPHONE_STORE_ID;
-      const amounts = getCheckoutAmountsInCents(plan);
+      const amounts = getCheckoutAmountsInCents(plan, founderTotalCents);
 
       const config: Record<string, unknown> = {
         token,
@@ -78,7 +84,7 @@ export default function PayphoneCheckoutBox({
     } catch {
       setError(lang === 'es' ? 'No se pudo cargar el formulario de pago. Recarga la página.' : 'Could not load the payment form. Reload the page.');
     }
-  }, [sdkReady, agentId, plan, email, phone, idNumber, lang]);
+  }, [sdkReady, agentId, plan, email, phone, idNumber, founderTotalCents, lang]);
 
   return (
     <div>

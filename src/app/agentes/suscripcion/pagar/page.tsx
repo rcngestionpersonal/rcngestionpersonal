@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import PayphoneCheckoutBox, { isPayphoneCheckoutConfigured } from '@/components/dashboard/PayphoneCheckoutBox';
 import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageProvider';
-import { PLANES, formatUsd, planParamToTipo } from '@/config/planes';
+import { getCheckoutAmountsInCents, formatUsd, planParamToTipo } from '@/config/planes';
 
 type MeAgent = {
   id: string;
@@ -15,6 +15,7 @@ type MeAgent = {
   idNumber?: string | null;
   subscriptionStatus: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'INACTIVE';
   phoneVerifiedAt?: string | null;
+  precioFundadorBasico?: number | null;
 };
 
 export default function PagarSuscripcionPage() {
@@ -108,7 +109,13 @@ function PagarSuscripcionContent() {
     return <main className="min-h-screen bg-bg" />;
   }
 
-  const def = plan ? PLANES[plan] : null;
+  // Precio fundador (Fase 7, seccion 9.4): solo aplica a Basico, y solo si el
+  // agente ya tiene uno congelado Y no viene de CANCELED/INACTIVE (misma
+  // regla que valida el server en /billing/payphone/confirm) - de lo
+  // contrario se cobra el vigente, que pasara a ser su nuevo precio fundador.
+  const esReactivacion = agent.subscriptionStatus === 'CANCELED' || agent.subscriptionStatus === 'INACTIVE';
+  const founderTotalCents = plan === 'BASICO' && agent.precioFundadorBasico && !esReactivacion ? agent.precioFundadorBasico : null;
+  const amounts = plan ? getCheckoutAmountsInCents(plan, founderTotalCents) : null;
   const planNombre = plan === 'PRO' ? t('plan.pro.nombre') : t('plan.basico.nombre');
 
   return (
@@ -123,21 +130,27 @@ function PagarSuscripcionContent() {
               <h1 className="gradient-text mt-1 text-2xl font-bold leading-tight sm:text-3xl">{t('suscripcion.pagar.titulo')}</h1>
             </div>
 
-            {def ? (
+            {amounts ? (
               // Resumen del plan elegido - un solo camino, sin alternativas de metodo de pago.
               <div className="rounded-2xl border border-line bg-surface-2 p-4">
+                {founderTotalCents ? (
+                  <span className="mb-3 inline-flex items-center gap-1 rounded-full border border-accent-line bg-accent-dim px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-accent">
+                    {t('suscripcion.pagar.pillFundador')}
+                  </span>
+                ) : null}
                 <div className="flex items-center justify-between text-sm text-text-2">
                   <span>{t('suscripcion.pagar.planLabel').replace('{plan}', planNombre)}</span>
-                  <span>${formatUsd(def.precioBase)}</span>
+                  <span>${formatUsd(amounts.amountWithTax)}</span>
                 </div>
                 <div className="mt-1.5 flex items-center justify-between text-sm text-text-2">
                   <span>{t('suscripcion.pagar.ivaLabel')}</span>
-                  <span>${formatUsd(def.impuesto)}</span>
+                  <span>${formatUsd(amounts.tax)}</span>
                 </div>
                 <div className="mt-2.5 flex items-center justify-between border-t border-line pt-2.5 text-base font-bold text-text">
                   <span>{t('suscripcion.pagar.totalLabel')}</span>
-                  <span>${formatUsd(def.total)}</span>
+                  <span>${formatUsd(amounts.amount)}</span>
                 </div>
+                {plan === 'BASICO' ? <p className="mt-2.5 text-[11.5px] text-text-3">{t('suscripcion.pagar.notaFundador')}</p> : null}
               </div>
             ) : null}
 
@@ -159,6 +172,7 @@ function PagarSuscripcionContent() {
                       email={agent.email}
                       phone={agent.phone}
                       idNumber={agent.idNumber}
+                      founderTotalCents={founderTotalCents}
                       lang={lang}
                     />
                   ) : (

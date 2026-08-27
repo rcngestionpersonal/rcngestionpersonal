@@ -123,7 +123,17 @@ export function planIncluyeFeature(tipo: PlanTipo, feature: Feature): boolean {
 
 // Montos en centavos en el formato que exige la Cajita de Payphone, segun el
 // plan elegido en el checkout (ver seccion 6 - checkout dual).
-export function getCheckoutAmountsInCents(tipo: PlanTipo): {
+//
+// `founderTotalCents` (Fase 7, seccion 9.4): precio fundador congelado del
+// agente (Agent.precioFundadorBasico), SOLO aplicable al plan Basico. Cuando
+// se pasa, reemplaza el total vigente y la base/impuesto se recalculan
+// proporcionalmente (misma tasa de IVA) para que la Transaccion quede con un
+// desglose consistente. Nunca se aplica al plan Pro - el llamador debe pasar
+// `undefined`/`null` para Pro.
+export function getCheckoutAmountsInCents(
+  tipo: PlanTipo,
+  founderTotalCents?: number | null,
+): {
   amount: number;
   amountWithoutTax: number;
   amountWithTax: number;
@@ -132,11 +142,15 @@ export function getCheckoutAmountsInCents(tipo: PlanTipo): {
   tip: number;
 } {
   const plan = PLANES[tipo];
+  const usaFundador = tipo === 'BASICO' && Boolean(founderTotalCents);
+  const total = usaFundador ? (founderTotalCents as number) : plan.total;
+  const precioBase = usaFundador ? Math.round(total / (1 + IVA_PORCENTAJE / 100)) : plan.precioBase;
+  const impuesto = usaFundador ? total - precioBase : plan.impuesto;
   return {
-    amount: plan.total,
+    amount: total,
     amountWithoutTax: 0,
-    amountWithTax: plan.precioBase,
-    tax: plan.impuesto,
+    amountWithTax: precioBase,
+    tax: impuesto,
     service: 0,
     tip: 0,
   };

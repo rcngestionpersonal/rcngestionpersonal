@@ -97,6 +97,17 @@ model Agent {
   company               String?
   idNumber              String?
   licenseNumber         String?
+  // Direccion profesional (Fase 7, seccion 8) - para cartas de presentacion,
+  // fichas de inmueble, mini-sitio Pro, facturacion electronica y el campo
+  // order.billTo que pedira la tokenizacion de Payphone. Nunca visible para
+  // otros agentes, en el ranking, ni en la verificacion publica del carnet -
+  // solo se usa en documentos que el propio agente genera. Todo nullable
+  // para no romper agentes existentes.
+  direccion             String?
+  referenciaDireccion   String?
+  ciudad                String?
+  provincia             String?
+  codigoPostal          String?
   phoneVerifiedAt       DateTime?
   otpCode               String?
   otpExpiresAt          DateTime?
@@ -127,6 +138,13 @@ model Agent {
   plan                  PlanTipo           @default(BASICO)
   planDesde             DateTime?
   planSiguiente         PlanTipo?
+  // Precio fundador (Fase 7, seccion 9.4): el total en centavos (con IVA) que
+  // este agente paga por el plan Basico, congelado desde que activo su
+  // primera suscripcion Basico - se cobra ESE precio en vez del vigente
+  // mientras la suscripcion siga activa e ininterrumpida. Se recalcula al
+  // precio vigente si cancela y vuelve a suscribirse; se CONSERVA si pasa a
+  // Pro y luego vuelve a Basico sin haber cancelado. Nunca aplica al plan Pro.
+  precioFundadorBasico  Int?
   transacciones         Transaccion[]
   referredByAgentId     String?
   rankingAlias          String?
@@ -327,6 +345,23 @@ model Transaccion {
   createdAt         DateTime @default(now())
 
   @@index([agentId])
+}
+
+// Aviso previo de cambio de precio (Fase 7, seccion 9.5) - los Terminos y
+// Condiciones comprometen 30 dias de aviso antes de cualquier aumento. El
+// precio en si sigue viviendo en src/config/planes.ts (cambiarlo requiere
+// deploy); esta tabla es el mecanismo de AVISO: registra la intencion, la
+// fecha en que entra en vigor, y sirve de bandera para que el cron sepa
+// cuando notificar a los agentes afectados (nunca a los que tengan
+// precioFundadorBasico vigente) y cuando marcar el aviso como aplicado.
+model ScheduledPriceChange {
+  id            String    @id @default(cuid())
+  plan          PlanTipo
+  newTotalCents Int
+  effectiveAt   DateTime
+  notifiedAt    DateTime?
+  appliedAt     DateTime?
+  createdAt     DateTime  @default(now())
 }
 
 model EventLog {

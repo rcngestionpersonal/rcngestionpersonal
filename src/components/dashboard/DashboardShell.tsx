@@ -151,7 +151,9 @@ export default function DashboardShell({
         </aside>
 
         <div className="min-w-0 flex-1 space-y-6">
-          <section className="fade-up sticky top-2 z-30 rounded-2xl border border-line bg-bg-alt/95 px-4 py-3 shadow-md backdrop-blur-xl sm:rounded-3xl sm:px-5">
+          <section
+            className="fade-up sticky top-2 z-30 rounded-2xl border border-line bg-bg-alt px-4 py-3 shadow-md [transform:translateZ(0)] [will-change:transform] sm:rounded-3xl sm:px-5"
+          >
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-text sm:gap-3">
               <div className="flex min-w-0 items-center gap-2 min-[360px]:gap-3">
                 {!isAdmin && photoUrl ? (

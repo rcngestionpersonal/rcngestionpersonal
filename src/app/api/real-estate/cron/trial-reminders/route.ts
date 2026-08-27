@@ -4,8 +4,9 @@ import { isEmailConfigured, sendEmailNotification } from '@/lib/real-estate/emai
 import { buildTrialReminderEmail } from '@/lib/real-estate/email-templates';
 import { shouldUseMockStore } from '@/lib/real-estate/mock-store';
 import { getAppUrl } from '@/lib/real-estate/subscription-config';
+import { applyDuePriceChanges } from '@/lib/real-estate/price-schedule';
 
-// Job diario (ver vercel.json) con tres responsabilidades:
+// Job diario (ver vercel.json) con cuatro responsabilidades:
 // 1) Avisar por correo en los dias 23/28/30 del trial (7/2/0 dias restantes) -
 //    idempotente via EventLog, para no reenviar el mismo aviso si el cron
 //    corre mas de una vez el mismo dia.
@@ -16,6 +17,9 @@ import { getAppUrl } from '@/lib/real-estate/subscription-config';
 //    haya leido todavia (la lectura normal ya calcula esto al vuelo via
 //    resolveEffectiveSubscriptionStatus, pero sin este barrido la base nunca
 //    reflejaria el cambio si el agente no vuelve a entrar).
+// 4) Marcar como aplicados los avisos de cambio de precio (Fase 7, seccion
+//    9.5) cuya fecha efectiva ya llego - ver price-schedule.ts para la nota
+//    de alcance sobre por que esto no reescribe PLANES.{plan}.precioBase.
 const REMINDER_DAYS = [7, 2, 0] as const;
 
 function isAuthorized(request: NextRequest): boolean {
@@ -91,7 +95,9 @@ export async function GET(request: NextRequest) {
     }
     flippedToInactive = expiredTrials.count + dueForRenewal.length;
 
-    return NextResponse.json({ success: true, emailsSent, flippedToInactive });
+    const priceChangesApplied = await applyDuePriceChanges();
+
+    return NextResponse.json({ success: true, emailsSent, flippedToInactive, priceChangesApplied });
   } catch (error) {
     const detail = error instanceof Error ? error.message : 'Error en el cron de trial.';
     return NextResponse.json({ error: detail }, { status: 500 });

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Camera } from 'lucide-react';
 import { cropImageToSquare } from '@/lib/real-estate/image-compress';
+import { ECUADOR_PROVINCES } from '@/lib/real-estate/ecuador-provinces';
 
 const PROPERTY_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'HOUSE', label: 'Casas' },
@@ -48,6 +49,11 @@ type MeAgent = {
   company?: string;
   idNumber?: string;
   licenseNumber?: string;
+  direccion?: string | null;
+  referenciaDireccion?: string | null;
+  ciudad?: string | null;
+  provincia?: string | null;
+  codigoPostal?: string | null;
   zones: string[];
   propertyTypesInterest: string[];
   specialty: 'SALE' | 'RENT' | 'BOTH';
@@ -67,6 +73,11 @@ export default function EditarPerfilPage() {
   const [specialty, setSpecialty] = useState<'SALE' | 'RENT' | 'BOTH'>('BOTH');
   const [propertyTypesInterest, setPropertyTypesInterest] = useState<string[]>([]);
   const [licenseNumber, setLicenseNumber] = useState('');
+  const [direccion, setDireccion] = useState('');
+  const [referenciaDireccion, setReferenciaDireccion] = useState('');
+  const [ciudad, setCiudad] = useState('');
+  const [provincia, setProvincia] = useState('');
+  const [codigoPostal, setCodigoPostal] = useState('');
   const [carnetMessage, setCarnetMessage] = useState('');
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
@@ -105,6 +116,11 @@ export default function EditarPerfilPage() {
       setSpecialty(a.specialty ?? 'BOTH');
       setPropertyTypesInterest(a.propertyTypesInterest ?? []);
       setLicenseNumber(a.licenseNumber ?? '');
+      setDireccion(a.direccion ?? '');
+      setReferenciaDireccion(a.referenciaDireccion ?? '');
+      setCiudad(a.ciudad ?? '');
+      setProvincia(a.provincia ?? '');
+      setCodigoPostal(a.codigoPostal ?? '');
       setCarnetMessage(a.carnetMessage ?? '');
       setPhotoPreview(a.photoUrl ?? null);
     } finally {
@@ -157,6 +173,11 @@ export default function EditarPerfilPage() {
           specialty,
           propertyTypesInterest,
           licenseNumber: licenseNumber || undefined,
+          direccion: direccion || undefined,
+          referenciaDireccion: referenciaDireccion || undefined,
+          ciudad: ciudad || undefined,
+          provincia: provincia || undefined,
+          codigoPostal: codigoPostal || undefined,
           carnetMessage: carnetMessage || undefined,
         }),
       });
@@ -310,6 +331,35 @@ export default function EditarPerfilPage() {
               onChange={(e) => setLicenseNumber(e.target.value)}
               placeholder="Número de licencia (opcional)"
             />
+          </div>
+
+          {/* Direccion profesional (Fase 7, seccion 8.2) */}
+          <div className="space-y-2 rounded-2xl border border-line bg-surface-2/40 p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-text-2">Dirección profesional</p>
+            <div>
+              <input className={inputClass} value={direccion} onChange={(e) => setDireccion(e.target.value)} placeholder="Av. República del Salvador N34-183 y Suiza" />
+              <p className="mt-1 text-xs text-text-3">Aparecerá en tus cartas de presentación y documentos profesionales.</p>
+            </div>
+            <input
+              className={inputClass}
+              value={referenciaDireccion}
+              onChange={(e) => setReferenciaDireccion(e.target.value)}
+              placeholder="Edificio, piso, oficina (opcional)"
+            />
+            <div className="flex gap-2">
+              <input className={`${inputClass} flex-1`} value={ciudad} onChange={(e) => setCiudad(e.target.value)} placeholder="Ciudad" />
+              <input className={`${inputClass} w-[35%] shrink-0`} value={codigoPostal} onChange={(e) => setCodigoPostal(e.target.value)} placeholder="C.P. (opcional)" />
+            </div>
+            <select className={inputClass} value={provincia} onChange={(e) => setProvincia(e.target.value)}>
+              <option className="bg-bg" value="">
+                Provincia
+              </option>
+              {ECUADOR_PROVINCES.map((p) => (
+                <option key={p} className="bg-bg" value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Zonas */}

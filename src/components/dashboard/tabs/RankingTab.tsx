@@ -60,7 +60,7 @@ export default function RankingTab({
         <section className="glass-card fade-up rounded-[1.8rem] p-4 sm:p-6">
           <SectionHeading icon={<IconPodium className="h-[18px] w-[18px]" />} title={t('gestion.rankingAgentes.title')} />
           <p className="mt-1 text-sm text-text-2">{t('rankingTab.subtitle')}</p>
-          <TopAgentesList ranking={pointsRanking} myAgentId={myAgentId} t={t} limit={10} />
+          <TopAgentesList ranking={pointsRanking} myAgentId={myAgentId} t={t} lang={lang} limit={10} />
         </section>
       </div>
     );
@@ -93,7 +93,7 @@ export default function RankingTab({
       <section className="fade-up glass-card rounded-[1.8rem] p-4 sm:p-6">
         <SectionHeading icon={<IconPodium className="h-[18px] w-[18px]" />} title={t('ranking.top10.title')} />
         <p className="mt-1.5 text-sm text-text-2">{t('ranking.top10.subtitle')}</p>
-        <TopAgentesList ranking={pointsRanking} myAgentId={myAgentId} t={t} limit={10} />
+        <TopAgentesList ranking={pointsRanking} myAgentId={myAgentId} t={t} lang={lang} limit={10} />
       </section>
 
       <PointsGrid t={t} lang={lang} />
@@ -325,10 +325,17 @@ function CarnetSection({
   );
 }
 
+// Leyenda de niveles (seccion 5.3): un agente nuevo debe entender el sistema
+// de niveles con solo mirar esta fila, sin tener que preguntar. En movil se
+// apila a una columna para que ningun nombre se trunque (seccion 5.2); desde
+// "sm" hay espacio de sobra para las 5 columnas.
 function LevelLadder({ totalPoints, lang }: { totalPoints: number; lang: 'es' | 'en' }) {
   return (
     <section className="fade-up">
-      <div className="grid grid-cols-5 gap-1.5">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-text-2">
+        {lang === 'es' ? 'Niveles de la Red · a más puntos, más alto subes' : 'Network levels · more points, higher you climb'}
+      </p>
+      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-5">
         {RANKING_LEVELS.map((lvl) => {
           const reached = totalPoints >= lvl.min;
           const isCurrent = levelForPoints(totalPoints).key === lvl.key;
@@ -336,16 +343,15 @@ function LevelLadder({ totalPoints, lang }: { totalPoints: number; lang: 'es' | 
           return (
             <div
               key={lvl.key}
-              className={`min-w-0 rounded-xl border px-1.5 py-2.5 text-center transition-colors duration-150 ${
-                isCurrent
-                  ? 'border-brand-line bg-brand-dim'
-                  : reached
-                    ? 'border-brand-line text-brand'
-                    : 'border-[rgba(255,255,255,0.07)]'
+              className={`flex min-w-0 items-center justify-between gap-1 rounded-xl border px-2.5 py-2 text-center transition-colors duration-150 sm:flex-col sm:justify-center sm:py-2.5 ${
+                isCurrent ? 'border-brand-line bg-brand-dim' : reached ? 'border-brand-line text-brand' : 'border-line'
               }`}
             >
-              <p className={`truncate text-[10.5px] font-bold ${isCurrent ? 'text-brand' : reached ? 'text-brand' : 'text-text-3'}`}>{label}</p>
-              <p className="mt-0.5 text-[9.5px] text-text-3">{lvl.min}</p>
+              <p className={`text-[11px] font-bold sm:truncate ${isCurrent ? 'text-brand' : reached ? 'text-brand' : 'text-text-3'}`}>{label}</p>
+              <p className="shrink-0 text-[9.5px] text-text-3 sm:mt-0.5">
+                {lvl.min}
+                {lvl.max !== Infinity ? `–${lvl.max}` : '+'} {lang === 'es' ? 'pts' : 'pts'}
+              </p>
             </div>
           );
         })}
@@ -372,11 +378,13 @@ function TopAgentesList({
   ranking,
   myAgentId,
   t,
+  lang,
   limit,
 }: {
   ranking: PointsRankingEntry[];
   myAgentId?: string;
   t: (key: string) => string;
+  lang: 'es' | 'en';
   limit: number;
 }) {
   const visible = ranking.slice(0, limit);
@@ -391,6 +399,8 @@ function TopAgentesList({
   function Row({ entry }: { entry: PointsRankingEntry }) {
     const isMe = entry.agentId === myAgentId;
     const barPct = Math.max(4, Math.min(100, Math.round((entry.totalPoints / leaderPoints) * 100)));
+    const levelColor = levelColorFor(entry.level.key);
+    const levelLabel = lang === 'es' ? entry.level.labelEs : entry.level.labelEn;
     return (
       <div
         className={`flex min-w-0 items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-transform duration-200 hover:-translate-y-0.5 ${
@@ -398,14 +408,22 @@ function TopAgentesList({
         }`}
       >
         <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-bold ${rankBadgeClasses(entry.rank)}`}>{entry.rank}</span>
-        <AvatarInitials name={entry.displayName} size={32} colorHex={levelColorFor(entry.level.key)} photoUrl={entry.photoUrl} />
+        <AvatarInitials name={entry.displayName} size={32} colorHex={levelColor} photoUrl={entry.photoUrl} />
         <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-1.5">
+          {/* Nombre y nivel en lineas separadas a proposito (seccion 5.2/5.4):
+              el nivel NUNCA se trunca ni compite por espacio con el nombre. */}
+          <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
             <span className="min-w-0 truncate font-semibold text-text">{entry.displayName}</span>
             {isMe ? (
               <span className="shrink-0 rounded-full bg-brand-dim px-2 py-0.5 text-[9px] font-bold text-brand">{t('ranking.tu').toUpperCase()}</span>
             ) : null}
           </div>
+          <span
+            className="mt-0.5 inline-block rounded-full border px-1.5 py-[1px] text-[10px] font-bold leading-tight"
+            style={{ color: levelColor, borderColor: `${levelColor}55`, backgroundColor: `${levelColor}1a` }}
+          >
+            {levelLabel}
+          </span>
           <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
             <div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${barPct}%`, backgroundColor: barColorFor(entry.rank) }} />
           </div>

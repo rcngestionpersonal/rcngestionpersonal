@@ -71,9 +71,11 @@ export async function confirmPayphoneTransaction(input: { id: number; clientTran
   return (await response.json()) as PayphoneConfirmResult;
 }
 
-// Verifica que lo efectivamente cobrado coincida con el precio vigente del
+// Verifica que lo efectivamente cobrado coincida con el precio esperado del
 // plan elegido - una defensa simple contra una respuesta de Payphone
-// manipulada o desactualizada antes de activar la suscripcion.
-export function isExpectedCheckoutAmount(amountCents: number, plan: PlanTipo): boolean {
-  return amountCents === getCheckoutAmountsInCents(plan).amount;
+// manipulada o desactualizada antes de activar la suscripcion. `founderTotalCents`
+// (Fase 7, seccion 9.4) permite aceptar el precio fundador congelado del
+// agente como alternativa valida al precio vigente, solo para Basico.
+export function isExpectedCheckoutAmount(amountCents: number, plan: PlanTipo, founderTotalCents?: number | null): boolean {
+  return amountCents === getCheckoutAmountsInCents(plan, founderTotalCents).amount;
 }

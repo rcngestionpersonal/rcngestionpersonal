@@ -14,6 +14,7 @@ type MeAgent = {
   trialEndsAt?: string | null;
   subscriptionPaidUntil?: string | null;
   plan?: PlanTipo;
+  precioFundadorBasico?: number | null;
 };
 
 const FEATURE_ORDER: Feature[] = [
@@ -145,6 +146,12 @@ function PlanesContent() {
         {effectiveStatus === 'TRIAL' ? (
           <div className="mb-6 rounded-2xl border border-line bg-surface-2 px-4 py-3 text-center text-sm text-text-2">
             {t('planes.avisoTrial')}
+          </div>
+        ) : null}
+
+        {agent.precioFundadorBasico ? (
+          <div className="mb-6 rounded-2xl border border-accent-line bg-accent-dim px-4 py-3 text-center text-sm font-medium text-accent">
+            {t('planes.fundadorAviso')}
           </div>
         ) : null}
 

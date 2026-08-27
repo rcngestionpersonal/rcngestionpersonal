@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Camera } from 'lucide-react';
 import { compressImage } from '@/lib/real-estate/image-compress';
 import { buildPhoneE164 } from '@/lib/real-estate/phone';
+import { ECUADOR_PROVINCES } from '@/lib/real-estate/ecuador-provinces';
 import { TRIAL_DAYS } from '@/lib/real-estate/subscription-config';
 import CarnetPreview from './_components/CarnetPreview';
 
@@ -31,7 +32,7 @@ const COUNTRY_CODES: Array<{ code: string; label: string }> = [
   { code: '+506', label: '🇨🇷 Costa Rica +506' },
 ];
 
-const FIELD_ORDER = ['fullName', 'phone', 'email', 'password', 'idNumber', 'terms'] as const;
+const FIELD_ORDER = ['fullName', 'phone', 'email', 'password', 'idNumber', 'direccion', 'ciudad', 'provincia', 'terms'] as const;
 type FieldName = (typeof FIELD_ORDER)[number];
 
 export default function AgentRegisterPage() {
@@ -53,6 +54,11 @@ function AgentRegisterForm() {
   const [company, setCompany] = useState('');
   const [idNumber, setIdNumber] = useState('');
   const [licenseNumber, setLicenseNumber] = useState('');
+  const [direccion, setDireccion] = useState('');
+  const [referenciaDireccion, setReferenciaDireccion] = useState('');
+  const [ciudad, setCiudad] = useState('');
+  const [provincia, setProvincia] = useState('');
+  const [codigoPostal, setCodigoPostal] = useState('');
   const [zonesText, setZonesText] = useState('');
   const [specialty, setSpecialty] = useState<'SALE' | 'RENT' | 'BOTH'>('BOTH');
   const [propertyTypesInterest, setPropertyTypesInterest] = useState<string[]>([]);
@@ -70,6 +76,9 @@ function AgentRegisterForm() {
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
   const idNumberRef = useRef<HTMLInputElement>(null);
+  const direccionRef = useRef<HTMLInputElement>(null);
+  const ciudadRef = useRef<HTMLInputElement>(null);
+  const provinciaRef = useRef<HTMLSelectElement>(null);
   const termsRef = useRef<HTMLInputElement>(null);
 
   // Los tipos de useRef(null) son nullable (RefObject<T | null>), pero el prop
@@ -81,6 +90,9 @@ function AgentRegisterForm() {
     email: emailRef,
     password: passwordRef,
     idNumber: idNumberRef,
+    direccion: direccionRef,
+    ciudad: ciudadRef,
+    provincia: provinciaRef,
     terms: termsRef,
   } as unknown as Record<FieldName, React.RefObject<HTMLInputElement>>;
 
@@ -93,6 +105,9 @@ function AgentRegisterForm() {
     else if (!/^\S+@\S+\.\S+$/.test(email)) errors.email = 'Ingresa un correo electrónico válido.';
     if (password.length < 6) errors.password = 'La contraseña debe tener al menos 6 caracteres.';
     if (!idNumber.trim()) errors.idNumber = 'Ingresa tu cédula de identidad.';
+    if (direccion.trim().length < 10) errors.direccion = 'Ingresa tu dirección completa (mínimo 10 caracteres).';
+    if (!ciudad.trim()) errors.ciudad = 'Ingresa tu ciudad.';
+    if (!provincia) errors.provincia = 'Selecciona tu provincia.';
     if (!acceptedTerms) errors.terms = 'Debes aceptar los Términos y la Política de Privacidad para continuar.';
     return errors;
   }
@@ -146,6 +161,11 @@ function AgentRegisterForm() {
           company: company || undefined,
           idNumber,
           licenseNumber: licenseNumber || undefined,
+          direccion,
+          referenciaDireccion: referenciaDireccion || undefined,
+          ciudad,
+          provincia,
+          codigoPostal: codigoPostal || undefined,
           zones: zonesText
             .split(',')
             .map((z) => z.trim())
@@ -339,6 +359,66 @@ function AgentRegisterForm() {
                   Protección de Datos Personales del Ecuador). No se comparten con otros agentes ni terceros, y puedes
                   solicitar su acceso, corrección o eliminación cuando quieras.
                 </p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-text-2">Dirección profesional</p>
+                <div>
+                  <input
+                    ref={fieldRefs.direccion}
+                    className={fieldClass('direccion', 'w-full rounded-xl border bg-surface-2 px-3 py-3 text-sm text-text outline-none transition placeholder:text-text-3')}
+                    value={direccion}
+                    onChange={(e) => setDireccion(e.target.value)}
+                    onBlur={() => markTouched('direccion')}
+                    placeholder="Av. República del Salvador N34-183 y Suiza"
+                  />
+                  <p className="mt-1 text-xs text-text-3">Aparecerá en tus cartas de presentación y documentos profesionales.</p>
+                  {showError('direccion') ? <p className="mt-1 text-xs text-pink-300">{showError('direccion')}</p> : null}
+                </div>
+                <input
+                  className="w-full rounded-xl border border-line-strong bg-surface-2 px-3 py-3 text-sm text-text outline-none transition placeholder:text-text-3 focus:border-violet-400"
+                  value={referenciaDireccion}
+                  onChange={(e) => setReferenciaDireccion(e.target.value)}
+                  placeholder="Edificio, piso, oficina (opcional)"
+                />
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <input
+                      ref={fieldRefs.ciudad}
+                      className={fieldClass('ciudad', 'w-full rounded-xl border bg-surface-2 px-3 py-3 text-sm text-text outline-none transition placeholder:text-text-3')}
+                      value={ciudad}
+                      onChange={(e) => setCiudad(e.target.value)}
+                      onBlur={() => markTouched('ciudad')}
+                      placeholder="Ciudad *"
+                    />
+                    {showError('ciudad') ? <p className="mt-1 text-xs text-pink-300">{showError('ciudad')}</p> : null}
+                  </div>
+                  <input
+                    className="w-[35%] shrink-0 rounded-xl border border-line-strong bg-surface-2 px-3 py-3 text-sm text-text outline-none transition placeholder:text-text-3 focus:border-violet-400"
+                    value={codigoPostal}
+                    onChange={(e) => setCodigoPostal(e.target.value)}
+                    placeholder="C.P. (opcional)"
+                  />
+                </div>
+                <div>
+                  <select
+                    ref={fieldRefs.provincia as unknown as React.RefObject<HTMLSelectElement>}
+                    className={fieldClass('provincia', 'w-full rounded-xl border bg-surface-2 px-3 py-3 text-sm text-text outline-none transition')}
+                    value={provincia}
+                    onChange={(e) => setProvincia(e.target.value)}
+                    onBlur={() => markTouched('provincia')}
+                  >
+                    <option className="bg-bg" value="">
+                      Provincia *
+                    </option>
+                    {ECUADOR_PROVINCES.map((p) => (
+                      <option key={p} className="bg-bg" value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                  {showError('provincia') ? <p className="mt-1 text-xs text-pink-300">{showError('provincia')}</p> : null}
+                </div>
               </div>
 
               <div>

@@ -40,6 +40,17 @@ const config: Config = {
       backgroundImage: {
         grad: 'var(--grad)',
       },
+      // 100vh no considera la barra de direcciones movil (aparece/desaparece
+      // al hacer scroll, cambiando el alto disponible y "saltando" cualquier
+      // elemento medido en vh) - 100dvh si (Fase 7, seccion 7.2). Se
+      // redefine aqui una sola vez en vez de tocar cada h-screen/min-h-screen
+      // por separado.
+      height: {
+        screen: '100dvh',
+      },
+      minHeight: {
+        screen: '100dvh',
+      },
     },
   },
   plugins: [],

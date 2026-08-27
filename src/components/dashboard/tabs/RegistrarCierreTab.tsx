@@ -305,13 +305,7 @@ export default function RegistrarCierreTab({
       <ModuleHeader icon={<IconTarget className="h-[17px] w-[17px]" strokeWidth={1.8} />} title={t('nav.registrocierre')} subtitle={t('cierres.form.subtitle')} />
 
       <Card>
-        <h3 className="text-[18px] font-bold tracking-[-0.01em] text-text">{t('cierres.introTitulo1')}</h3>
-        <p className="mb-2 text-[15px] font-bold text-brand">{t('cierres.introTitulo2')}</p>
-        <p className="mb-[13px] text-sm leading-[1.65] text-text-2">
-          {t('cierres.intro.p1')}
-          <span className="font-semibold text-text">{t('cierres.intro.bold')}</span>
-          {t('cierres.intro.p2')}
-        </p>
+        <p className="mb-3 text-sm leading-[1.5] text-text-2">{t('cierres.form.explicacionBreve')}</p>
         <div className="flex flex-wrap gap-1.5">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-line px-[11px] py-[5px] text-[11.5px] font-semibold text-text-2">
             <Lock className="h-[11px] w-[11px] shrink-0 text-brand" strokeWidth={2.2} />
@@ -326,6 +320,22 @@ export default function RegistrarCierreTab({
             {t('cierres.chip.sumaRanking')}
           </span>
         </div>
+        {/* El texto largo (por que importa la veracidad, como se usa el mapa)
+            se movio aqui - el agente lo abre solo si quiere (seccion 6.3). */}
+        <details className="group mt-3">
+          <summary className="cursor-pointer list-none text-[13px] font-semibold text-brand underline decoration-dotted underline-offset-2">
+            {t('cierres.acordeon.titulo')}
+          </summary>
+          <div className="mt-2.5 border-t border-line pt-2.5">
+            <h3 className="text-[15px] font-bold tracking-[-0.01em] text-text">{t('cierres.introTitulo1')}</h3>
+            <p className="mb-2 text-[13.5px] font-bold text-brand">{t('cierres.introTitulo2')}</p>
+            <p className="text-[13.5px] leading-[1.6] text-text-2">
+              {t('cierres.intro.p1')}
+              <span className="font-semibold text-text">{t('cierres.intro.bold')}</span>
+              {t('cierres.intro.p2')}
+            </p>
+          </div>
+        </details>
       </Card>
 
       {successMsg ? (
@@ -614,7 +624,7 @@ export default function RegistrarCierreTab({
             {warning ? <p className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">⚠️ {warning}</p> : null}
             {formError ? <p className="rounded-xl border border-danger-dim border-danger px-3 py-2 text-xs text-danger">{formError}</p> : null}
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={submit}
                 disabled={creating || !declaredAccurate}
@@ -622,6 +632,11 @@ export default function RegistrarCierreTab({
               >
                 {creating ? t('cierres.form.guardando') : editingId ? t('cierres.guardarCambios') : t('cierres.form.submit')}
               </button>
+              {!editingId ? (
+                <span className="shrink-0 rounded-full border border-accent-line bg-accent-dim px-3 py-1.5 text-xs font-bold text-accent">
+                  {t('cierres.chip.puntos')}
+                </span>
+              ) : null}
             </div>
           </div>
         </Card>

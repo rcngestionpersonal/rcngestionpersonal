@@ -196,6 +196,28 @@ export function buildTrialReminderEmail(
   return { subject: copy.subject, text, html };
 }
 
+// Aviso legal de cambio de precio (Fase 7, seccion 9.5 - 30 dias de aviso
+// segun Terminos y Condiciones). Nunca se envia a agentes con precio
+// fundador vigente (el llamador ya filtra esa lista antes de invocar esto).
+export function buildPriceChangeNoticeEmail(input: {
+  agentName: string;
+  planNombre: string;
+  newTotalUsd: string;
+  effectiveDateStr: string;
+  appUrl: string;
+}): { subject: string; text: string; html: string } {
+  const lead = `El precio del plan ${input.planNombre} de Redinmo cambiará a $${input.newTotalUsd} a partir del ${input.effectiveDateStr}.`;
+  const detail = 'Este aviso cumple con el plazo de 30 días establecido en nuestros Términos y Condiciones. El nuevo precio se aplicará recién en esa fecha, nunca antes.';
+  const text = wrap(`Hola ${input.agentName},`, [lead, '', detail].join('\n'), { label: 'Ver mi suscripción', url: `${input.appUrl}/agentes/suscripcion/planes` });
+  const html = wrapHtml(
+    lead,
+    `<p style="margin:0 0 8px;">Hola ${input.agentName},</p>
+     <p style="margin:0;">${detail}</p>`,
+    { label: 'Ver mi suscripción', url: `${input.appUrl}/agentes/suscripcion/planes` },
+  );
+  return { subject: `Aviso de cambio de precio · plan ${input.planNombre}`, text, html };
+}
+
 export function buildMilestoneEmail(input: {
   recipientName: string;
   actorName: string;

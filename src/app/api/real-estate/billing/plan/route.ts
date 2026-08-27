@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { findAgentById, shouldUseMockStore, updateAgent } from '@/lib/real-estate/mock-store';
+import { findAgentById, sanitizeAgent, shouldUseMockStore, updateAgent } from '@/lib/real-estate/mock-store';
 import { resolveEffectiveSubscriptionStatus } from '@/lib/real-estate/subscription-status';
 import { isPlanTipo } from '@/config/planes';
 
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       }
       const planSiguiente = nuevoPlan === agent.plan ? undefined : nuevoPlan;
       const updated = updateAgent(authSession.agentId, { planSiguiente });
-      return NextResponse.json({ success: true, planSiguiente: planSiguiente ?? null, effectiveAt: agent.subscriptionPaidUntil ?? null, agent: updated });
+      return NextResponse.json({ success: true, planSiguiente: planSiguiente ?? null, effectiveAt: agent.subscriptionPaidUntil ?? null, agent: sanitizeAgent(updated ?? {}) });
     }
 
     const agent = await prisma.agent.findUnique({ where: { id: authSession.agentId } });
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
     const planSiguiente = nuevoPlan === agent.plan ? null : nuevoPlan;
     const updated = await prisma.agent.update({ where: { id: authSession.agentId }, data: { planSiguiente } });
-    return NextResponse.json({ success: true, planSiguiente, effectiveAt: agent.subscriptionPaidUntil, agent: updated });
+    return NextResponse.json({ success: true, planSiguiente, effectiveAt: agent.subscriptionPaidUntil, agent: sanitizeAgent(updated) });
   } catch (error) {
     const detail = error instanceof Error ? error.message : 'No se pudo cambiar el plan.';
     return NextResponse.json({ error: detail }, { status: 500 });

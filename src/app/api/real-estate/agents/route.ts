@@ -1,16 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SubscriptionStatus } from '@prisma/client';
 import { hashPassword } from '@/lib/auth';
+import { getSessionFromRequest } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createAgent, listAgents, sanitizeAgent, shouldUseMockStore } from '@/lib/real-estate/mock-store';
 import { TRIAL_DAYS } from '@/lib/real-estate/subscription-config';
 
+// Direccion profesional y precio fundador: nunca visibles para otros agentes,
+// solo para su propio dueno (via /me) o el admin (Fase 7, secciones 8.6 y
+// 9.6 - el precio que paga cada agente es informacion de facturacion, igual
+// de privada que su direccion). Esta lista la consultan tanto el admin
+// (todos los agentes) como cualquier agente (sus colegas, para matching/red)
+// con el mismo endpoint - se redacta aqui para todo caller que no sea admin,
+// sin importar de que agente sea cada fila.
+const ADDRESS_FIELDS = ['direccion', 'referenciaDireccion', 'ciudad', 'provincia', 'codigoPostal', 'precioFundadorBasico'] as const;
+function redactAddressForNonAdmin<T extends Record<string, unknown>>(agent: T): T {
+  const clone = { ...agent };
+  for (const field of ADDRESS_FIELDS) delete clone[field];
+  return clone;
+}
+
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams;
   const onlyActive = query.get('onlyActive') === 'true';
+  const session = await getSessionFromRequest(request);
+  const isAdmin = session?.role === 'admin';
+  const redact = <T extends Record<string, unknown>>(list: T[]) => (isAdmin ? list : list.map(redactAddressForNonAdmin));
 
   if (shouldUseMockStore()) {
-    return NextResponse.json({ agents: listAgents(onlyActive).map(sanitizeAgent), fallback: true });
+    return NextResponse.json({ agents: redact(listAgents(onlyActive).map(sanitizeAgent)), fallback: true });
   }
 
   try {
@@ -26,10 +44,10 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ agents: agents.map(sanitizeAgent) });
+    return NextResponse.json({ agents: redact(agents.map(sanitizeAgent)) });
   } catch {
     const agents = listAgents(onlyActive);
-    return NextResponse.json({ agents: agents.map(sanitizeAgent), fallback: true });
+    return NextResponse.json({ agents: redact(agents.map(sanitizeAgent)), fallback: true });
   }
 }
 

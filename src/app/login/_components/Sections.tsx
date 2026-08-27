@@ -348,14 +348,14 @@ export function PrecioSection() {
         <div className={styles.offerCard}>
           <span className={styles.offerPill}>
             <Sparkle className="h-3 w-3" strokeWidth={2} />
-            PRECIO FUNDADOR · CONGELADO DE POR VIDA
+            PRECIO FUNDADOR · CONGELADO MIENTRAS ESTÉS ACTIVO
           </span>
           <div className={styles.offerPrice}>
             <span className={styles.offerPriceValue}>$8,99</span>
             <span className={styles.offerPriceUnit}>+ IVA al mes</span>
           </div>
           <p className={styles.offerPriceNote}>
-            Cada semestre el precio sube para los nuevos agentes. El tuyo queda fijo para siempre.
+            Tu precio no sube mientras mantengas tu suscripción activa. El precio para nuevos agentes puede cambiar.
           </p>
 
           <div className={styles.valueStack}>

@@ -15,6 +15,8 @@ import InvitarTab from '@/components/dashboard/tabs/InvitarTab';
 import MetricasTab from '@/components/dashboard/tabs/MetricasTab';
 import LevelUpCelebrationModal from '@/components/dashboard/LevelUpCelebrationModal';
 import NoEmailBanner from '@/components/dashboard/NoEmailBanner';
+import NoAddressBanner from '@/components/dashboard/NoAddressBanner';
+import PriceChangeNoticeBanner from '@/components/dashboard/PriceChangeNoticeBanner';
 import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageProvider';
 import type { NextPlayInput } from '@/lib/real-estate/next-play';
 import { daysRemaining, resolveEffectiveSubscriptionStatus } from '@/lib/real-estate/subscription-status';
@@ -771,6 +773,8 @@ function DashboardPage() {
       {isAgent && myAgent && !myAgent.email && user?.agentId ? (
         <NoEmailBanner agentId={user.agentId} onSaved={() => loadData(false)} />
       ) : null}
+      {isAgent && myAgent && !myAgent.direccion && user?.agentId ? <NoAddressBanner agentId={user.agentId} /> : null}
+      {isAgent && myAgent && user?.agentId ? <PriceChangeNoticeBanner agentId={user.agentId} /> : null}
       {activeTab === 'resumen' && (
         <GestionTab
           isAdmin={isAdmin}
