@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+const inputClass =
+  'h-11 w-full rounded-lg border border-line-strong bg-input-bg px-3.5 text-[13.5px] font-medium text-text outline-none transition placeholder:font-normal placeholder:text-text-3 focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-dim)]';
+
 export default function ResetPasswordForm({ token }: { token: string }) {
   const router = useRouter();
   const [password, setPassword] = useState('');
@@ -45,94 +48,44 @@ export default function ResetPasswordForm({ token }: { token: string }) {
 
   return (
     <div>
-      <label htmlFor="new-password" style={labelStyle}>
+      <label htmlFor="new-password" className="mb-1.5 block text-[9.5px] font-semibold uppercase tracking-[0.06em] text-text-3">
         Nueva contraseña
       </label>
-      <div style={{ position: 'relative' }}>
+      <div className="relative">
         <input
           id="new-password"
           type={show ? 'text' : 'password'}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          style={{ ...inputStyle, paddingRight: 64 }}
+          className={`${inputClass} pr-16`}
         />
-        <button type="button" onClick={() => setShow((v) => !v)} style={toggleStyle}>
+        <button
+          type="button"
+          onClick={() => setShow((v) => !v)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-[11.5px] font-medium text-text-3 hover:text-text-2"
+        >
           {show ? 'Ocultar' : 'Mostrar'}
         </button>
       </div>
-      <p style={{ marginTop: 6, fontSize: 11.5, color: meetsMinLength ? '#2dd4bf' : '#6e6a8a' }}>
+      <p className={`mt-1.5 text-[11.5px] ${meetsMinLength ? 'text-accent' : 'text-text-3'}`}>
         {meetsMinLength ? '✓' : '•'} Mínimo 8 caracteres (recomendado: mezcla de letras y números)
       </p>
 
-      <label htmlFor="confirm-password" style={{ ...labelStyle, marginTop: 16 }}>
+      <label htmlFor="confirm-password" className="mb-1.5 mt-4 block text-[9.5px] font-semibold uppercase tracking-[0.06em] text-text-3">
         Confirmar contraseña
       </label>
-      <input
-        id="confirm-password"
-        type={show ? 'text' : 'password'}
-        value={confirm}
-        onChange={(e) => setConfirm(e.target.value)}
-        style={inputStyle}
-      />
-      {confirm.length > 0 && !passwordsMatch ? (
-        <p style={{ marginTop: 6, fontSize: 11.5, color: '#fca5b1' }}>Las contraseñas no coinciden.</p>
-      ) : null}
+      <input id="confirm-password" type={show ? 'text' : 'password'} value={confirm} onChange={(e) => setConfirm(e.target.value)} className={inputClass} />
+      {confirm.length > 0 && !passwordsMatch ? <p className="mt-1.5 text-[11.5px] text-danger">Las contraseñas no coinciden.</p> : null}
 
-      {error ? (
-        <div role="alert" style={{ marginTop: 14, borderRadius: 10, padding: '10px 12px', fontSize: 13, background: 'rgba(251,113,133,0.1)', border: '1px solid rgba(251,113,133,0.3)', color: '#fca5b1' }}>
-          {error}
-        </div>
-      ) : null}
+      {error ? <div role="alert" className="mt-3.5 rounded-[10px] border border-danger bg-danger-dim px-3 py-2.5 text-sm text-danger">{error}</div> : null}
 
       <button
         onClick={() => void submit()}
         disabled={!canSubmit}
-        style={{
-          marginTop: 18,
-          width: '100%',
-          height: 47,
-          borderRadius: 9,
-          background: '#2dd4bf',
-          color: '#04201c',
-          fontWeight: 700,
-          fontSize: 14,
-          opacity: canSubmit ? 1 : 0.6,
-          cursor: canSubmit ? 'pointer' : 'not-allowed',
-        }}
+        className="gradient-btn mt-[18px] h-[47px] w-full rounded-lg text-sm font-bold text-grad-contrast transition disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? 'Guardando...' : 'Guardar y entrar'}
       </button>
     </div>
   );
 }
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: 9.5,
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.06em',
-  color: '#6e6a8a',
-  marginBottom: 6,
-};
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  height: 44,
-  background: '#100d1c',
-  border: '1px solid rgba(255,255,255,0.09)',
-  borderRadius: 9,
-  color: 'var(--text)',
-  fontSize: 13.5,
-  padding: '0 14px',
-};
-
-const toggleStyle: React.CSSProperties = {
-  position: 'absolute',
-  right: 12,
-  top: '50%',
-  transform: 'translateY(-50%)',
-  fontSize: 11.5,
-  fontWeight: 500,
-  color: '#6e6a8a',
-};

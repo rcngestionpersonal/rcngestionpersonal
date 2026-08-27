@@ -47,7 +47,7 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${plusJakartaSans.variable} ${plusJakartaSans.className}`}>
-        <ThemeProvider attribute="data-theme" defaultTheme="dark" enableSystem storageKey="redinmo-theme">
+        <ThemeProvider attribute="data-theme" defaultTheme="light" enableSystem storageKey="redinmo-theme">
           {children}
         </ThemeProvider>
       </body>

@@ -139,7 +139,7 @@ model Agent {
   yearsExperience       Int?
   // Preferencia de tema claro/oscuro/automatico - localStorage es el respaldo
   // inmediato (evita parpadeo), esto es la fuente de verdad multi-dispositivo.
-  themePreference       ThemePreference    @default(DARK)
+  themePreference       ThemePreference    @default(LIGHT)
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
   matches               AgentMatch[]

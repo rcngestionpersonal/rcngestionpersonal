@@ -276,7 +276,7 @@ function seedDemoAgentsSync(store: Store): void {
       trialEndsAt,
       subscriptionStatus: 'TRIAL',
       plan: 'BASICO',
-      themePreference: 'DARK',
+      themePreference: 'LIGHT',
       createdAt,
       updatedAt: createdAt,
     });
@@ -413,7 +413,7 @@ export async function createAgent(input: {
     trialEndsAt,
     subscriptionStatus: 'TRIAL',
     plan: 'BASICO',
-    themePreference: 'DARK',
+    themePreference: 'LIGHT',
     createdAt,
     updatedAt: createdAt,
   };

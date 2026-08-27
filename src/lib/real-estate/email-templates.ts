@@ -66,30 +66,34 @@ export function milestoneLabel(key: string): string {
 
 // Envoltorio HTML para los correos transaccionales de seguridad (recuperacion de
 // contrasena). CSS inline, sin variables ni flexbox/grid, para compatibilidad con
-// clientes de correo - solo bloques con margin/padding/text-align.
+// clientes de correo - solo bloques con margin/padding/text-align. Usa la paleta
+// clara (tokens de src/app/globals.css [data-theme='light']) a proposito: los
+// clientes de correo no soportan variables CSS ni prefers-color-scheme de forma
+// confiable, y un correo oscuro se ve roto en la mayoria de bandejas (que son
+// claras por defecto) - mejor un unico tema fijo que coincida con el actual.
 function wrapHtml(title: string, bodyHtml: string, cta?: { label: string; url: string }): string {
   const ctaBlock = cta
     ? `
       <div style="margin:28px 0;text-align:center;">
-        <a href="${cta.url}" style="display:inline-block;background:#2dd4bf;color:#04201c;font-weight:700;font-size:15px;text-decoration:none;padding:13px 28px;border-radius:9px;">${cta.label}</a>
+        <a href="${cta.url}" style="display:inline-block;background:linear-gradient(100deg,#7c5cff,#0fb5a3);color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;padding:13px 28px;border-radius:9px;">${cta.label}</a>
       </div>
-      <p style="margin:0 0 24px;font-size:12.5px;color:#62667f;word-break:break-all;">Si el botón no funciona, copia y pega este enlace en tu navegador:<br/><a href="${cta.url}" style="color:#2dd4bf;">${cta.url}</a></p>`
+      <p style="margin:0 0 24px;font-size:12.5px;color:#8b83a6;word-break:break-all;">Si el botón no funciona, copia y pega este enlace en tu navegador:<br/><a href="${cta.url}" style="color:#0d9488;">${cta.url}</a></p>`
     : '';
 
   return `<!doctype html>
 <html lang="es">
-  <body style="margin:0;padding:32px 16px;background:#0b0d14;font-family:'Plus Jakarta Sans',Arial,sans-serif;">
-    <div style="max-width:480px;margin:0 auto;background:#141722;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:32px 28px;">
+  <body style="margin:0;padding:32px 16px;background:#faf9fd;font-family:'Plus Jakarta Sans',Arial,sans-serif;">
+    <div style="max-width:480px;margin:0 auto;background:#ffffff;border:1px solid #e6e1f2;border-radius:16px;padding:32px 28px;">
       <p style="margin:0 0 22px;font-size:13px;font-weight:600;letter-spacing:0.04em;">
-        <span style="color:#2dd4bf;">✦</span> <span style="color:#f0f1f7;">REDINMO</span>
+        <span style="color:#0d9488;">✦</span> <span style="color:#1a1330;">REDINMO</span>
       </p>
-      <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#f0f1f7;">${title}</h1>
-      <div style="font-size:14.5px;line-height:1.6;color:#9296b0;">${bodyHtml}</div>
+      <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1a1330;">${title}</h1>
+      <div style="font-size:14.5px;line-height:1.6;color:#635a80;">${bodyHtml}</div>
       ${ctaBlock}
-      <p style="margin:0 0 24px;font-size:13px;line-height:1.6;color:#62667f;">Si no solicitaste este cambio, ignora este correo: tu contraseña actual sigue activa.</p>
-      <hr style="border:none;border-top:1px solid rgba(255,255,255,0.07);margin:0 0 18px;" />
-      <p style="margin:0;font-size:11.5px;color:#62667f;">redinmo.io · El hub que conecta colegas</p>
-      <p style="margin:4px 0 0;font-size:11.5px;color:#62667f;">Este es un correo automático, no responder.</p>
+      <p style="margin:0 0 24px;font-size:13px;line-height:1.6;color:#8b83a6;">Si no solicitaste este cambio, ignora este correo: tu contraseña actual sigue activa.</p>
+      <hr style="border:none;border-top:1px solid #e6e1f2;margin:0 0 18px;" />
+      <p style="margin:0;font-size:11.5px;color:#8b83a6;">redinmo.io · El hub que conecta colegas</p>
+      <p style="margin:4px 0 0;font-size:11.5px;color:#8b83a6;">Este es un correo automático, no responder.</p>
     </div>
   </body>
 </html>`;

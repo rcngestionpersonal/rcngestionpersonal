@@ -8,26 +8,21 @@ export const metadata: Metadata = {
 
 export default function RecuperarAccesoPage() {
   return (
-    <main style={{ minHeight: '100vh', background: '#0d0b16', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 380,
-          background: '#191527',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderTop: '1px solid rgba(255,255,255,0.14)',
-          borderRadius: 16,
-          padding: '28px 24px',
-        }}
-      >
-        <p style={{ fontSize: 13, fontWeight: 600 }}>
-          <span style={{ color: '#2dd4bf' }}>✦</span> <span style={{ color: 'var(--text)' }}>REDINMO</span>
-        </p>
-        <h1 style={{ marginTop: 16, fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>Recuperar acceso</h1>
-        <p style={{ marginTop: 8, marginBottom: 22, fontSize: 13.5, lineHeight: 1.5, color: '#a09bbb' }}>
-          Ingresa el correo o teléfono de tu cuenta y te enviamos un enlace para crear una nueva contraseña.
-        </p>
-        <ForgotAccessForm />
+    <main className="violet-ambient-bg flex min-h-screen items-center justify-center px-4 py-10 text-text">
+      <div className="mx-auto w-full max-w-sm">
+        <section className="grain-overlay relative overflow-hidden rounded-3xl border border-line bg-surface p-6 shadow-md backdrop-blur-xl sm:p-7">
+          <div className="pointer-events-none absolute -right-10 top-0 h-40 w-40 rounded-full bg-[var(--glow-brand)] blur-2xl" />
+          <div className="relative z-10">
+            <p className="text-xs font-bold">
+              <span className="text-accent">✦</span> <span className="text-text">REDINMO</span>
+            </p>
+            <h1 className="gradient-text mt-4 text-xl font-extrabold sm:text-2xl">Recuperar acceso</h1>
+            <p className="mb-6 mt-2 text-[13.5px] leading-relaxed text-text-2">
+              Ingresa el correo o teléfono de tu cuenta y te enviamos un enlace para crear una nueva contraseña.
+            </p>
+            <ForgotAccessForm />
+          </div>
+        </section>
       </div>
     </main>
   );

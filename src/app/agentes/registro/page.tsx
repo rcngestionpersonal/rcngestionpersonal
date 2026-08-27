@@ -399,7 +399,7 @@ function AgentRegisterForm() {
                       markTouched('terms');
                     }}
                     onBlur={() => markTouched('terms')}
-                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/30 bg-surface-2 accent-violet-500"
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-line-strong bg-surface-2 accent-violet-500"
                   />
                   <span className="text-xs text-text">
                     Acepto los{' '}

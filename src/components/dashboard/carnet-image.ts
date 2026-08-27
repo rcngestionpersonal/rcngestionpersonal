@@ -444,6 +444,21 @@ export type CarnetPrintInput = {
   lang: 'es' | 'en';
 };
 
+// Paleta fija para la version impresa: SIEMPRE clara, sin importar el tema
+// activo en pantalla ni la preferencia del agente (Parte 2.1) - fondo blanco y
+// texto oscuro para minimizar el consumo de tinta al imprimir. Corresponde a
+// los tokens de [data-theme='light'] en globals.css, pero hardcodeados: un
+// canvas no puede leer variables CSS y esta version nunca debe cambiar con el
+// tema de la app.
+const PRINT_BG = '#ffffff';
+const PRINT_TEXT = '#1a1330';
+const PRINT_TEXT_2 = '#635a80';
+const PRINT_TEXT_3 = '#8b83a6';
+const PRINT_ACCENT = '#0d9488';
+const PRINT_LEVEL_COLOR = '#6d28d9';
+const PRINT_LINE = '#e6e1f2';
+const PRINT_CHIP_BG = '#f4f2fa';
+
 // Version "credencial fisica" del carnet: formato tarjeta CR80 (proporcion
 // real de una tarjeta de identificacion, 85.6x54mm) renderizada a 600 DPI
 // (2020x1274px) para que se pueda imprimir y plastificar sin pixelarse -
@@ -462,17 +477,14 @@ export async function generateCarnetPrintImage(input: CarnetPrintInput): Promise
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas no soportado.');
 
-  // Fondo: degradado oscuro de marca + franja de acento superior.
-  const bg = ctx.createLinearGradient(0, 0, width, height);
-  bg.addColorStop(0, '#131a22');
-  bg.addColorStop(0.5, '#10141f');
-  bg.addColorStop(1, '#161029');
-  ctx.fillStyle = bg;
+  // Fondo blanco (tinta economica) + franja de acento superior - unico uso de
+  // color solido "fuerte" de toda la credencial.
+  ctx.fillStyle = PRINT_BG;
   ctx.fillRect(0, 0, width, height);
 
   const accent = ctx.createLinearGradient(0, 0, width, 0);
-  accent.addColorStop(0, '#b7a5ff');
-  accent.addColorStop(1, '#2dd4bf');
+  accent.addColorStop(0, '#7c5cff');
+  accent.addColorStop(1, '#0fb5a3');
   ctx.fillStyle = accent;
   ctx.fillRect(0, 0, width, 14);
 
@@ -480,11 +492,30 @@ export async function generateCarnetPrintImage(input: CarnetPrintInput): Promise
   ctx.beginPath();
   ctx.arc(width - 60, 60, 260, 0, Math.PI * 2);
   ctx.clip();
-  ctx.strokeStyle = 'rgba(45,212,191,0.16)';
+  ctx.strokeStyle = 'rgba(109,74,255,0.14)';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.arc(width - 60, 60, 240, 0, Math.PI * 2);
   ctx.stroke();
+  ctx.restore();
+
+  // Marca de agua: isotipo ✦ centrado en el area central de la credencial,
+  // ~55% del ancho, 6-8% de opacidad con un degradado violeta->teal muy tenue
+  // (simula el efecto holografico de la version en pantalla) - se pinta antes
+  // que cualquier otro contenido para quedar siempre detras (Parte 2.2).
+  ctx.save();
+  ctx.font = `800 1000px ${FONT}`;
+  const wmMeasured = ctx.measureText('✦').width;
+  const wmFontSize = Math.round(1000 * ((width * 0.55) / wmMeasured));
+  ctx.font = `800 ${wmFontSize}px ${FONT}`;
+  const wmGrad = ctx.createLinearGradient(0, 0, width, height);
+  wmGrad.addColorStop(0, 'rgba(109,74,255,0.07)');
+  wmGrad.addColorStop(1, 'rgba(13,148,136,0.07)');
+  ctx.fillStyle = wmGrad;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('✦', width / 2, height / 2);
+  ctx.textBaseline = 'alphabetic';
   ctx.restore();
 
   const padX = 90;
@@ -503,8 +534,8 @@ export async function generateCarnetPrintImage(input: CarnetPrintInput): Promise
     ctx.drawImage(img, photoCX - photoR, photoCY - photoR, photoR * 2, photoR * 2);
   } else {
     const avatarBg = ctx.createLinearGradient(photoCX - photoR, photoCY - photoR, photoCX + photoR, photoCY + photoR);
-    avatarBg.addColorStop(0, '#26304a');
-    avatarBg.addColorStop(1, '#1a2033');
+    avatarBg.addColorStop(0, '#efeaff');
+    avatarBg.addColorStop(1, '#e0f5f2');
     ctx.fillStyle = avatarBg;
     ctx.fill();
   }
@@ -512,18 +543,18 @@ export async function generateCarnetPrintImage(input: CarnetPrintInput): Promise
   ctx.beginPath();
   ctx.arc(photoCX, photoCY, photoR, 0, Math.PI * 2);
   ctx.lineWidth = 8;
-  ctx.strokeStyle = '#2dd4bf';
+  ctx.strokeStyle = PRINT_ACCENT;
   ctx.stroke();
   if (!img) {
     ctx.font = `800 92px ${FONT}`;
-    ctx.fillStyle = '#f0f1f7';
+    ctx.fillStyle = PRINT_TEXT;
     ctx.textAlign = 'center';
     ctx.fillText(initialsOf(input.displayName), photoCX, photoCY + 32);
   }
 
   ctx.textAlign = 'center';
   ctx.font = `700 30px ${FONT}`;
-  ctx.fillStyle = input.verified ? '#2dd4bf' : '#736c96';
+  ctx.fillStyle = input.verified ? PRINT_ACCENT : PRINT_TEXT_3;
   ctx.fillText(input.verified ? (input.lang === 'es' ? '✓ VERIFICADO' : '✓ VERIFIED') : (input.lang === 'es' ? 'NO VERIFICADO' : 'NOT VERIFIED'), photoCX, photoCY + photoR + 60);
 
   // Columna derecha: marca, nombre, credenciales, contacto y QR de verificacion.
@@ -533,41 +564,43 @@ export async function generateCarnetPrintImage(input: CarnetPrintInput): Promise
 
   ctx.textAlign = 'left';
   ctx.font = `800 34px ${FONT}`;
-  ctx.fillStyle = '#2dd4bf';
+  ctx.fillStyle = PRINT_ACCENT;
   ctx.fillText('✦ REDINMO.IO', colX, y);
   ctx.font = `600 28px ${FONT}`;
-  ctx.fillStyle = '#62667f';
+  ctx.fillStyle = PRINT_TEXT_3;
   ctx.fillText(input.lang === 'es' ? '  ·  CARNET DE AGENTE INMOBILIARIO' : '  ·  REAL ESTATE AGENT CARD', colX + 260, y);
 
   y += 76;
   const nameFont = `800 68px ${FONT}`;
   ctx.font = nameFont;
-  ctx.fillStyle = '#f0f1f7';
+  ctx.fillStyle = PRINT_TEXT;
   ctx.fillText(fitText(ctx, input.displayName, colW, nameFont), colX, y);
 
   y += 50;
   ctx.font = `700 30px ${FONT}`;
-  ctx.fillStyle = input.levelColor;
+  ctx.fillStyle = PRINT_LEVEL_COLOR;
   ctx.fillText(`● ${input.levelLabel}${input.company ? `   ·   ${input.company}` : ''}`, colX, y);
 
   y += 60;
-  // Chips de credenciales: experiencia + licencia + zonas
+  // Chips de credenciales: experiencia + licencia + zonas. La etiqueta de
+  // licencia es siempre "Lic. Prof.: [numero]" (Parte 2.3) - si el agente no
+  // registro licencia, el chip simplemente no se agrega (nunca "Lic. Prof.: —").
   const chipParts: string[] = [];
   if (input.yearsExperience) chipParts.push(`${input.yearsExperience}+ ${input.lang === 'es' ? 'años de experiencia' : 'years of experience'}`);
-  if (input.licenseNumber) chipParts.push(`${input.lang === 'es' ? 'Licencia' : 'License'} ${input.licenseNumber}`);
+  if (input.licenseNumber) chipParts.push(`Lic. Prof.: ${input.licenseNumber}`);
   const chipFont = `700 27px ${FONT}`;
   ctx.font = chipFont;
   let chipX = colX;
   for (const label of chipParts) {
     const w = ctx.measureText(label).width + 40;
-    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillStyle = PRINT_CHIP_BG;
     roundRect(ctx, chipX, y, w, 52, 26);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+    ctx.strokeStyle = PRINT_LINE;
     ctx.lineWidth = 1.5;
     roundRect(ctx, chipX, y, w, 52, 26);
     ctx.stroke();
-    ctx.fillStyle = '#f0f1f7';
+    ctx.fillStyle = PRINT_TEXT;
     ctx.font = chipFont;
     ctx.fillText(label, chipX + 20, y + 34);
     chipX += w + 14;
@@ -576,12 +609,12 @@ export async function generateCarnetPrintImage(input: CarnetPrintInput): Promise
 
   if (input.zones.length > 0) {
     ctx.font = `600 28px ${FONT}`;
-    ctx.fillStyle = '#9296b0';
+    ctx.fillStyle = PRINT_TEXT_2;
     const zonesFont = `600 28px ${FONT}`;
     ctx.fillText(fitText(ctx, `${input.lang === 'es' ? 'Zonas' : 'Areas'}: ${input.zones.join(' · ')}`, colW - 260, zonesFont), colX, y);
   }
   ctx.font = `600 28px ${FONT}`;
-  ctx.fillStyle = '#9296b0';
+  ctx.fillStyle = PRINT_TEXT_2;
   ctx.fillText(`✆ ${input.phone}`, colX, y + 46);
 
   // QR de verificacion publica, esquina inferior derecha
@@ -604,7 +637,7 @@ export async function generateCarnetPrintImage(input: CarnetPrintInput): Promise
       // El QR es un plus de verificacion; si falla, la credencial se sigue exportando.
     }
     ctx.font = `600 20px ${FONT}`;
-    ctx.fillStyle = '#62667f';
+    ctx.fillStyle = PRINT_TEXT_3;
     ctx.textAlign = 'center';
     ctx.fillText(input.lang === 'es' ? 'Verificar' : 'Verify', qrX + qrBox / 2, qrY + qrBox + 34);
   }
@@ -612,7 +645,7 @@ export async function generateCarnetPrintImage(input: CarnetPrintInput): Promise
   // Pie: marca + fecha de emision
   ctx.textAlign = 'left';
   ctx.font = `600 22px ${FONT}`;
-  ctx.fillStyle = '#736c96';
+  ctx.fillStyle = PRINT_TEXT_3;
   const issued = new Date().toLocaleDateString(input.lang === 'es' ? 'es-EC' : 'en-US', { month: 'long', year: 'numeric' });
   ctx.fillText(`redinmo.io  ·  ${input.lang === 'es' ? 'emitido' : 'issued'} ${issued}`, colX, height - 60);
 
