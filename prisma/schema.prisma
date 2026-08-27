@@ -44,6 +44,11 @@ enum SubscriptionStatus {
   INACTIVE
 }
 
+enum PlanTipo {
+  BASICO
+  PRO
+}
+
 enum MatchStatus {
   PENDING
   CONTACTED
@@ -110,6 +115,15 @@ model Agent {
   lastPaymentProvider   String?
   payphoneTransactionId String?
   subscriptionPaidUntil DateTime?
+  // Plan Basico/Pro (ver src/config/planes.ts). Durante el TRIAL el acceso es
+  // Pro completo sin importar este valor (reverse trial) - plan es lo que
+  // aplica una vez la suscripcion es ACTIVE. planSiguiente es un cambio de
+  // plan programado (upgrade o downgrade) que el cron de renovacion aplica en
+  // la proxima fecha de vencimiento y luego limpia.
+  plan                  PlanTipo           @default(BASICO)
+  planDesde             DateTime?
+  planSiguiente         PlanTipo?
+  transacciones         Transaccion[]
   referredByAgentId     String?
   rankingAlias          String?
   useRankingAlias       Boolean            @default(false)
@@ -289,6 +303,25 @@ model InteractionLog {
 
   @@index([type])
   @@index([createdAt])
+}
+
+// Historial de pagos (un registro por cobro exitoso de la Cajita de Payphone).
+// A diferencia de los campos en Agent (que solo guardan el ULTIMO pago), esto
+// permite saber que plan y monto se cobro en cada transaccion.
+model Transaccion {
+  id                String   @id @default(cuid())
+  agent             Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentId           String
+  plan              PlanTipo
+  provider          String
+  amountCents       Int
+  taxCents          Int
+  totalCents        Int
+  providerTransactionId String?
+  authorizationCode String?
+  createdAt         DateTime @default(now())
+
+  @@index([agentId])
 }
 
 model EventLog {

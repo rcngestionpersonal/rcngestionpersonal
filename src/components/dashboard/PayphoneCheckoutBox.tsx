@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Script from 'next/script';
-import { getCheckoutAmountsInCents } from '@/lib/real-estate/subscription-config';
+import { getCheckoutAmountsInCents, getCheckoutReference, type PlanTipo } from '@/config/planes';
 
 // Integra la "Cajita de Pagos" de Payphone (https://docs.payphone.app/cajita-de-pagos):
 // widget embebido que soporta tarjeta de credito/debito y saldo Payphone. El
@@ -22,12 +22,14 @@ export function isPayphoneCheckoutConfigured(): boolean {
 
 export default function PayphoneCheckoutBox({
   agentId,
+  plan,
   email,
   phone,
   idNumber,
   lang,
 }: {
   agentId: string;
+  plan: PlanTipo;
   email?: string | null;
   phone?: string | null;
   idNumber?: string | null;
@@ -44,19 +46,21 @@ export default function PayphoneCheckoutBox({
     if (!token || !window.PPaymentButtonBox || !containerRef.current) return;
 
     try {
-      // clientTransactionId lleva el agentId adentro (ver payments/payphone.ts)
-      // para poder identificar al agente al volver de Payphone sin depender de
-      // una tabla de transacciones pendientes aparte.
-      const clientTransactionId = `${agentId}::${Date.now()}`;
+      // clientTransactionId lleva el agentId y el plan adentro (mismo formato
+      // que payments/payphone.ts, pero inline para no importar ese modulo
+      // server-side en un componente de cliente). Es la unica forma de saber
+      // que plan se cobro al volver de Payphone: la URL de retorno se
+      // configura una vez en su dashboard y no conserva nuestro ?plan=.
+      const clientTransactionId = `${agentId}::${plan}::${Date.now()}`;
       const storeId = process.env.NEXT_PUBLIC_PAYPHONE_STORE_ID;
-      const amounts = getCheckoutAmountsInCents();
+      const amounts = getCheckoutAmountsInCents(plan);
 
       const config: Record<string, unknown> = {
         token,
         clientTransactionId,
         ...amounts,
         currency: 'USD',
-        reference: lang === 'es' ? 'Suscripción mensual Redinmo' : 'Redinmo monthly subscription',
+        reference: getCheckoutReference(plan, lang),
         lang,
         defaultMethod: 'card',
       };
@@ -74,7 +78,7 @@ export default function PayphoneCheckoutBox({
     } catch {
       setError(lang === 'es' ? 'No se pudo cargar el formulario de pago. Recarga la página.' : 'Could not load the payment form. Reload the page.');
     }
-  }, [sdkReady, agentId, email, phone, idNumber, lang]);
+  }, [sdkReady, agentId, plan, email, phone, idNumber, lang]);
 
   return (
     <div>

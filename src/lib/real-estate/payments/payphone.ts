@@ -6,7 +6,7 @@
 // server-side: confirmar la transaccion contra la API de Payphone despues de
 // que el usuario vuelve del pago, y los helpers para armar/leer el
 // clientTransactionId que identifica a que agente pertenece cada pago.
-import { getCheckoutAmountsInCents } from '../subscription-config';
+import { getCheckoutAmountsInCents, isPlanTipo, type PlanTipo } from '@/config/planes';
 
 const PAYPHONE_CONFIRM_URL = 'https://paymentbox.payphonetodoesposible.com/api/confirm';
 
@@ -15,15 +15,23 @@ export function isPayphoneConfigured(): boolean {
 }
 
 // El clientTransactionId es el unico dato que Payphone nos devuelve intacto al
-// confirmar - codificamos el agentId adentro (en vez de mantener una tabla
-// aparte) para saber a quien activar sin depender de una consulta extra.
-export function buildClientTransactionId(agentId: string): string {
-  return `${agentId}::${Date.now()}`;
+// confirmar - codificamos adentro tanto el agentId como el plan elegido (en
+// vez de mantener una tabla aparte). Esto importa especialmente para el plan:
+// la URL a la que Payphone redirige de vuelta se configura una vez en su
+// dashboard (no por request), asi que un ?plan= en la URL de checkout NO
+// sobrevive el viaje de ida y vuelta - el clientTransactionId si.
+export function buildClientTransactionId(agentId: string, plan: PlanTipo): string {
+  return `${agentId}::${plan}::${Date.now()}`;
 }
 
 export function parseAgentIdFromClientTransactionId(clientTransactionId: string): string | null {
   const [agentId] = clientTransactionId.split('::');
   return agentId || null;
+}
+
+export function parsePlanFromClientTransactionId(clientTransactionId: string): PlanTipo | null {
+  const [, plan] = clientTransactionId.split('::');
+  return isPlanTipo(plan) ? plan : null;
 }
 
 export type PayphoneConfirmResult = {
@@ -64,8 +72,8 @@ export async function confirmPayphoneTransaction(input: { id: number; clientTran
 }
 
 // Verifica que lo efectivamente cobrado coincida con el precio vigente del
-// plan - una defensa simple contra una respuesta de Payphone manipulada o
-// desactualizada antes de activar la suscripcion.
-export function isExpectedCheckoutAmount(amountCents: number): boolean {
-  return amountCents === getCheckoutAmountsInCents().amount;
+// plan elegido - una defensa simple contra una respuesta de Payphone
+// manipulada o desactualizada antes de activar la suscripcion.
+export function isExpectedCheckoutAmount(amountCents: number, plan: PlanTipo): boolean {
+  return amountCents === getCheckoutAmountsInCents(plan).amount;
 }

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import PayphoneCheckoutBox, { isPayphoneCheckoutConfigured } from '@/components/dashboard/PayphoneCheckoutBox';
 import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageProvider';
-import { getPriceAmountUsd, getPriceWithTaxUsd, getTaxAmountUsd } from '@/lib/real-estate/subscription-config';
+import { PLANES, formatUsd, planParamToTipo } from '@/config/planes';
 
 type MeAgent = {
   id: string;
@@ -16,10 +16,6 @@ type MeAgent = {
   subscriptionStatus: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'INACTIVE';
   phoneVerifiedAt?: string | null;
 };
-
-function fmtUsd(n: number): string {
-  return n.toFixed(2).replace('.', ',');
-}
 
 export default function PagarSuscripcionPage() {
   return (
@@ -42,10 +38,27 @@ function PagarSuscripcionContent() {
   const [confirmed, setConfirmed] = useState(false);
   const confirmAttempted = useRef(false);
 
+  // Checkout dual (seccion 6): el plan viene por query param (?plan=basico|pro).
+  const plan = planParamToTipo(searchParams.get('plan'));
+  const confirmId = searchParams.get('id');
+  const confirmTxId = searchParams.get('clientTransactionId');
+  // Payphone redirige de vuelta a una URL fija configurada una vez en su
+  // dashboard - no conserva nuestro ?plan=. Por eso, si venimos de un pago
+  // (hay id+clientTransactionId), NO redirigimos a /planes aunque no haya
+  // ?plan=: el plan se recupera server-side leyendo el clientTransactionId.
+  const volviendoDePago = Boolean(confirmId && confirmTxId);
+
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!plan && !volviendoDePago) {
+      router.replace('/agentes/suscripcion/planes');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan, volviendoDePago]);
 
   async function load() {
     setLoading(true);
@@ -62,19 +75,17 @@ function PagarSuscripcionContent() {
     }
   }
 
-  // Al volver de Payphone, la URL trae ?id=...&clientTransactionId=... - se
-  // confirma una sola vez (Payphone exige confirmar dentro de los primeros 5
-  // minutos, asi que esto corre apenas carga la pagina).
+  // Se confirma una sola vez (Payphone exige confirmar dentro de los primeros
+  // 5 minutos, asi que esto corre apenas carga la pagina). El plan cobrado se
+  // deriva server-side del clientTransactionId, no de este cliente.
   useEffect(() => {
-    const id = searchParams.get('id');
-    const clientTransactionId = searchParams.get('clientTransactionId');
-    if (!id || !clientTransactionId || confirmAttempted.current) return;
+    if (!volviendoDePago || confirmAttempted.current) return;
     confirmAttempted.current = true;
     setConfirming(true);
     fetch('/api/real-estate/billing/payphone/confirm', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: Number(id), clientTransactionId }),
+      body: JSON.stringify({ id: Number(confirmId), clientTransactionId: confirmTxId }),
     })
       .then(async (res) => {
         const data = await res.json().catch(() => ({}));
@@ -91,15 +102,14 @@ function PagarSuscripcionContent() {
       .catch(() => setConfirmError(t('suscripcion.pagar.errorConfirmacion')))
       .finally(() => setConfirming(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [volviendoDePago, confirmId, confirmTxId]);
 
-  if (loading || !agent) {
+  if (loading || !agent || (!plan && !volviendoDePago)) {
     return <main className="min-h-screen bg-bg" />;
   }
 
-  const price = getPriceAmountUsd();
-  const tax = getTaxAmountUsd();
-  const total = getPriceWithTaxUsd();
+  const def = plan ? PLANES[plan] : null;
+  const planNombre = plan === 'PRO' ? t('plan.pro.nombre') : t('plan.basico.nombre');
 
   return (
     <main className="violet-ambient-bg min-h-screen px-4 py-10 text-text sm:py-16">
@@ -113,21 +123,23 @@ function PagarSuscripcionContent() {
               <h1 className="gradient-text mt-1 text-2xl font-bold leading-tight sm:text-3xl">{t('suscripcion.pagar.titulo')}</h1>
             </div>
 
-            {/* Resumen del plan - un solo camino, sin alternativas de metodo de pago. */}
-            <div className="rounded-2xl border border-line bg-surface-2 p-4">
-              <div className="flex items-center justify-between text-sm text-text-2">
-                <span>{t('suscripcion.pagar.planLabel')}</span>
-                <span>${fmtUsd(price)}</span>
+            {def ? (
+              // Resumen del plan elegido - un solo camino, sin alternativas de metodo de pago.
+              <div className="rounded-2xl border border-line bg-surface-2 p-4">
+                <div className="flex items-center justify-between text-sm text-text-2">
+                  <span>{t('suscripcion.pagar.planLabel').replace('{plan}', planNombre)}</span>
+                  <span>${formatUsd(def.precioBase)}</span>
+                </div>
+                <div className="mt-1.5 flex items-center justify-between text-sm text-text-2">
+                  <span>{t('suscripcion.pagar.ivaLabel')}</span>
+                  <span>${formatUsd(def.impuesto)}</span>
+                </div>
+                <div className="mt-2.5 flex items-center justify-between border-t border-line pt-2.5 text-base font-bold text-text">
+                  <span>{t('suscripcion.pagar.totalLabel')}</span>
+                  <span>${formatUsd(def.total)}</span>
+                </div>
               </div>
-              <div className="mt-1.5 flex items-center justify-between text-sm text-text-2">
-                <span>{t('suscripcion.pagar.ivaLabel')}</span>
-                <span>${fmtUsd(tax)}</span>
-              </div>
-              <div className="mt-2.5 flex items-center justify-between border-t border-line pt-2.5 text-base font-bold text-text">
-                <span>{t('suscripcion.pagar.totalLabel')}</span>
-                <span>${fmtUsd(total)}</span>
-              </div>
-            </div>
+            ) : null}
 
             {confirming ? (
               <p className="rounded-xl border border-line bg-surface-2 px-4 py-3 text-center text-sm text-text-2">{t('suscripcion.pagar.confirmando')}</p>
@@ -139,17 +151,20 @@ function PagarSuscripcionContent() {
                   <p className="rounded-xl border border-danger bg-danger-dim px-4 py-3 text-center text-sm text-danger">{confirmError}</p>
                 ) : null}
 
-                {isPayphoneCheckoutConfigured() ? (
-                  <PayphoneCheckoutBox
-                    agentId={agent.id}
-                    email={agent.email}
-                    phone={agent.phone}
-                    idNumber={agent.idNumber}
-                    lang={lang}
-                  />
-                ) : (
-                  <p className="rounded-xl border border-line bg-surface-2 px-4 py-3 text-center text-sm text-text-2">{t('suscripcion.pagar.noDisponible')}</p>
-                )}
+                {plan ? (
+                  isPayphoneCheckoutConfigured() ? (
+                    <PayphoneCheckoutBox
+                      agentId={agent.id}
+                      plan={plan}
+                      email={agent.email}
+                      phone={agent.phone}
+                      idNumber={agent.idNumber}
+                      lang={lang}
+                    />
+                  ) : (
+                    <p className="rounded-xl border border-line bg-surface-2 px-4 py-3 text-center text-sm text-text-2">{t('suscripcion.pagar.noDisponible')}</p>
+                  )
+                ) : null}
 
                 <p className="text-center text-[11.5px] text-text-3">{t('suscripcion.pagar.notaSeguridad')}</p>
                 <p className="text-center text-[11.5px] text-text-3">

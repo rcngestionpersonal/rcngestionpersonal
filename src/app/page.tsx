@@ -814,6 +814,7 @@ function DashboardPage() {
           myAgentId={user?.agentId}
           activateSubscription={activateSubscription}
           activating={activating}
+          onReload={() => loadData(false)}
         />
       )}
       {activeTab === 'inmuebles' && (

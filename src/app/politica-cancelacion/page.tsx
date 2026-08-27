@@ -1,19 +1,15 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getPriceAmountUsd, getPriceWithTaxUsd, getTaxAmountUsd, TRIAL_DAYS } from '@/lib/real-estate/subscription-config';
+import { TRIAL_DAYS } from '@/lib/real-estate/subscription-config';
+import { PLANES, formatUsd } from '@/config/planes';
 
 export const metadata: Metadata = {
   title: 'Política de Cancelación | Redinmo',
 };
 
-function fmtUsd(n: number): string {
-  return n.toFixed(2).replace('.', ',');
-}
-
 export default function PoliticaCancelacionPage() {
-  const price = getPriceAmountUsd();
-  const tax = getTaxAmountUsd();
-  const total = getPriceWithTaxUsd();
+  const basico = PLANES.BASICO;
+  const pro = PLANES.PRO;
 
   return (
     <main className="min-h-screen bg-bg px-4 py-12 text-text sm:py-16">
@@ -34,14 +30,16 @@ export default function PoliticaCancelacionPage() {
           <section>
             <h2 className="mb-1.5 text-base font-bold text-text">2. Suscripción mensual</h2>
             <p>
-              Al finalizar la prueba gratuita, para continuar usando Redinmo se activa la suscripción mensual de ${fmtUsd(price)} +
-              IVA (${fmtUsd(tax)}) = ${fmtUsd(total)}, procesada de forma segura por Payphone. Redinmo no almacena los datos de tu
-              tarjeta en ningún momento.
+              Al finalizar la prueba gratuita, elige entre dos planes: Básico (${formatUsd(basico.precioBase)} + IVA (
+              ${formatUsd(basico.impuesto)}) = ${formatUsd(basico.total)}) o Pro (${formatUsd(pro.precioBase)} + IVA (
+              ${formatUsd(pro.impuesto)}) = ${formatUsd(pro.total)}), procesados de forma segura por Payphone. Redinmo no almacena
+              los datos de tu tarjeta en ningún momento.
             </p>
             <p className="mt-2">
               Cada pago habilita el acceso a la plataforma por 30 días adicionales a partir de la fecha del cobro. La suscripción no
               se renueva automáticamente: recibirás un aviso antes de que tu período pagado termine para que puedas renovar cuando
-              quieras.
+              quieras. Un cambio de plan (upgrade o downgrade) se aplica en tu próxima renovación, nunca a mitad de un período ya
+              pagado.
             </p>
           </section>
 
@@ -74,7 +72,7 @@ export default function PoliticaCancelacionPage() {
           </section>
         </div>
 
-        <Link href="/agentes/suscripcion/pagar" className="mt-8 inline-block text-sm font-semibold text-text-3 hover:text-text-2">
+        <Link href="/agentes/suscripcion/planes" className="mt-8 inline-block text-sm font-semibold text-text-3 hover:text-text-2">
           ← Volver a mi suscripción
         </Link>
       </div>

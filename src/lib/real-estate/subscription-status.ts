@@ -21,17 +21,20 @@ export type SubscriptionLike = {
 // automaticamente salvo que se revise en el momento de leer el agente - esta
 // funcion es ese chequeo, para no depender de un cron que cambie el status en
 // la base. Devuelve el status "real" a mostrar/usar, sin mutar nada.
+//
+// Una suscripcion CANCELADA (boton "Cancelar suscripcion" del panel) sigue
+// dando acceso mientras el periodo ya pagado no haya vencido - cancelar solo
+// significa "no renovar", nunca corta el acceso de inmediato. Por eso se
+// evalua igual que ACTIVE contra subscriptionPaidUntil.
 export function resolveEffectiveSubscriptionStatus(agent: SubscriptionLike): SubscriptionStatusValue {
   const now = Date.now();
   if (agent.subscriptionStatus === 'TRIAL' && agent.trialEndsAt && new Date(agent.trialEndsAt).getTime() <= now) {
     return 'INACTIVE';
   }
-  if (
-    agent.subscriptionStatus === 'ACTIVE' &&
-    agent.subscriptionPaidUntil &&
-    new Date(agent.subscriptionPaidUntil).getTime() <= now
-  ) {
-    return 'INACTIVE';
+  if (agent.subscriptionStatus === 'ACTIVE' || agent.subscriptionStatus === 'CANCELED') {
+    const stillPaid = agent.subscriptionPaidUntil && new Date(agent.subscriptionPaidUntil).getTime() > now;
+    if (stillPaid) return 'ACTIVE';
+    if (agent.subscriptionStatus === 'ACTIVE') return 'INACTIVE';
   }
   return agent.subscriptionStatus;
 }

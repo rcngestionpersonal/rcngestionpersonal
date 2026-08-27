@@ -100,6 +100,9 @@ export type AgentItem = {
   useRankingAlias?: boolean;
   trialEndsAt?: string;
   subscriptionPaidUntil?: string | null;
+  plan?: 'BASICO' | 'PRO';
+  planDesde?: string | null;
+  planSiguiente?: 'BASICO' | 'PRO' | null;
   referredByAgentId?: string | null;
   createdAt?: string;
 };

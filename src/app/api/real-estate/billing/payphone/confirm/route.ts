@@ -2,14 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logSubscriptionActivation } from '@/lib/real-estate/churn';
-import { shouldUseMockStore, updateAgent } from '@/lib/real-estate/mock-store';
-import { confirmPayphoneTransaction, isExpectedCheckoutAmount, parseAgentIdFromClientTransactionId } from '@/lib/real-estate/payments/payphone';
+import { findAgentById, shouldUseMockStore, updateAgent } from '@/lib/real-estate/mock-store';
+import {
+  confirmPayphoneTransaction,
+  isExpectedCheckoutAmount,
+  parseAgentIdFromClientTransactionId,
+  parsePlanFromClientTransactionId,
+} from '@/lib/real-estate/payments/payphone';
 import { getBillingCycleMs } from '@/lib/real-estate/subscription-config';
+import { getCheckoutAmountsInCents } from '@/config/planes';
 
 // Confirma un pago de la Cajita de Payphone. El agente vuelve del pago con
 // ?id=...&clientTransactionId=... en la URL; esta ruta hace la llamada
 // server-side a Payphone (nunca confiamos en el estado que el cliente diga
 // que tuvo el pago) y solo si Payphone responde "Approved" activa la cuenta.
+// El plan cobrado se lee del propio clientTransactionId (no de lo que mande
+// el cliente en el body): es el unico dato que sobrevive intacto el viaje de
+// ida y vuelta a Payphone.
 export async function POST(request: NextRequest) {
   try {
     const authSession = await getSessionFromRequest(request);
@@ -28,16 +37,29 @@ export async function POST(request: NextRequest) {
     if (ownerAgentId !== authSession.agentId) {
       return NextResponse.json({ error: 'Esta transacción no corresponde a tu cuenta.' }, { status: 403 });
     }
+    const plan = parsePlanFromClientTransactionId(body.clientTransactionId);
+    if (!plan) {
+      return NextResponse.json({ error: 'No se pudo determinar el plan de esta transacción.' }, { status: 400 });
+    }
 
     if (shouldUseMockStore()) {
       // Sin credenciales reales de Payphone en modo mock: se simula un pago
       // aprobado para poder probar el flujo completo sin cobrar de verdad.
+      const agent = findAgentById(authSession.agentId);
+      if (agent?.payphoneTransactionId === String(body.id)) {
+        // Idempotencia: mismo id de transaccion ya procesado (p.ej. el agente
+        // recargo la pagina de retorno) - no volver a extender el periodo.
+        return NextResponse.json({ success: true, fallback: true, alreadyProcessed: true });
+      }
       const paidUntil = new Date(Date.now() + getBillingCycleMs()).toISOString();
       updateAgent(authSession.agentId, {
         subscriptionStatus: 'ACTIVE',
         subscriptionPaidUntil: paidUntil,
         lastPaymentProvider: 'PAYPHONE',
         payphoneTransactionId: String(body.id),
+        plan,
+        planDesde: new Date().toISOString(),
+        planSiguiente: undefined,
       });
       return NextResponse.json({ success: true, fallback: true });
     }
@@ -47,21 +69,49 @@ export async function POST(request: NextRequest) {
     if (result.transactionStatus !== 'Approved') {
       return NextResponse.json({ error: 'El pago no fue aprobado por Payphone.', status: result.transactionStatus }, { status: 402 });
     }
-    if (!isExpectedCheckoutAmount(result.amount)) {
+    if (!isExpectedCheckoutAmount(result.amount, plan)) {
       return NextResponse.json({ error: 'El monto confirmado no coincide con el precio del plan.' }, { status: 400 });
     }
 
+    // Idempotencia: si ya existe una Transaccion para este id de Payphone, el
+    // pago ya fue procesado - no volver a extender el periodo ni duplicar el
+    // registro (seccion 6.5 del pedido de arquitectura de planes).
+    const yaRegistrada = await prisma.transaccion.findFirst({
+      where: { agentId: authSession.agentId, providerTransactionId: String(result.transactionId) },
+    });
+    if (yaRegistrada) {
+      return NextResponse.json({ success: true, authorizationCode: result.authorizationCode, alreadyProcessed: true });
+    }
+
     const paidUntil = new Date(Date.now() + getBillingCycleMs());
+    const amounts = getCheckoutAmountsInCents(plan);
     try {
-      await prisma.agent.update({
-        where: { id: authSession.agentId },
-        data: {
-          subscriptionStatus: 'ACTIVE',
-          subscriptionPaidUntil: paidUntil,
-          lastPaymentProvider: 'PAYPHONE',
-          payphoneTransactionId: String(result.transactionId),
-        },
-      });
+      await prisma.$transaction([
+        prisma.agent.update({
+          where: { id: authSession.agentId },
+          data: {
+            subscriptionStatus: 'ACTIVE',
+            subscriptionPaidUntil: paidUntil,
+            lastPaymentProvider: 'PAYPHONE',
+            payphoneTransactionId: String(result.transactionId),
+            plan,
+            planDesde: new Date(),
+            planSiguiente: null,
+          },
+        }),
+        prisma.transaccion.create({
+          data: {
+            agentId: authSession.agentId,
+            plan,
+            provider: 'PAYPHONE',
+            amountCents: amounts.amountWithTax,
+            taxCents: amounts.tax,
+            totalCents: amounts.amount,
+            providerTransactionId: String(result.transactionId),
+            authorizationCode: result.authorizationCode,
+          },
+        }),
+      ]);
       await logSubscriptionActivation(authSession.agentId);
     } catch {
       updateAgent(authSession.agentId, {
@@ -69,6 +119,9 @@ export async function POST(request: NextRequest) {
         subscriptionPaidUntil: paidUntil.toISOString(),
         lastPaymentProvider: 'PAYPHONE',
         payphoneTransactionId: String(result.transactionId),
+        plan,
+        planDesde: new Date().toISOString(),
+        planSiguiente: undefined,
       });
     }
 

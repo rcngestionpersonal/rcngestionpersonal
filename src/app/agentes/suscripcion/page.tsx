@@ -90,10 +90,10 @@ function SuscripcionOnboardingContent() {
         <section className="glass-card rounded-3xl p-5 sm:p-6">
           {agent.subscriptionStatus !== 'ACTIVE' ? (
             <Link
-              href="/agentes/suscripcion/pagar"
+              href="/agentes/suscripcion/planes"
               className="gradient-btn flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-grad-contrast transition hover:opacity-90"
             >
-              Suscribirme ahora →
+              Elegir mi plan →
             </Link>
           ) : null}
 

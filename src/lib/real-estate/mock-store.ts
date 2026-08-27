@@ -4,6 +4,7 @@ import { sendEmailNotification } from '@/lib/real-estate/email';
 import { buildMatchCreatedEmail } from '@/lib/real-estate/email-templates';
 import { operationActionLabelEs, propertyTypeLabelEs } from '@/lib/real-estate/labels';
 import { getAppUrl, getBillingCycleMs, TRIAL_DAYS } from '@/lib/real-estate/subscription-config';
+import type { PlanTipo } from '@/config/planes';
 import { buildRanking, milestonePoints, type AgentRankingEntry } from '@/lib/real-estate/ranking';
 import { zoneCentroid } from '@/lib/real-estate/quito-zones';
 import {
@@ -46,6 +47,9 @@ type AgentRecord = {
   lastPaymentProvider?: string;
   payphoneTransactionId?: string;
   subscriptionPaidUntil?: string;
+  plan: PlanTipo;
+  planDesde?: string;
+  planSiguiente?: PlanTipo;
   themePreference: 'LIGHT' | 'DARK' | 'SYSTEM';
   createdAt: string;
   updatedAt: string;
@@ -271,6 +275,7 @@ function seedDemoAgentsSync(store: Store): void {
       isActive: true,
       trialEndsAt,
       subscriptionStatus: 'TRIAL',
+      plan: 'BASICO',
       themePreference: 'DARK',
       createdAt,
       updatedAt: createdAt,
@@ -407,6 +412,7 @@ export async function createAgent(input: {
     isActive: true,
     trialEndsAt,
     subscriptionStatus: 'TRIAL',
+    plan: 'BASICO',
     themePreference: 'DARK',
     createdAt,
     updatedAt: createdAt,
@@ -706,9 +712,18 @@ export function deleteListing(listingId: string, managingAgentId?: string): bool
   return true;
 }
 
+// Activacion manual (override del admin, sin pasar por Payphone) - siempre
+// deja al agente en Basico; no hay selector de plan en este flujo.
 export function activateSubscription(agentId: string): AgentRecord | null {
   const subscriptionPaidUntil = new Date(Date.now() + getBillingCycleMs()).toISOString();
-  return updateAgent(agentId, { subscriptionStatus: 'ACTIVE', subscriptionPaidUntil, lastPaymentProvider: 'MANUAL' });
+  return updateAgent(agentId, {
+    subscriptionStatus: 'ACTIVE',
+    subscriptionPaidUntil,
+    lastPaymentProvider: 'MANUAL',
+    plan: 'BASICO',
+    planDesde: new Date().toISOString(),
+    planSiguiente: undefined,
+  });
 }
 
 export function setPaypalForAgent(

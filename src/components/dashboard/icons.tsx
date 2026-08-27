@@ -177,3 +177,23 @@ export function IconCoins(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+// Check de lista - usado por las tarjetas de planes para cada feature incluida.
+export function IconCheck(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M4 12.5 9.5 18 20 6" />
+    </svg>
+  );
+}
+
+// Candado - usado por RequiereFeature para el bloqueo de features Pro.
+export function IconLock(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="4.5" y="10.5" width="15" height="10" rx="2" />
+      <path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5" />
+      <path d="M12 14.5v3" />
+    </svg>
+  );
+}

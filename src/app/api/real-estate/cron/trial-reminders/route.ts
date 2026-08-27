@@ -5,11 +5,14 @@ import { buildTrialReminderEmail } from '@/lib/real-estate/email-templates';
 import { shouldUseMockStore } from '@/lib/real-estate/mock-store';
 import { getAppUrl } from '@/lib/real-estate/subscription-config';
 
-// Job diario (ver vercel.json) con dos responsabilidades:
+// Job diario (ver vercel.json) con tres responsabilidades:
 // 1) Avisar por correo en los dias 23/28/30 del trial (7/2/0 dias restantes) -
 //    idempotente via EventLog, para no reenviar el mismo aviso si el cron
 //    corre mas de una vez el mismo dia.
-// 2) Housekeeping: pasar a 'INACTIVE' los trials/pagos ya vencidos que nadie
+// 2) Aplicar el cambio de plan programado (planSiguiente) justo cuando el
+//    periodo pagado vence - "la proxima renovacion" de la seccion 7 del
+//    pedido de arquitectura de planes - y luego limpiarlo.
+// 3) Housekeeping: pasar a 'INACTIVE' los trials/pagos ya vencidos que nadie
 //    haya leido todavia (la lectura normal ya calcula esto al vuelo via
 //    resolveEffectiveSubscriptionStatus, pero sin este barrido la base nunca
 //    reflejaria el cambio si el agente no vuelve a entrar).
@@ -64,16 +67,29 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // --- 2) Housekeeping: marcar vencidos como INACTIVE ---
+    // --- 2) y 3) Renovacion vencida: aplicar planSiguiente (si hay) y pasar a
+    // INACTIVE. Una fila a la vez porque el nuevo valor de "plan" depende del
+    // planSiguiente de cada agente - updateMany no puede copiar una columna a
+    // otra por fila.
     const expiredTrials = await prisma.agent.updateMany({
       where: { subscriptionStatus: 'TRIAL', trialEndsAt: { lte: new Date(now) } },
       data: { subscriptionStatus: 'INACTIVE' },
     });
-    const expiredPaid = await prisma.agent.updateMany({
+
+    const dueForRenewal = await prisma.agent.findMany({
       where: { subscriptionStatus: 'ACTIVE', subscriptionPaidUntil: { lte: new Date(now) } },
-      data: { subscriptionStatus: 'INACTIVE' },
+      select: { id: true, planSiguiente: true },
     });
-    flippedToInactive = expiredTrials.count + expiredPaid.count;
+    for (const due of dueForRenewal) {
+      await prisma.agent.update({
+        where: { id: due.id },
+        data: {
+          subscriptionStatus: 'INACTIVE',
+          ...(due.planSiguiente ? { plan: due.planSiguiente, planSiguiente: null } : {}),
+        },
+      });
+    }
+    flippedToInactive = expiredTrials.count + dueForRenewal.length;
 
     return NextResponse.json({ success: true, emailsSent, flippedToInactive });
   } catch (error) {

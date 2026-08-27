@@ -57,7 +57,7 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/api/real-estate/listings') ||
       pathname.startsWith('/api/real-estate/paypal/checkout') ||
       pathname.startsWith('/api/real-estate/paypal/confirm') ||
-      pathname.startsWith('/api/real-estate/billing/payphone') ||
+      pathname.startsWith('/api/real-estate/billing/') ||
       pathname.startsWith('/api/real-estate/closed-deals') ||
       pathname.startsWith('/api/real-estate/listing-matches') ||
       pathname.startsWith('/api/real-estate/agents/verify-phone') ||
