@@ -347,8 +347,11 @@ export default function EditarPerfilPage() {
               placeholder="Edificio, piso, oficina (opcional)"
             />
             <div className="flex gap-2">
-              <input className={`${inputClass} flex-1`} value={ciudad} onChange={(e) => setCiudad(e.target.value)} placeholder="Ciudad" />
-              <input className={`${inputClass} w-[35%] shrink-0`} value={codigoPostal} onChange={(e) => setCodigoPostal(e.target.value)} placeholder="C.P. (opcional)" />
+              <input className={`${inputClass} min-w-0 flex-1`} value={ciudad} onChange={(e) => setCiudad(e.target.value)} placeholder="Ciudad" />
+              {/* inputClass trae w-full: sin !w-[35%] esa clase gana el
+                  empate de especificidad y este campo termina ocupando casi
+                  toda la fila, aplastando el de Ciudad a unos pocos pixeles. */}
+              <input className={`${inputClass} !w-[35%] shrink-0`} value={codigoPostal} onChange={(e) => setCodigoPostal(e.target.value)} placeholder="C.P. (opcional)" />
             </div>
             <select className={inputClass} value={provincia} onChange={(e) => setProvincia(e.target.value)}>
               <option className="bg-bg" value="">
