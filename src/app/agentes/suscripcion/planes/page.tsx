@@ -27,9 +27,8 @@ const FEATURE_ORDER: Feature[] = [
   'mini_sitio',
   'fichas_pdf',
   'carta_presentacion',
-  'reporte_tasacion',
+  'reportes_clientes',
   'carnet_pro',
-  'prioridad_matches',
 ];
 
 export default function PlanesPage() {

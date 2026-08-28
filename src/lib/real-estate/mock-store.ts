@@ -219,6 +219,22 @@ type EmailChangeTokenRecord = {
   createdAt: string;
 };
 
+// Espejo en memoria de Transaccion (ver prisma/schema.prisma) - historial de
+// pagos del agente (Fase 7-bis, seccion 3.1). Solo lectura desde la API;
+// se crea una fila por cada activacion/renovacion exitosa via Payphone.
+export type TransaccionRecord = {
+  id: string;
+  agentId: string;
+  plan: PlanTipo;
+  provider: 'PAYPHONE' | 'PAYPAL';
+  amountCents: number;
+  taxCents: number;
+  totalCents: number;
+  providerTransactionId: string;
+  authorizationCode?: string;
+  createdAt: string;
+};
+
 // Aviso de cambio de precio (Fase 7, seccion 9.5) - ver src/lib/real-estate/price-schedule.ts.
 export type ScheduledPriceChangeRecord = {
   id: string;
@@ -240,6 +256,7 @@ type Store = {
   passwordResetTokens: PasswordResetTokenRecord[];
   emailChangeTokens: EmailChangeTokenRecord[];
   scheduledPriceChanges: ScheduledPriceChangeRecord[];
+  transacciones: TransaccionRecord[];
 };
 
 function nowIso(): string {
@@ -326,6 +343,7 @@ function getStore(): Store {
       passwordResetTokens: [],
       emailChangeTokens: [],
       scheduledPriceChanges: [],
+      transacciones: [],
     };
     // El modo mock existe para poder probar la plataforma sin configurar nada:
     // se siembran los agentes demo de una vez, sin depender de que un admin
@@ -360,6 +378,10 @@ function getStore(): Store {
 
   if (!(globalStore.__realEstateMockStore as Partial<Store>).scheduledPriceChanges) {
     globalStore.__realEstateMockStore.scheduledPriceChanges = [];
+  }
+
+  if (!(globalStore.__realEstateMockStore as Partial<Store>).transacciones) {
+    globalStore.__realEstateMockStore.transacciones = [];
   }
 
   return globalStore.__realEstateMockStore;
@@ -644,6 +666,29 @@ export function markMockScheduledPriceChangeApplied(id: string): void {
   const store = getStore();
   const record = store.scheduledPriceChanges.find((c) => c.id === id);
   if (record) record.appliedAt = nowIso();
+}
+
+// Espejo en memoria de Transaccion - historial de pagos (Fase 7-bis, seccion 3.1).
+export function createMockTransaccion(input: {
+  agentId: string;
+  plan: PlanTipo;
+  provider: 'PAYPHONE' | 'PAYPAL';
+  amountCents: number;
+  taxCents: number;
+  totalCents: number;
+  providerTransactionId: string;
+  authorizationCode?: string;
+}): TransaccionRecord {
+  const store = getStore();
+  const record: TransaccionRecord = { id: uid('txn'), createdAt: nowIso(), ...input };
+  store.transacciones.push(record);
+  return record;
+}
+
+export function listMockTransaccionesByAgent(agentId: string): TransaccionRecord[] {
+  return getStore()
+    .transacciones.filter((t) => t.agentId === agentId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export const DEMO_AGENT_PASSWORD = 'demo1234';

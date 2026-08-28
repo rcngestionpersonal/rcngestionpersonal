@@ -10,9 +10,11 @@ export type PlanTipo = 'BASICO' | 'PRO';
 export const IVA_PORCENTAJE = 15;
 
 // Features controladas por plan. mini_sitio, fichas_pdf, carta_presentacion y
-// reporte_tasacion todavia no estan construidas (llegan en fases
+// reportes_clientes todavia no estan construidas (llegan en fases
 // posteriores) - se declaran ya para que tieneAcceso() las contemple desde
 // ahora y ningun modulo futuro tenga que tocar esta lista otra vez.
+// "prioridad_matches" se elimino (Fase 7-bis, seccion 4.2): nunca gatillaba
+// ninguna prioridad real en el matching, era solo una promesa de marketing.
 export type Feature =
   | 'matches_ilimitados'
   | 'gestion_inventario'
@@ -23,9 +25,8 @@ export type Feature =
   | 'mini_sitio'
   | 'fichas_pdf'
   | 'carta_presentacion'
-  | 'reporte_tasacion'
-  | 'carnet_pro'
-  | 'prioridad_matches';
+  | 'reportes_clientes'
+  | 'carnet_pro';
 
 export type PlanDefinicion = {
   tipo: PlanTipo;
@@ -47,14 +48,15 @@ const FEATURES_BASICO: Feature[] = [
   'seguimientos',
 ];
 
+// Pro no hereda "carnet_estandar" de Basico (Fase 7-bis, seccion 4.2): en Pro
+// solo debe figurar "Carnet Pro destacado", no los dos carnets a la vez.
 const FEATURES_PRO: Feature[] = [
-  ...FEATURES_BASICO,
+  ...FEATURES_BASICO.filter((f) => f !== 'carnet_estandar'),
   'mini_sitio',
   'fichas_pdf',
   'carta_presentacion',
-  'reporte_tasacion',
+  'reportes_clientes',
   'carnet_pro',
-  'prioridad_matches',
 ];
 
 function calcularImpuesto(precioBaseCentavos: number): number {

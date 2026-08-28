@@ -1,7 +1,11 @@
 import QRCode from 'qrcode';
 
 // Genera la imagen del Carnet de Agente via canvas (formato historia,
-// 1080x1920), con el carnet centrado sobre fondo oscuro y un glow teal sutil.
+// 1080x1920), con el carnet centrado sobre fondo y un glow sutil. Sigue el
+// tema activo del agente (Fase 7-bis, seccion 1.3): claro por defecto,
+// oscuro si el agente tiene el tema oscuro seleccionado - ver STORY_PALETTES
+// mas abajo, que espejea los tokens vigentes de globals.css (un canvas no
+// puede leer variables CSS, asi que se hardcodean aqui).
 // IMPORTANTE - privacidad: este tipo de entrada NO tiene (ni puede tener) un
 // campo de total de agentes de la Red - es estructuralmente imposible que la
 // imagen exportada filtre "de N", solo "#N en la Red" (a diferencia de la
@@ -28,6 +32,7 @@ export type CarnetImageInput = {
   yearsExperience?: number | null;
   licenseNumber?: string | null;
   lang: 'es' | 'en';
+  theme: 'light' | 'dark';
 };
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -73,6 +78,88 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, 
 
 const FONT = '"Plus Jakarta Sans", sans-serif';
 
+// Paletas del carnet "historia" (compartir), una por tema - espejean los
+// tokens de src/app/globals.css al momento de esta fase. Mantener en sync si
+// los tokens cambian: no hay forma de que el canvas los lea en vivo.
+type StoryPalette = {
+  pageBg: string;
+  glow: string;
+  cardGradFrom: string;
+  cardGradTo: string;
+  cardBorder: string;
+  ringColor: string;
+  accent: string;
+  textPrimary: string;
+  textSecondary: string;
+  textTertiary: string;
+  verifiedChipBg: string;
+  verifiedChipBorder: string;
+  levelChipBg: string;
+  levelChipBorder: string;
+  trustChipBg: string;
+  trustChipBorder: string;
+  statBoxBg: string;
+  contactBoxBorder: string;
+  contactBoxBg: string;
+  qrBoxBg: string;
+  qrBoxBorder: string;
+  avatarFallbackFrom: string;
+  avatarFallbackTo: string;
+};
+
+const STORY_PALETTES: Record<'light' | 'dark', StoryPalette> = {
+  dark: {
+    pageBg: '#0f0b1c',
+    glow: 'rgba(45,212,191,0.14)',
+    cardGradFrom: '#171130',
+    cardGradTo: '#1e1740',
+    cardBorder: 'rgba(45,212,191,0.32)',
+    ringColor: 'rgba(45,212,191,0.2)',
+    accent: '#2dd4bf',
+    textPrimary: '#f3f1fa',
+    textSecondary: '#a9a1cd',
+    textTertiary: '#736c96',
+    verifiedChipBg: 'rgba(45,212,191,0.1)',
+    verifiedChipBorder: 'rgba(45,212,191,0.32)',
+    levelChipBg: 'rgba(167,139,250,0.13)',
+    levelChipBorder: 'rgba(167,139,250,0.34)',
+    trustChipBg: 'rgba(255,255,255,0.05)',
+    trustChipBorder: 'rgba(255,255,255,0.14)',
+    statBoxBg: 'rgba(255,255,255,0.03)',
+    contactBoxBorder: 'rgba(255,255,255,0.1)',
+    contactBoxBg: 'rgba(255,255,255,0.02)',
+    qrBoxBg: 'rgba(45,212,191,0.1)',
+    qrBoxBorder: 'rgba(45,212,191,0.32)',
+    avatarFallbackFrom: '#26304a',
+    avatarFallbackTo: '#1a2033',
+  },
+  light: {
+    pageBg: '#f4f2fa',
+    glow: 'rgba(13,148,136,0.1)',
+    cardGradFrom: '#ffffff',
+    cardGradTo: '#f4f2fa',
+    cardBorder: '#d5cdea',
+    ringColor: 'rgba(13,148,136,0.18)',
+    accent: '#0d9488',
+    textPrimary: '#1a1330',
+    textSecondary: '#635a80',
+    textTertiary: '#8b83a6',
+    verifiedChipBg: '#e0f5f2',
+    verifiedChipBorder: '#8fd8d0',
+    levelChipBg: '#efeaff',
+    levelChipBorder: '#c9b8ff',
+    trustChipBg: '#f4f2fa',
+    trustChipBorder: '#e6e1f2',
+    statBoxBg: '#f4f2fa',
+    contactBoxBorder: '#d5cdea',
+    contactBoxBg: '#faf9fd',
+    qrBoxBg: '#e0f5f2',
+    qrBoxBorder: '#8fd8d0',
+    avatarFallbackFrom: '#efeaff',
+    avatarFallbackTo: '#e0f5f2',
+  },
+};
+
 export async function generateCarnetImage(input: CarnetImageInput): Promise<Blob> {
   const width = 1080;
   const height = 1920;
@@ -82,30 +169,31 @@ export async function generateCarnetImage(input: CarnetImageInput): Promise<Blob
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas no soportado.');
 
+  const P = STORY_PALETTES[input.theme] ?? STORY_PALETTES.light;
+
   const centerX = width / 2;
   const cardX = 90;
   const cardW = width - cardX * 2;
   const cardY = 230;
   const cardH = 1460;
 
-  // Fondo + glow teal centrado en el carnet
-  ctx.fillStyle = '#0b0d14';
+  // Fondo + glow centrado en el carnet
+  ctx.fillStyle = P.pageBg;
   ctx.fillRect(0, 0, width, height);
   const glow = ctx.createRadialGradient(centerX, cardY + cardH / 2, 80, centerX, cardY + cardH / 2, 800);
-  glow.addColorStop(0, 'rgba(45,212,191,0.14)');
-  glow.addColorStop(1, 'rgba(45,212,191,0)');
+  glow.addColorStop(0, P.glow);
+  glow.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, width, height);
 
   // Caja del carnet
   const cardBg = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + cardH);
-  cardBg.addColorStop(0, '#131a22');
-  cardBg.addColorStop(0.45, '#10141f');
-  cardBg.addColorStop(1, '#141225');
+  cardBg.addColorStop(0, P.cardGradFrom);
+  cardBg.addColorStop(1, P.cardGradTo);
   ctx.fillStyle = cardBg;
   roundRect(ctx, cardX, cardY, cardW, cardH, 44);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(45,212,191,0.35)';
+  ctx.strokeStyle = P.cardBorder;
   ctx.lineWidth = 2;
   roundRect(ctx, cardX, cardY, cardW, cardH, 44);
   ctx.stroke();
@@ -114,7 +202,7 @@ export async function generateCarnetImage(input: CarnetImageInput): Promise<Blob
   ctx.save();
   roundRect(ctx, cardX, cardY, cardW, cardH, 44);
   ctx.clip();
-  ctx.strokeStyle = 'rgba(45,212,191,0.2)';
+  ctx.strokeStyle = P.ringColor;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.arc(cardX + cardW - 30, cardY + 30, 190, 0, Math.PI * 2);
@@ -134,10 +222,10 @@ export async function generateCarnetImage(input: CarnetImageInput): Promise<Blob
   const restWidth = ctx.measureText(` · ${headerLabel}`).width;
   let hx = centerX - (brandWidth + restWidth) / 2;
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#2dd4bf';
+  ctx.fillStyle = P.accent;
   ctx.fillText(brandText, hx, y);
   hx += brandWidth;
-  ctx.fillStyle = '#62667f';
+  ctx.fillStyle = P.textTertiary;
   ctx.fillText(` · ${headerLabel}`, hx, y);
 
   y += 90;
@@ -155,8 +243,8 @@ export async function generateCarnetImage(input: CarnetImageInput): Promise<Blob
     ctx.drawImage(img, centerX - photoRadius, photoCenterY - photoRadius, photoRadius * 2, photoRadius * 2);
   } else {
     const avatarBg = ctx.createLinearGradient(centerX - photoRadius, photoCenterY - photoRadius, centerX + photoRadius, photoCenterY + photoRadius);
-    avatarBg.addColorStop(0, '#26304a');
-    avatarBg.addColorStop(1, '#1a2033');
+    avatarBg.addColorStop(0, P.avatarFallbackFrom);
+    avatarBg.addColorStop(1, P.avatarFallbackTo);
     ctx.fillStyle = avatarBg;
     ctx.fill();
   }
@@ -164,12 +252,12 @@ export async function generateCarnetImage(input: CarnetImageInput): Promise<Blob
   ctx.beginPath();
   ctx.arc(centerX, photoCenterY, photoRadius, 0, Math.PI * 2);
   ctx.lineWidth = 6;
-  ctx.strokeStyle = '#2dd4bf';
+  ctx.strokeStyle = P.accent;
   ctx.stroke();
 
   if (!img) {
     ctx.font = `800 64px ${FONT}`;
-    ctx.fillStyle = '#f0f1f7';
+    ctx.fillStyle = P.textPrimary;
     ctx.textAlign = 'center';
     ctx.fillText(initialsOf(input.displayName), centerX, photoCenterY + 22);
   }
@@ -180,7 +268,7 @@ export async function generateCarnetImage(input: CarnetImageInput): Promise<Blob
   ctx.textAlign = 'center';
   const nameFont = `800 52px ${FONT}`;
   ctx.font = nameFont;
-  ctx.fillStyle = '#f0f1f7';
+  ctx.fillStyle = P.textPrimary;
   ctx.fillText(fitText(ctx, input.displayName, cardW - 100, nameFont), centerX, y);
   y += 66;
 
@@ -190,12 +278,12 @@ export async function generateCarnetImage(input: CarnetImageInput): Promise<Blob
   if (input.verified) {
     chips.push({
       label: `✓ ${input.lang === 'es' ? 'Verificado' : 'Verified'}`,
-      bg: 'rgba(45,212,191,0.12)',
-      border: 'rgba(45,212,191,0.35)',
-      color: '#2dd4bf',
+      bg: P.verifiedChipBg,
+      border: P.verifiedChipBorder,
+      color: P.accent,
     });
   }
-  chips.push({ label: `● ${input.levelLabel}`, bg: 'rgba(167,139,250,0.13)', border: 'rgba(167,139,250,0.42)', color: input.levelColor });
+  chips.push({ label: `● ${input.levelLabel}`, bg: P.levelChipBg, border: P.levelChipBorder, color: input.levelColor });
 
   const chipFont = `700 24px ${FONT}`;
   ctx.font = chipFont;
@@ -227,7 +315,7 @@ export async function generateCarnetImage(input: CarnetImageInput): Promise<Blob
   if (input.zones.length > 0) {
     const zonesFont = `600 26px ${FONT}`;
     ctx.font = zonesFont;
-    ctx.fillStyle = '#9296b0';
+    ctx.fillStyle = P.textSecondary;
     ctx.fillText(fitText(ctx, input.zones.join(' · '), cardW - 100, zonesFont), centerX, y);
     y += 66;
   } else {
@@ -249,14 +337,14 @@ export async function generateCarnetImage(input: CarnetImageInput): Promise<Blob
     const tH = 42;
     trustChips.forEach((label, i) => {
       const w = tWidths[i];
-      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      ctx.fillStyle = P.trustChipBg;
       roundRect(ctx, tx, y, w, tH, tH / 2);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+      ctx.strokeStyle = P.trustChipBorder;
       ctx.lineWidth = 1.5;
       roundRect(ctx, tx, y, w, tH, tH / 2);
       ctx.stroke();
-      ctx.fillStyle = '#f0f1f7';
+      ctx.fillStyle = P.textPrimary;
       ctx.textAlign = 'left';
       ctx.font = tFont;
       ctx.fillText(label, tx + 18, y + 28);
@@ -288,22 +376,22 @@ export async function generateCarnetImage(input: CarnetImageInput): Promise<Blob
 
   stats.forEach((s, i) => {
     const sx = statX0 + i * (statBoxW + statGap);
-    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.fillStyle = P.statBoxBg;
     roundRect(ctx, sx, y, statBoxW, statBoxH, 20);
     ctx.fill();
     const valueFont = `800 40px ${FONT}`;
     ctx.font = valueFont;
-    ctx.fillStyle = '#3ee8d2';
+    ctx.fillStyle = P.accent;
     ctx.fillText(fitText(ctx, s.value, statBoxW - 24, valueFont), sx + statBoxW / 2, y + 70);
     ctx.font = `700 17px ${FONT}`;
-    ctx.fillStyle = '#62667f';
+    ctx.fillStyle = P.textTertiary;
     ctx.fillText(s.label, sx + statBoxW / 2, y + 108);
   });
   y += statBoxH + 56;
 
   // Vigencia
   ctx.font = `700 24px ${FONT}`;
-  ctx.fillStyle = input.subscriptionActive ? '#2dd4bf' : '#62667f';
+  ctx.fillStyle = input.subscriptionActive ? P.accent : P.textTertiary;
   const vigenciaText = input.subscriptionActive
     ? `● ${input.lang === 'es' ? 'Vigente' : 'Active'} · ${input.vigenteLabel}`
     : input.lang === 'es'
@@ -317,16 +405,19 @@ export async function generateCarnetImage(input: CarnetImageInput): Promise<Blob
   const boxX = cardX + 40;
   const boxW = cardW - 80;
   const contactH = 140;
-  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.fillStyle = P.contactBoxBg;
+  roundRect(ctx, boxX, y, boxW, contactH, 18);
+  ctx.fill();
+  ctx.strokeStyle = P.contactBoxBorder;
   ctx.setLineDash([8, 8]);
   ctx.lineWidth = 2;
   roundRect(ctx, boxX, y, boxW, contactH, 18);
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.font = `600 26px ${FONT}`;
-  ctx.fillStyle = '#2dd4bf';
+  ctx.fillStyle = P.accent;
   ctx.fillText('✆', boxX + 24, y + 54);
-  ctx.fillStyle = '#9296b0';
+  ctx.fillStyle = P.textSecondary;
   ctx.fillText(input.phone, boxX + 56, y + 54);
   const cityLine = `Quito, Ecuador${input.zones.length > 0 ? ` · ${input.zones.slice(0, 2).join(', ')}` : ''}`;
   ctx.font = `500 24px ${FONT}`;
@@ -336,10 +427,10 @@ export async function generateCarnetImage(input: CarnetImageInput): Promise<Blob
   // Bloque QR: abre WhatsApp con el mensaje del agente (o el default), listo
   // para escanear a resolucion util.
   const qrBoxH = 210;
-  ctx.fillStyle = 'rgba(45,212,191,0.12)';
+  ctx.fillStyle = P.qrBoxBg;
   roundRect(ctx, boxX, y, boxW, qrBoxH, 18);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(45,212,191,0.35)';
+  ctx.strokeStyle = P.qrBoxBorder;
   ctx.lineWidth = 1.5;
   roundRect(ctx, boxX, y, boxW, qrBoxH, 18);
   ctx.stroke();
@@ -355,6 +446,8 @@ export async function generateCarnetImage(input: CarnetImageInput): Promise<Blob
 
   try {
     const qrTarget = `https://wa.me/${input.phone.replace(/[^\d]/g, '')}?text=${encodeURIComponent(input.whatsappMessage)}`;
+    // El QR en si SIEMPRE se dibuja oscuro-sobre-blanco (nunca sigue el tema):
+    // necesita ese contraste fijo para escanear bien.
     const qrDataUrl = await QRCode.toDataURL(qrTarget, { width: 320, margin: 3, color: { dark: '#04201c', light: '#ffffffff' } });
     const qrImg = await loadImage(qrDataUrl);
     if (qrImg) {
@@ -371,14 +464,14 @@ export async function generateCarnetImage(input: CarnetImageInput): Promise<Blob
   }
 
   ctx.font = `700 26px ${FONT}`;
-  ctx.fillStyle = '#f0f1f7';
+  ctx.fillStyle = P.textPrimary;
   ctx.fillText(
     fitText(ctx, input.lang === 'es' ? 'Escanéame y hablemos por WhatsApp' : "Scan me, let's talk on WhatsApp", qrTextMaxWidth, `700 26px ${FONT}`),
     qrTextX,
     y + 90,
   );
   ctx.font = `500 21px ${FONT}`;
-  ctx.fillStyle = '#9296b0';
+  ctx.fillStyle = P.textSecondary;
   ctx.fillText(
     fitText(
       ctx,
@@ -395,14 +488,14 @@ export async function generateCarnetImage(input: CarnetImageInput): Promise<Blob
   ctx.textAlign = 'center';
   if (input.carnetSlug) {
     ctx.font = `500 20px ${FONT}`;
-    ctx.fillStyle = '#62667f';
+    ctx.fillStyle = P.textTertiary;
     const verifyText = `${input.lang === 'es' ? 'Verifica este carnet en' : 'Verify this card at'} redinmo.io/v/${input.carnetSlug}`;
     ctx.fillText(fitText(ctx, verifyText, cardW - 100, `500 20px ${FONT}`), centerX, y);
     y += 44;
   }
 
   ctx.font = `700 20px ${FONT}`;
-  ctx.fillStyle = '#2dd4bf';
+  ctx.fillStyle = P.accent;
   const footerBrand = 'redinmo.io';
   const footerTagline = ` · ${input.lang === 'es' ? 'EL HUB QUE CONECTA COLEGAS' : 'THE HUB THAT CONNECTS COLLEAGUES'}`;
   const footerBrandWidth = ctx.measureText(footerBrand).width;
@@ -411,11 +504,11 @@ export async function generateCarnetImage(input: CarnetImageInput): Promise<Blob
   let fx = centerX - (footerBrandWidth + footerTaglineWidth) / 2;
   ctx.textAlign = 'left';
   ctx.font = `700 20px ${FONT}`;
-  ctx.fillStyle = '#2dd4bf';
+  ctx.fillStyle = P.accent;
   ctx.fillText(footerBrand, fx, y);
   fx += footerBrandWidth;
   ctx.font = `600 20px ${FONT}`;
-  ctx.fillStyle = '#62667f';
+  ctx.fillStyle = P.textTertiary;
   ctx.fillText(footerTagline, fx, y);
 
   return new Promise((resolve, reject) => {
@@ -435,21 +528,32 @@ export type CarnetPrintInput = {
   levelLabel: string;
   levelColor: string;
   verified: boolean;
+  specialty?: 'SALE' | 'RENT' | 'BOTH';
   yearsExperience?: number | null;
   licenseNumber?: string | null;
   company?: string | null;
   zones: string[];
   phone: string;
+  email?: string | null;
+  direccion?: string | null;
+  ciudad?: string | null;
   carnetSlug?: string | null;
   lang: 'es' | 'en';
 };
 
+function specialtyLabel(specialty: 'SALE' | 'RENT' | 'BOTH' | undefined, lang: 'es' | 'en'): string {
+  if (specialty === 'SALE') return lang === 'es' ? 'Venta' : 'Sale';
+  if (specialty === 'RENT') return lang === 'es' ? 'Alquiler' : 'Rent';
+  if (specialty === 'BOTH') return lang === 'es' ? 'Venta y Alquiler' : 'Sale & Rent';
+  return '';
+}
+
 // Paleta fija para la version impresa: SIEMPRE clara, sin importar el tema
-// activo en pantalla ni la preferencia del agente (Parte 2.1) - fondo blanco y
-// texto oscuro para minimizar el consumo de tinta al imprimir. Corresponde a
-// los tokens de [data-theme='light'] en globals.css, pero hardcodeados: un
-// canvas no puede leer variables CSS y esta version nunca debe cambiar con el
-// tema de la app.
+// activo en pantalla ni la preferencia del agente (Fase 7, seccion 2.1) -
+// fondo blanco y texto oscuro para minimizar el consumo de tinta al
+// imprimir. Corresponde a los tokens de [data-theme='light'] en globals.css,
+// pero hardcodeados: un canvas no puede leer variables CSS y esta version
+// nunca debe cambiar con el tema de la app.
 const PRINT_BG = '#ffffff';
 const PRINT_TEXT = '#1a1330';
 const PRINT_TEXT_2 = '#635a80';
@@ -459,12 +563,14 @@ const PRINT_LEVEL_COLOR = '#6d28d9';
 const PRINT_LINE = '#e6e1f2';
 const PRINT_CHIP_BG = '#f4f2fa';
 
-// Version "credencial fisica" del carnet: formato tarjeta CR80 (proporcion
-// real de una tarjeta de identificacion, 85.6x54mm) renderizada a 600 DPI
-// (2020x1274px) para que se pueda imprimir y plastificar sin pixelarse -
-// a diferencia de la version "historia" (1080x1920, pensada para pantalla/
-// compartir), esta es horizontal y muestra solo los datos que tienen sentido
-// en una credencial fisica (sin puntos/posicion, que cambian todos los dias).
+// Version "credencial fisica" del carnet: formato tarjeta de presentacion
+// (85x55mm, la proporcion mas cercana que permite legibilidad - practicamente
+// CR80) renderizada a 600 DPI (2020x1274px) para que se pueda imprimir y
+// recortar sin pixelarse. Layout en 3 zonas horizontales (Fase 7-bis, seccion
+// 1.1): superior (marca + verificacion), central (foto/nombre/nivel/
+// especialidad - el bloque protagonista, centrado en el area disponible) e
+// inferior (contacto, licencia, QR) - a diferencia del layout anterior, que
+// apretujaba todo el texto arriba y dejaba el centro de la tarjeta vacio.
 // El QR apunta a la verificacion publica (redinmo.io/v/slug), no a WhatsApp:
 // el objetivo de esta version es que cualquiera pueda confirmar que el
 // agente es real y esta verificado, no iniciar un chat.
@@ -477,8 +583,10 @@ export async function generateCarnetPrintImage(input: CarnetPrintInput): Promise
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas no soportado.');
 
+  const padX = 90;
+
   // Fondo blanco (tinta economica) + franja de acento superior - unico uso de
-  // color solido "fuerte" de toda la credencial.
+  // color solido "fuerte" de toda la credencial (se mantiene sin cambios).
   ctx.fillStyle = PRINT_BG;
   ctx.fillRect(0, 0, width, height);
 
@@ -487,6 +595,34 @@ export async function generateCarnetPrintImage(input: CarnetPrintInput): Promise
   accent.addColorStop(1, '#0fb5a3');
   ctx.fillStyle = accent;
   ctx.fillRect(0, 0, width, 14);
+
+  // Marca de agua: isotipo ✦ centrado, SIN que ninguna punta se corte (Fase
+  // 7-bis, seccion 1.2). Se mide el glyph a un tamano de referencia con su
+  // caja de colision REAL (actualBoundingBox*, no solo el ancho de avance -
+  // ese era el bug: un glyph puede rendear mas alto que ancho segun la
+  // fuente, y medir solo el ancho dejaba las puntas superior/inferior
+  // saliendose del canvas) y se escala para que su lado mas largo mida como
+  // maximo 40% de la dimension MENOR de la tarjeta (la altura, aqui). Se
+  // pinta antes que cualquier otro contenido para quedar siempre detras.
+  ctx.save();
+  const wmProbeSize = 400;
+  ctx.font = `800 ${wmProbeSize}px ${FONT}`;
+  const wmProbe = ctx.measureText('✦');
+  const probeW = (wmProbe.actualBoundingBoxLeft ?? 0) + (wmProbe.actualBoundingBoxRight ?? wmProbe.width);
+  const probeH = (wmProbe.actualBoundingBoxAscent ?? wmProbeSize * 0.75) + (wmProbe.actualBoundingBoxDescent ?? wmProbeSize * 0.1);
+  const probeMax = Math.max(probeW, probeH, 1);
+  const wmTargetSize = Math.min(width, height) * 0.4;
+  const wmFontSize = Math.round(wmProbeSize * (wmTargetSize / probeMax));
+  ctx.font = `800 ${wmFontSize}px ${FONT}`;
+  const wmGrad = ctx.createLinearGradient(0, 0, width, height);
+  wmGrad.addColorStop(0, 'rgba(109,74,255,0.07)');
+  wmGrad.addColorStop(1, 'rgba(13,148,136,0.07)');
+  ctx.fillStyle = wmGrad;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('✦', width / 2, height / 2);
+  ctx.textBaseline = 'alphabetic';
+  ctx.restore();
 
   ctx.save();
   ctx.beginPath();
@@ -499,41 +635,62 @@ export async function generateCarnetPrintImage(input: CarnetPrintInput): Promise
   ctx.stroke();
   ctx.restore();
 
-  // Marca de agua: isotipo ✦ centrado en el area central de la credencial,
-  // ~55% del ancho, 6-8% de opacidad con un degradado violeta->teal muy tenue
-  // (simula el efecto holografico de la version en pantalla) - se pinta antes
-  // que cualquier otro contenido para quedar siempre detras (Parte 2.2).
-  ctx.save();
-  ctx.font = `800 1000px ${FONT}`;
-  const wmMeasured = ctx.measureText('✦').width;
-  const wmFontSize = Math.round(1000 * ((width * 0.55) / wmMeasured));
-  ctx.font = `800 ${wmFontSize}px ${FONT}`;
-  const wmGrad = ctx.createLinearGradient(0, 0, width, height);
-  wmGrad.addColorStop(0, 'rgba(109,74,255,0.07)');
-  wmGrad.addColorStop(1, 'rgba(13,148,136,0.07)');
-  ctx.fillStyle = wmGrad;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('✦', width / 2, height / 2);
-  ctx.textBaseline = 'alphabetic';
-  ctx.restore();
+  // --- Zona superior: marca + estado de verificacion ---
+  const topBaseline = 78;
+  ctx.textAlign = 'left';
+  ctx.font = `800 32px ${FONT}`;
+  ctx.fillStyle = PRINT_ACCENT;
+  ctx.fillText('✦ REDINMO.IO', padX, topBaseline);
+  const brandW = ctx.measureText('✦ REDINMO.IO').width;
+  ctx.font = `600 26px ${FONT}`;
+  ctx.fillStyle = PRINT_TEXT_3;
+  ctx.fillText(input.lang === 'es' ? '  ·  CARNET DE AGENTE INMOBILIARIO' : '  ·  REAL ESTATE AGENT CARD', padX + brandW, topBaseline);
 
-  const padX = 90;
-  const photoR = 150;
-  const photoCX = padX + photoR;
-  const photoCY = height / 2 - 30;
+  ctx.textAlign = 'right';
+  ctx.font = `700 28px ${FONT}`;
+  ctx.fillStyle = input.verified ? PRINT_ACCENT : PRINT_TEXT_3;
+  ctx.fillText(input.verified ? (input.lang === 'es' ? '✓ VERIFICADO' : '✓ VERIFIED') : (input.lang === 'es' ? 'NO VERIFICADO' : 'NOT VERIFIED'), width - padX, topBaseline);
 
-  // Foto / iniciales
+  const topLineY = 116;
+  ctx.strokeStyle = PRINT_LINE;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(padX, topLineY);
+  ctx.lineTo(width - padX, topLineY);
+  ctx.stroke();
+
+  // --- Zona central: foto + nombre + nivel + especialidad, bloque
+  // protagonista centrado en el espacio disponible entre las dos zonas. ---
+  const bottomZoneTop = 954;
+  const centerZoneTop = topLineY + 34;
+  const centerZoneH = bottomZoneTop - centerZoneTop;
+
+  const photoR = 145;
+  const gapPhotoName = 40;
+  const nameLineH = 64;
+  const gapNameLevel = 22;
+  const levelLineH = 34;
+  const hasSpecialtyOrCompany = Boolean(specialtyLabel(input.specialty, input.lang) || input.company);
+  const gapLevelCompany = 18;
+  const companyLineH = 30;
+
+  let blockH = photoR * 2 + gapPhotoName + nameLineH + gapNameLevel + levelLineH;
+  if (hasSpecialtyOrCompany) blockH += gapLevelCompany + companyLineH;
+
+  let cy = centerZoneTop + Math.max(0, (centerZoneH - blockH) / 2);
+  const centerX = width / 2;
+
+  const photoCenterY = cy + photoR;
   const img = input.photoUrl ? await loadImage(input.photoUrl) : null;
   ctx.save();
   ctx.beginPath();
-  ctx.arc(photoCX, photoCY, photoR, 0, Math.PI * 2);
+  ctx.arc(centerX, photoCenterY, photoR, 0, Math.PI * 2);
   ctx.closePath();
   if (img) {
     ctx.clip();
-    ctx.drawImage(img, photoCX - photoR, photoCY - photoR, photoR * 2, photoR * 2);
+    ctx.drawImage(img, centerX - photoR, photoCenterY - photoR, photoR * 2, photoR * 2);
   } else {
-    const avatarBg = ctx.createLinearGradient(photoCX - photoR, photoCY - photoR, photoCX + photoR, photoCY + photoR);
+    const avatarBg = ctx.createLinearGradient(centerX - photoR, photoCenterY - photoR, centerX + photoR, photoCenterY + photoR);
     avatarBg.addColorStop(0, '#efeaff');
     avatarBg.addColorStop(1, '#e0f5f2');
     ctx.fillStyle = avatarBg;
@@ -541,7 +698,7 @@ export async function generateCarnetPrintImage(input: CarnetPrintInput): Promise
   }
   ctx.restore();
   ctx.beginPath();
-  ctx.arc(photoCX, photoCY, photoR, 0, Math.PI * 2);
+  ctx.arc(centerX, photoCenterY, photoR, 0, Math.PI * 2);
   ctx.lineWidth = 8;
   ctx.strokeStyle = PRINT_ACCENT;
   ctx.stroke();
@@ -549,79 +706,94 @@ export async function generateCarnetPrintImage(input: CarnetPrintInput): Promise
     ctx.font = `800 92px ${FONT}`;
     ctx.fillStyle = PRINT_TEXT;
     ctx.textAlign = 'center';
-    ctx.fillText(initialsOf(input.displayName), photoCX, photoCY + 32);
+    ctx.fillText(initialsOf(input.displayName), centerX, photoCenterY + 32);
   }
 
+  cy = photoCenterY + photoR + gapPhotoName;
   ctx.textAlign = 'center';
-  ctx.font = `700 30px ${FONT}`;
-  ctx.fillStyle = input.verified ? PRINT_ACCENT : PRINT_TEXT_3;
-  ctx.fillText(input.verified ? (input.lang === 'es' ? '✓ VERIFICADO' : '✓ VERIFIED') : (input.lang === 'es' ? 'NO VERIFICADO' : 'NOT VERIFIED'), photoCX, photoCY + photoR + 60);
-
-  // Columna derecha: marca, nombre, credenciales, contacto y QR de verificacion.
-  const colX = padX + photoR * 2 + 80;
-  const colW = width - colX - padX;
-  let y = 150;
-
-  ctx.textAlign = 'left';
-  ctx.font = `800 34px ${FONT}`;
-  ctx.fillStyle = PRINT_ACCENT;
-  ctx.fillText('✦ REDINMO.IO', colX, y);
-  ctx.font = `600 28px ${FONT}`;
-  ctx.fillStyle = PRINT_TEXT_3;
-  ctx.fillText(input.lang === 'es' ? '  ·  CARNET DE AGENTE INMOBILIARIO' : '  ·  REAL ESTATE AGENT CARD', colX + 260, y);
-
-  y += 76;
-  const nameFont = `800 68px ${FONT}`;
+  const nameFont = `800 60px ${FONT}`;
   ctx.font = nameFont;
   ctx.fillStyle = PRINT_TEXT;
-  ctx.fillText(fitText(ctx, input.displayName, colW, nameFont), colX, y);
+  ctx.fillText(fitText(ctx, input.displayName, width * 0.7, nameFont), centerX, cy);
 
-  y += 50;
-  ctx.font = `700 30px ${FONT}`;
+  cy += gapNameLevel + levelLineH * 0.7;
+  ctx.font = `700 32px ${FONT}`;
   ctx.fillStyle = PRINT_LEVEL_COLOR;
-  ctx.fillText(`● ${input.levelLabel}${input.company ? `   ·   ${input.company}` : ''}`, colX, y);
+  ctx.fillText(`● ${input.levelLabel}`, centerX, cy);
 
-  y += 60;
-  // Chips de credenciales: experiencia + licencia + zonas. La etiqueta de
-  // licencia es siempre "Lic. Prof.: [numero]" (Parte 2.3) - si el agente no
+  if (hasSpecialtyOrCompany) {
+    cy += gapLevelCompany + companyLineH * 0.7;
+    const specLabel = specialtyLabel(input.specialty, input.lang);
+    const line = [specLabel, input.company].filter(Boolean).join('   ·   ');
+    ctx.font = `600 28px ${FONT}`;
+    ctx.fillStyle = PRINT_TEXT_2;
+    ctx.fillText(fitText(ctx, line, width * 0.7, `600 28px ${FONT}`), centerX, cy);
+  }
+
+  // --- Zona inferior: contacto, licencia y QR de verificacion. ---
+  ctx.strokeStyle = PRINT_LINE;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(padX, bottomZoneTop);
+  ctx.lineTo(width - padX, bottomZoneTop);
+  ctx.stroke();
+
+  const qrBox = 180;
+  const qrX = width - padX - qrBox;
+  const qrY = height - 70 - qrBox;
+  const textMaxWidth = qrX - padX - 40;
+
+  ctx.textAlign = 'left';
+  let by = bottomZoneTop + 76;
+
+  // Chips de credenciales: experiencia + licencia. La etiqueta de licencia es
+  // siempre "Lic. Prof.: [numero]" (Fase 7, seccion 2.3) - si el agente no
   // registro licencia, el chip simplemente no se agrega (nunca "Lic. Prof.: —").
   const chipParts: string[] = [];
   if (input.yearsExperience) chipParts.push(`${input.yearsExperience}+ ${input.lang === 'es' ? 'años de experiencia' : 'years of experience'}`);
   if (input.licenseNumber) chipParts.push(`Lic. Prof.: ${input.licenseNumber}`);
-  const chipFont = `700 27px ${FONT}`;
-  ctx.font = chipFont;
-  let chipX = colX;
-  for (const label of chipParts) {
-    const w = ctx.measureText(label).width + 40;
-    ctx.fillStyle = PRINT_CHIP_BG;
-    roundRect(ctx, chipX, y, w, 52, 26);
-    ctx.fill();
-    ctx.strokeStyle = PRINT_LINE;
-    ctx.lineWidth = 1.5;
-    roundRect(ctx, chipX, y, w, 52, 26);
-    ctx.stroke();
-    ctx.fillStyle = PRINT_TEXT;
+  if (chipParts.length > 0) {
+    const chipFont = `700 26px ${FONT}`;
     ctx.font = chipFont;
-    ctx.fillText(label, chipX + 20, y + 34);
-    chipX += w + 14;
+    let chipX = padX;
+    for (const label of chipParts) {
+      const w = ctx.measureText(label).width + 38;
+      ctx.fillStyle = PRINT_CHIP_BG;
+      roundRect(ctx, chipX, by - 36, w, 50, 25);
+      ctx.fill();
+      ctx.strokeStyle = PRINT_LINE;
+      ctx.lineWidth = 1.5;
+      roundRect(ctx, chipX, by - 36, w, 50, 25);
+      ctx.stroke();
+      ctx.fillStyle = PRINT_TEXT;
+      ctx.font = chipFont;
+      ctx.fillText(label, chipX + 19, by - 3);
+      chipX += w + 14;
+    }
+    by += 58;
   }
-  y += 90;
 
-  if (input.zones.length > 0) {
-    ctx.font = `600 28px ${FONT}`;
-    ctx.fillStyle = PRINT_TEXT_2;
-    const zonesFont = `600 28px ${FONT}`;
-    ctx.fillText(fitText(ctx, `${input.lang === 'es' ? 'Zonas' : 'Areas'}: ${input.zones.join(' · ')}`, colW - 260, zonesFont), colX, y);
+  // Lineas de contacto: telefono + correo, direccion profesional (si el
+  // agente la cargo), zonas (si tiene) - cada linea se salta si no hay dato,
+  // en vez de dejar un hueco o un "—".
+  const contactLines: { text: string; font: string; color: string }[] = [];
+  const phoneEmail = input.email ? `✆ ${input.phone}    ✉ ${input.email}` : `✆ ${input.phone}`;
+  contactLines.push({ text: phoneEmail, font: `600 28px ${FONT}`, color: PRINT_TEXT_2 });
+  if (input.direccion) {
+    contactLines.push({ text: `${input.direccion}${input.ciudad ? `, ${input.ciudad}` : ''}`, font: `500 25px ${FONT}`, color: PRINT_TEXT_3 });
   }
-  ctx.font = `600 28px ${FONT}`;
-  ctx.fillStyle = PRINT_TEXT_2;
-  ctx.fillText(`✆ ${input.phone}`, colX, y + 46);
+  if (input.zones.length > 0) {
+    contactLines.push({ text: `${input.lang === 'es' ? 'Zonas' : 'Areas'}: ${input.zones.join(' · ')}`, font: `500 25px ${FONT}`, color: PRINT_TEXT_3 });
+  }
+  for (const line of contactLines) {
+    ctx.font = line.font;
+    ctx.fillStyle = line.color;
+    ctx.fillText(fitText(ctx, line.text, textMaxWidth, line.font), padX, by);
+    by += 40;
+  }
 
   // QR de verificacion publica, esquina inferior derecha
   if (input.carnetSlug) {
-    const qrBox = 190;
-    const qrX = width - padX - qrBox;
-    const qrY = height - 110 - qrBox;
     ctx.fillStyle = '#ffffff';
     roundRect(ctx, qrX, qrY, qrBox, qrBox, 16);
     ctx.fill();
@@ -647,7 +819,7 @@ export async function generateCarnetPrintImage(input: CarnetPrintInput): Promise
   ctx.font = `600 22px ${FONT}`;
   ctx.fillStyle = PRINT_TEXT_3;
   const issued = new Date().toLocaleDateString(input.lang === 'es' ? 'es-EC' : 'en-US', { month: 'long', year: 'numeric' });
-  ctx.fillText(`redinmo.io  ·  ${input.lang === 'es' ? 'emitido' : 'issued'} ${issued}`, colX, height - 60);
+  ctx.fillText(`redinmo.io  ·  ${input.lang === 'es' ? 'emitido' : 'issued'} ${issued}`, padX, height - 40);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {

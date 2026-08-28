@@ -3,7 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { getSessionFromRequest } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logSubscriptionActivation } from '@/lib/real-estate/churn';
-import { findAgentById, shouldUseMockStore, updateAgent } from '@/lib/real-estate/mock-store';
+import { createMockTransaccion, findAgentById, shouldUseMockStore, updateAgent } from '@/lib/real-estate/mock-store';
 import {
   confirmPayphoneTransaction,
   isExpectedCheckoutAmount,
@@ -64,6 +64,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, fallback: true, alreadyProcessed: true });
       }
       const paidUntil = new Date(Date.now() + getBillingCycleMs()).toISOString();
+      const nuevaOReiniciadaMock = plan === 'BASICO' && esActivacionNuevaOReiniciada({
+        subscriptionStatus: agent?.subscriptionStatus ?? 'INACTIVE',
+        precioFundadorBasico: agent?.precioFundadorBasico ?? null,
+      });
+      const founderTotalCentsMock = plan === 'BASICO' && !nuevaOReiniciadaMock ? agent?.precioFundadorBasico : null;
       const patch: Record<string, unknown> = {
         subscriptionStatus: 'ACTIVE',
         subscriptionPaidUntil: paidUntil,
@@ -73,13 +78,20 @@ export async function POST(request: NextRequest) {
         planDesde: new Date().toISOString(),
         planSiguiente: undefined,
       };
-      if (plan === 'BASICO' && esActivacionNuevaOReiniciada({
-        subscriptionStatus: agent?.subscriptionStatus ?? 'INACTIVE',
-        precioFundadorBasico: agent?.precioFundadorBasico ?? null,
-      })) {
+      if (nuevaOReiniciadaMock) {
         patch.precioFundadorBasico = PLANES.BASICO.total;
       }
       updateAgent(authSession.agentId, patch);
+      const mockAmounts = getCheckoutAmountsInCents(plan, founderTotalCentsMock);
+      createMockTransaccion({
+        agentId: authSession.agentId,
+        plan,
+        provider: 'PAYPHONE',
+        amountCents: mockAmounts.amountWithTax,
+        taxCents: mockAmounts.tax,
+        totalCents: mockAmounts.amount,
+        providerTransactionId: String(body.id),
+      });
       return NextResponse.json({ success: true, fallback: true });
     }
 

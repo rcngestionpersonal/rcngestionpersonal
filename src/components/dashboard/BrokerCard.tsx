@@ -38,18 +38,21 @@ function CarnetQrBlock({ phone, message, lang }: { phone: string; message: strin
   }, [phone, message]);
 
   return (
-    <div className="relative mt-3 flex items-center gap-3 rounded-xl border border-[rgba(45,212,191,0.35)] bg-[rgba(45,212,191,0.12)] p-3 text-left">
+    <div className="relative mt-3 flex items-center gap-3 rounded-xl border border-accent-line bg-accent-dim p-3 text-left">
+      {/* Fondo blanco fijo aqui adentro (nunca tokenizado): un QR necesita
+          contraste oscuro-sobre-claro para escanear bien, sin importar el
+          tema activo de la app. */}
       <div className="flex h-[74px] w-[74px] shrink-0 items-center justify-center rounded-lg bg-white/90">
         {dataUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={dataUrl} alt="Código QR para escribir por WhatsApp" className="h-full w-full" />
         ) : (
-          <span className="text-[9px] text-[#0b0d14]/50">QR</span>
+          <span className="text-[9px] text-black/50">QR</span>
         )}
       </div>
       <div className="min-w-0">
-        <p className="text-[12px] font-bold text-[#f0f1f7]">{lang === 'es' ? 'Escanéame y hablemos por WhatsApp' : 'Scan me and let’s talk on WhatsApp'}</p>
-        <p className="mt-0.5 text-[10.5px] text-[#9296b0]">
+        <p className="text-[12px] font-bold text-text">{lang === 'es' ? 'Escanéame y hablemos por WhatsApp' : 'Scan me and let’s talk on WhatsApp'}</p>
+        <p className="mt-0.5 text-[10.5px] text-text-2">
           {lang === 'es' ? 'Abre un chat directo conmigo con un mensaje listo.' : 'Opens a direct chat with me, message ready to send.'}
         </p>
       </div>
@@ -74,6 +77,10 @@ export type BrokerCardData = {
   joinYear: number;
   specializationZones: string[];
   phone: string;
+  email?: string | null;
+  direccion?: string | null;
+  ciudad?: string | null;
+  specialty?: 'SALE' | 'RENT' | 'BOTH';
   subscriptionActive: boolean;
   carnetMessage?: string | null;
   carnetSlug?: string | null;
@@ -103,49 +110,49 @@ export function BrokerCard({
 
   return (
     <div
-      className="relative overflow-hidden rounded-[20px] border p-5 text-center sm:p-6"
-      style={{ background: 'linear-gradient(165deg, #131a22 0%, #10141f 45%, #141225 100%)', borderColor: 'rgba(45,212,191,0.35)' }}
+      className="relative overflow-hidden rounded-[20px] border border-accent-line p-5 text-center sm:p-6"
+      style={{ background: 'linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%)' }}
     >
-      <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full border border-[rgba(45,212,191,0.2)]" />
-      <div className="pointer-events-none absolute -right-6 -top-6 h-36 w-36 rounded-full border border-[rgba(45,212,191,0.2)]" />
+      <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full border border-accent-line" />
+      <div className="pointer-events-none absolute -right-6 -top-6 h-36 w-36 rounded-full border border-accent-line" />
 
-      <p className="relative text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#62667f]">
-        <span className="text-[#2dd4bf]">✦ REDINMO</span> · {t('ranking.carnet.tipo').replace('· ', '')}
+      <p className="relative text-[10px] font-extrabold uppercase tracking-[0.18em] text-text-3">
+        <span className="text-accent">✦ REDINMO</span> · {t('ranking.carnet.tipo').replace('· ', '')}
       </p>
 
       <div className="relative mt-4 flex justify-center">
-        <div className="rounded-full outline outline-[2.5px] outline-offset-[3px] outline-[#2dd4bf]">
-          <AvatarInitials name={data.displayName || '—'} size={88} colorHex="#26304a" photoUrl={data.photoUrl} />
+        <div className="rounded-full outline outline-[2.5px] outline-offset-[3px] outline-accent">
+          <AvatarInitials name={data.displayName || '—'} size={88} colorHex="#efeaff" photoUrl={data.photoUrl} />
         </div>
       </div>
 
-      <p className="relative mt-3 truncate text-[21px] font-extrabold text-[#f0f1f7]">{data.displayName}</p>
+      <p className="relative mt-3 truncate text-[21px] font-extrabold text-text">{data.displayName}</p>
 
       <div className="relative mt-2 flex flex-wrap items-center justify-center gap-1.5">
         {data.verified ? (
-          <span className="inline-flex items-center rounded-full border border-[rgba(45,212,191,0.35)] bg-[rgba(45,212,191,0.12)] px-2.5 py-1 text-[10px] font-bold text-[#2dd4bf]">
+          <span className="inline-flex items-center rounded-full border border-accent-line bg-accent-dim px-2.5 py-1 text-[10px] font-bold text-accent">
             ✓ {t('shell.verificado')}
           </span>
         ) : null}
         <span
-          className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold"
-          style={{ borderColor: 'rgba(167,139,250,0.42)', background: 'rgba(167,139,250,0.13)', color: levelColor }}
+          className="inline-flex items-center gap-1 rounded-full border border-brand-line bg-brand-dim px-2.5 py-1 text-[10px] font-bold"
+          style={{ color: levelColor }}
         >
           ● {levelLabel}
         </span>
       </div>
 
-      {zones.length > 0 ? <p className="relative mt-3 text-[11.5px] text-[#9296b0]">{zones.join(' · ')}</p> : null}
+      {zones.length > 0 ? <p className="relative mt-3 text-[11.5px] text-text-2">{zones.join(' · ')}</p> : null}
 
       {data.yearsExperience || data.licenseNumber ? (
         <div className="relative mt-3 flex flex-wrap items-center justify-center gap-1.5">
           {data.yearsExperience ? (
-            <span className="inline-flex items-center rounded-full border border-[rgba(255,255,255,0.12)] bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold text-[#f0f1f7]">
+            <span className="inline-flex items-center rounded-full border border-line-strong bg-surface-2 px-2.5 py-1 text-[10px] font-bold text-text">
               {data.yearsExperience}+ {lang === 'es' ? 'años de experiencia' : 'years of experience'}
             </span>
           ) : null}
           {data.licenseNumber ? (
-            <span className="inline-flex items-center rounded-full border border-[rgba(255,255,255,0.12)] bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold text-[#f0f1f7]">
+            <span className="inline-flex items-center rounded-full border border-line-strong bg-surface-2 px-2.5 py-1 text-[10px] font-bold text-text">
               {lang === 'es' ? 'Lic.' : 'Lic.'} {data.licenseNumber}
             </span>
           ) : null}
@@ -168,15 +175,15 @@ export function BrokerCard({
         )}
       </div>
 
-      <p className="relative mt-4 text-[10.5px] font-semibold" style={{ color: data.subscriptionActive ? '#2dd4bf' : '#62667f' }}>
+      <p className="relative mt-4 text-[10.5px] font-semibold" style={{ color: data.subscriptionActive ? 'var(--accent)' : 'var(--text-3)' }}>
         {data.subscriptionActive ? `● ${lang === 'es' ? 'Vigente' : 'Active'} · ${vigenteLabel}` : lang === 'es' ? 'No vigente' : 'Not active'}
       </p>
 
-      <div className="relative mt-4 rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-3 text-left">
-        <p className="flex items-center gap-1.5 text-[12px] text-[#9296b0]">
-          <span aria-hidden="true" className="text-[#2dd4bf]">✆</span> {data.phone}
+      <div className="relative mt-4 rounded-xl border border-dashed border-line bg-surface-2 p-3 text-left">
+        <p className="flex items-center gap-1.5 text-[12px] text-text-2">
+          <span aria-hidden="true" className="text-accent">✆</span> {data.phone}
         </p>
-        <p className="mt-1 text-[12px] text-[#9296b0]">
+        <p className="mt-1 text-[12px] text-text-2">
           Quito, Ecuador{zones.length > 0 ? ` · ${zones.slice(0, 2).join(', ')}` : ''}
         </p>
       </div>
@@ -184,14 +191,14 @@ export function BrokerCard({
       <CarnetQrBlock phone={data.phone} message={whatsappMessage} lang={lang} />
 
       {data.carnetSlug ? (
-        <p className="relative mt-3 text-[9.5px] text-[#62667f]">
+        <p className="relative mt-3 text-[9.5px] text-text-3">
           {lang === 'es' ? 'Verifica este carnet en' : 'Verify this card at'}{' '}
-          <span className="font-semibold text-[#8b8fa3]">redinmo.io/v/{data.carnetSlug}</span>
+          <span className="font-semibold text-text-2">redinmo.io/v/{data.carnetSlug}</span>
         </p>
       ) : null}
 
-      <p className="relative mt-4 text-[10px] text-[#62667f]">
-        <span className="font-bold text-[#2dd4bf]">redinmo.io</span> ·{' '}
+      <p className="relative mt-4 text-[10px] text-text-3">
+        <span className="font-bold text-accent">redinmo.io</span> ·{' '}
         {lang === 'es' ? 'EL HUB QUE CONECTA COLEGAS' : 'THE HUB THAT CONNECTS COLLEAGUES'}
       </p>
     </div>
@@ -200,9 +207,9 @@ export function BrokerCard({
 
 function MiniStat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="rounded-[11px] bg-white/[0.03] p-3 text-center">
-      <p className="truncate text-lg font-extrabold text-[#3ee8d2]">{value}</p>
-      <p className="mt-0.5 text-[9.5px] font-bold uppercase tracking-[0.06em] text-[#62667f]">{label}</p>
+    <div className="rounded-[11px] bg-surface-2 p-3 text-center">
+      <p className="truncate text-lg font-extrabold text-accent">{value}</p>
+      <p className="mt-0.5 text-[9.5px] font-bold uppercase tracking-[0.06em] text-text-3">{label}</p>
     </div>
   );
 }

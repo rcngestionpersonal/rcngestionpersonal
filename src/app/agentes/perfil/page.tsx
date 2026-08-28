@@ -186,8 +186,11 @@ export default function EditarPerfilPage() {
 
       setSaved(true);
       setPhotoBlob(null);
-      await load();
-      setTimeout(() => setSaved(false), 3000);
+      // Redirige al menu principal tras el toast (Fase 7-bis, seccion 2.1):
+      // quedarse en el formulario sin feedback claro es lo que se reporto
+      // como "sin señal clara de exito". No hace falta recargar los datos
+      // (await load()) ya que la pantalla no sigue visible.
+      setTimeout(() => router.push('/'), 1000);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Error al guardar tu perfil.');
     } finally {
@@ -220,6 +223,13 @@ export default function EditarPerfilPage() {
 
   return (
     <main className="violet-ambient-bg min-h-screen px-4 py-8 text-text sm:py-10">
+      {saved ? (
+        <div className="fixed inset-x-0 top-5 z-50 flex justify-center px-4">
+          <p className="rounded-full border border-accent-line bg-accent-dim px-5 py-2.5 text-sm font-semibold text-accent shadow-md">
+            ✓ Perfil actualizado
+          </p>
+        </div>
+      ) : null}
       <div className="mx-auto max-w-2xl">
         <section className="grain-overlay relative mb-6 overflow-hidden rounded-3xl border border-line bg-surface p-6 shadow-md backdrop-blur-xl">
           <div className="pointer-events-none absolute -right-10 top-0 h-40 w-40 rounded-full bg-[var(--glow-brand)] blur-2xl" />
@@ -427,7 +437,6 @@ export default function EditarPerfilPage() {
           </div>
 
           {saveError ? <p className="rounded-xl border border-danger bg-danger-dim px-3 py-2.5 text-sm text-danger">{saveError}</p> : null}
-          {saved ? <p className="rounded-xl border border-accent-line bg-accent-dim px-3 py-2.5 text-sm font-semibold text-accent">Perfil actualizado.</p> : null}
 
           <button
             onClick={() => void submit()}

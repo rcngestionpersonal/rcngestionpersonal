@@ -180,6 +180,10 @@ function CarnetSection({
     joinYear,
     specializationZones: myAgent?.specializationZones ?? [],
     phone: myAgent?.phone ?? '',
+    email: myAgent?.email,
+    direccion: myAgent?.direccion,
+    ciudad: myAgent?.ciudad,
+    specialty: myAgent?.specialty,
     subscriptionActive,
     carnetMessage: myAgent?.carnetMessage,
     carnetSlug: carnetSlug ?? myAgent?.carnetSlug,
@@ -227,7 +231,7 @@ function CarnetSection({
       {cardData.specializationZones.length === 0 ? (
         <button
           onClick={() => setEditorOpen(true)}
-          className="mt-3 block w-full text-center text-xs text-text-2 underline decoration-dotted underline-offset-2 transition-colors hover:text-[#2dd4bf]"
+          className="mt-3 block w-full text-center text-xs text-text-2 underline decoration-dotted underline-offset-2 transition-colors hover:text-accent"
         >
           {t('ranking.carnet.nudgeZonas')} — {t('ranking.carnet.completarPerfil')}
         </button>
@@ -237,7 +241,7 @@ function CarnetSection({
         <button
           onClick={() => setShareOpen(true)}
           aria-label={t('ranking.compartirCarnet')}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-[rgba(255,255,255,0.07)] px-4 py-2.5 text-sm font-semibold text-text-2 transition-colors duration-150 hover:text-[#2dd4bf]"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-[10px] border border-line px-4 py-2.5 text-sm font-semibold text-text-2 transition-colors duration-150 hover:text-accent"
         >
           ↗ {t('ranking.compartirCarnet')}
         </button>

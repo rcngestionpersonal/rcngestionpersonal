@@ -90,6 +90,7 @@ export type AgentItem = {
   carnetMessage?: string | null;
   carnetSlug?: string | null;
   company?: string;
+  specialty?: 'SALE' | 'RENT' | 'BOTH';
   zones: string[];
   subscriptionStatus: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'INACTIVE';
   idNumber?: string;

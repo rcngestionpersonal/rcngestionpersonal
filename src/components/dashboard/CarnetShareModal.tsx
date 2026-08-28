@@ -1,8 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import { useTheme } from 'next-themes';
 import { BrokerCard, DEFAULT_CARNET_MESSAGE_ES, DEFAULT_CARNET_MESSAGE_EN, type BrokerCardData } from './BrokerCard';
 import { generateCarnetImage, generateCarnetPrintImage } from './carnet-image';
+
+// El carnet para compartir (imagen exportada) sigue el tema activo del
+// agente (Fase 7-bis, seccion 1.3): claro por defecto, oscuro si el agente
+// tiene el tema oscuro seleccionado. El nivel usa el violeta de marca del
+// tema correspondiente - el canvas no puede resolver custom properties CSS.
+const LEVEL_COLOR_BY_THEME: Record<'light' | 'dark', string> = { light: '#6d4aff', dark: '#b7a5ff' };
 
 // Modal de "Compartir mi carnet": toggle Colegas/Clientes con vista previa en
 // vivo (el MISMO BrokerCard que se ve en Ranking, solo cambia el prop
@@ -24,6 +31,8 @@ export default function CarnetShareModal({
   const [sharing, setSharing] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [toast, setToast] = useState('');
+  const { resolvedTheme } = useTheme();
+  const exportTheme: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light';
 
   async function handleShare() {
     setSharing(true);
@@ -39,9 +48,8 @@ export default function CarnetShareModal({
         displayName: data.displayName,
         photoUrl: data.photoUrl,
         levelLabel,
-        // El canvas de exportacion no puede resolver custom properties CSS - el
-        // carnet exportado siempre usa el violeta de marca literal (Parte 5.22).
-        levelColor: '#b7a5ff',
+        levelColor: LEVEL_COLOR_BY_THEME[exportTheme],
+        theme: exportTheme,
         verified: data.verified,
         audience,
         rank: data.rank,
@@ -92,13 +100,17 @@ export default function CarnetShareModal({
         displayName: data.displayName,
         photoUrl: data.photoUrl,
         levelLabel,
-        levelColor: '#b7a5ff',
+        levelColor: '#6d4aff',
         verified: data.verified,
+        specialty: data.specialty,
         yearsExperience: data.yearsExperience,
         licenseNumber: data.licenseNumber,
         company: data.company,
         zones: data.specializationZones,
         phone: data.phone,
+        email: data.email,
+        direccion: data.direccion,
+        ciudad: data.ciudad,
         carnetSlug: data.carnetSlug,
         lang,
       });
@@ -125,7 +137,7 @@ export default function CarnetShareModal({
       role="presentation"
     >
       <div
-        className="max-h-[92vh] w-full max-w-[420px] overflow-y-auto rounded-t-[24px] border border-line bg-[#141722] p-5 sm:rounded-[24px]"
+        className="max-h-[92vh] w-full max-w-[420px] overflow-y-auto rounded-t-[24px] border border-line bg-surface p-5 sm:rounded-[24px]"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

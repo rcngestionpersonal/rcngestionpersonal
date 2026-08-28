@@ -1,16 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import { isAgentVerified, type AgentItem } from '../types';
 import { daysRemaining, resolveEffectiveSubscriptionStatus } from '@/lib/real-estate/subscription-status';
-import { PLANES, formatUsd } from '@/config/planes';
+import { PLANES, formatUsd, type PlanTipo } from '@/config/planes';
 
 function fmtFecha(iso?: string | null): string {
   if (!iso) return '';
   return new Date(iso).toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric' });
 }
+
+type TransaccionItem = { id: string; plan: PlanTipo; totalCents: number; createdAt: string };
+
+const HISTORY_PAGE_SIZE = 3;
 
 export default function SuscripcionTab({
   isAdmin,
@@ -32,14 +36,35 @@ export default function SuscripcionTab({
   const [canceling, setCanceling] = useState(false);
   const [cancelError, setCancelError] = useState('');
   const [canceled, setCanceled] = useState(false);
+  const [transacciones, setTransacciones] = useState<TransaccionItem[]>([]);
+  const [showAllHistory, setShowAllHistory] = useState(false);
+
+  useEffect(() => {
+    if (isAdmin || !myAgentId) return;
+    fetch('/api/real-estate/billing/history', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setTransacciones(data?.transacciones ?? []))
+      .catch(() => {});
+  }, [isAdmin, myAgentId]);
 
   if (!isAdmin) {
     const myAgent = agents.find((a) => a.id === myAgentId);
     const verified = isAgentVerified(myAgent);
     const effectiveStatus = myAgent ? resolveEffectiveSubscriptionStatus(myAgent) : undefined;
-    const needsPayment = effectiveStatus === 'TRIAL' || effectiveStatus === 'INACTIVE' || effectiveStatus === 'PAST_DUE';
     const isActive = effectiveStatus === 'ACTIVE';
     const isDbCanceled = myAgent?.subscriptionStatus === 'CANCELED';
+
+    // CTA principal segun estado (Fase 7-bis, seccion 3.1): trial y vencida
+    // llevan textos distintos aunque ambos apunten a /planes, y Pro activo no
+    // lleva CTA - solo gestion (cambiar/cancelar quedan en el bloque secundario).
+    const ctaLabel =
+      effectiveStatus === 'TRIAL'
+        ? t('suscripcion.cta.elegirMiPlan')
+        : effectiveStatus === 'INACTIVE' || effectiveStatus === 'PAST_DUE'
+          ? t('suscripcion.cta.activarSuscripcion')
+          : isActive && !isDbCanceled && myAgent?.plan === 'BASICO'
+            ? t('suscripcion.cta.conocerPro')
+            : null;
 
     async function cancelar() {
       setCanceling(true);
@@ -61,130 +86,164 @@ export default function SuscripcionTab({
       }
     }
 
-    return (
-      <div className="space-y-10">
-        <section className="glass-card rounded-[1.8rem] p-4 fade-up sm:p-6">
-          <h2 className="text-xl font-bold text-text">{t('suscripcion.title.agent')}</h2>
-          <p className="mt-1 text-sm text-text-2">{t('suscripcion.plan')}</p>
-
-          {myAgent ? (
-            <article className="mt-4 rounded-2xl border border-line bg-surface-2 p-4">
-              <p className="text-sm font-semibold text-text">{myAgent.fullName}</p>
-              <p className="text-xs text-text-2">
-                {myAgent.company ?? t('suscripcion.sinEmpresa')} | {myAgent.phone}
-              </p>
-
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-line-strong bg-surface-2 px-2 py-1 text-xs font-semibold text-text">
-                    {/* CANCELED sigue dando acceso mientras dure el periodo pagado (ver
-                    resolveEffectiveSubscriptionStatus), pero mostrar "Activo" aqui leeria
-                    contradictorio junto al aviso de "Cancelada" de abajo - para el chip
-                    se prioriza el status crudo en ese caso puntual. */}
-                    {tSubscriptionStatus(isDbCanceled ? 'CANCELED' : (effectiveStatus ?? myAgent.subscriptionStatus))}
-                  </span>
-                  {effectiveStatus === 'TRIAL' ? (
-                    <span className="rounded-full border border-line-strong bg-surface-2 px-2 py-1 text-xs font-semibold text-text-2">
-                      {t('suscripcion.pruebaProCompleto')}
-                    </span>
-                  ) : myAgent.plan === 'PRO' ? (
-                    <span className="gradient-btn rounded-full px-2 py-1 text-xs font-semibold text-grad-contrast">{t('plan.pro.nombre')}</span>
-                  ) : myAgent.plan ? (
-                    <span className="rounded-full border border-line-strong bg-surface-2 px-2 py-1 text-xs font-semibold text-text-2">
-                      {t('plan.basico.nombre')}
-                    </span>
-                  ) : null}
-                </div>
-                {needsPayment ? (
-                  <Link
-                    href="/agentes/suscripcion/planes"
-                    className="gradient-btn w-full rounded-full px-3 py-2 text-center text-xs font-semibold transition-transform duration-200 hover:scale-[1.02] sm:w-auto sm:py-1.5"
-                  >
-                    {t('suscripcion.elegirPlan')}
-                  </Link>
-                ) : null}
-              </div>
-
-              {effectiveStatus === 'TRIAL' ? (
-                <p className="mt-2 text-xs text-text-2">
-                  {t('suscripcion.diasRestantes')} <span className="font-semibold text-text">{daysRemaining(myAgent.trialEndsAt)}</span>
-                </p>
-              ) : null}
-
-              {isActive && isDbCanceled ? (
-                <p className="mt-2 text-xs text-text-2">{t('suscripcion.canceladaHastaFecha').replace('{fecha}', fmtFecha(myAgent.subscriptionPaidUntil))}</p>
-              ) : null}
-
-              {isActive && !isDbCanceled ? (
-                <p className="mt-2 text-xs text-text-2">
-                  {t('suscripcion.proximaRenovacion')} <span className="font-semibold text-text">{fmtFecha(myAgent.subscriptionPaidUntil)}</span>
-                </p>
-              ) : null}
-
-              {isActive && myAgent.planSiguiente ? (
-                <p className="mt-1 text-xs text-text-2">
-                  {t('suscripcion.cambiaraA')
-                    .replace('{plan}', myAgent.planSiguiente === 'PRO' ? t('plan.pro.nombre') : t('plan.basico.nombre'))
-                    .replace('{fecha}', fmtFecha(myAgent.subscriptionPaidUntil))}
-                </p>
-              ) : null}
-
-              {isActive && !isDbCanceled ? (
-                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                  <Link
-                    href="/agentes/suscripcion/planes"
-                    className="rounded-full border border-line-strong bg-surface-2 px-3 py-2 text-center text-xs font-semibold text-text-2 transition hover:bg-surface sm:w-auto"
-                  >
-                    {t('suscripcion.cambiarPlan')}
-                  </Link>
-                  {!confirmCancel && !canceled ? (
-                    <button
-                      onClick={() => setConfirmCancel(true)}
-                      className="rounded-full border border-line px-3 py-2 text-center text-xs font-semibold text-text-2 transition hover:text-danger sm:w-auto"
-                    >
-                      {t('suscripcion.cancelarSuscripcion')}
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-
-              {confirmCancel ? (
-                <div className="mt-3 rounded-xl border border-danger bg-danger-dim p-3">
-                  <p className="text-xs text-danger">{t('suscripcion.confirmarCancelacion').replace('{fecha}', fmtFecha(myAgent.subscriptionPaidUntil))}</p>
-                  {cancelError ? <p className="mt-1 text-xs text-danger">{cancelError}</p> : null}
-                  <div className="mt-2 flex gap-2">
-                    <button
-                      onClick={() => void cancelar()}
-                      disabled={canceling}
-                      className="rounded-full border border-danger px-3 py-1.5 text-xs font-semibold text-danger transition hover:brightness-110 disabled:opacity-60"
-                    >
-                      {t('suscripcion.siCancelar')}
-                    </button>
-                    <button
-                      onClick={() => setConfirmCancel(false)}
-                      className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-text-2 transition hover:bg-surface-2"
-                    >
-                      {t('suscripcion.noMantener')}
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-
-              {canceled ? (
-                <p className="mt-2 text-xs font-semibold text-accent">
-                  {t('suscripcion.cancelacionConfirmada').replace('{fecha}', fmtFecha(myAgent.subscriptionPaidUntil))}
-                </p>
-              ) : null}
-
-              {!verified ? (
-                <a href="/agentes/verificar-telefono" className="mt-2 inline-block text-xs font-semibold text-violet-300 hover:underline">
-                  {t('suscripcion.verificarPendiente')} →
-                </a>
-              ) : null}
-            </article>
-          ) : (
+    if (!myAgent) {
+      return (
+        <div className="space-y-10">
+          <section className="glass-card rounded-[1.8rem] p-4 fade-up sm:p-6">
+            <h2 className="text-xl font-bold text-text">{t('suscripcion.title.agent')}</h2>
             <p className="mt-4 text-sm text-text-2">{t('suscripcion.sinRegistro')}</p>
-          )}
+          </section>
+        </div>
+      );
+    }
+
+    const historyToShow = showAllHistory ? transacciones : transacciones.slice(0, HISTORY_PAGE_SIZE);
+
+    return (
+      <div className="space-y-5">
+        {/* Bloque destacado (Fase 7-bis, seccion 3.1): estado de la cuenta +
+            CTA principal grande, jerarquia comercial en vez de una ficha
+            plana de datos. */}
+        <section className="glass-card relative overflow-hidden rounded-[1.8rem] p-5 fade-up sm:p-7">
+          <div className="pointer-events-none absolute -right-14 -top-14 h-48 w-48 rounded-full bg-[var(--glow-brand)] blur-2xl" />
+          <div className="relative z-10">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-3">{t('suscripcion.title.agent')}</p>
+
+            <div className="mt-2 flex flex-wrap items-center gap-2.5">
+              <h2 className="text-2xl font-bold text-text sm:text-3xl">
+                {myAgent.plan === 'PRO' ? t('plan.pro.nombre') : t('plan.basico.nombre')}
+              </h2>
+              <span className="rounded-full border border-line-strong bg-surface-2 px-2.5 py-1 text-xs font-semibold text-text">
+                {/* CANCELED sigue dando acceso mientras dure el periodo pagado (ver
+                resolveEffectiveSubscriptionStatus), pero mostrar "Activo" aqui leeria
+                contradictorio junto al aviso de "Cancelada" de abajo - para el chip
+                se prioriza el status crudo en ese caso puntual. */}
+                {tSubscriptionStatus(isDbCanceled ? 'CANCELED' : (effectiveStatus ?? myAgent.subscriptionStatus))}
+              </span>
+            </div>
+
+            {effectiveStatus === 'TRIAL' ? (
+              <p className="mt-1.5 text-sm text-text-2">
+                {t('suscripcion.diasRestantes')} <span className="font-semibold text-text">{daysRemaining(myAgent.trialEndsAt)}</span>
+              </p>
+            ) : isActive && isDbCanceled ? (
+              <p className="mt-1.5 text-sm text-text-2">{t('suscripcion.canceladaHastaFecha').replace('{fecha}', fmtFecha(myAgent.subscriptionPaidUntil))}</p>
+            ) : isActive ? (
+              <p className="mt-1.5 text-sm text-text-2">
+                {t('suscripcion.proximaRenovacion')} <span className="font-semibold text-text">{fmtFecha(myAgent.subscriptionPaidUntil)}</span>
+              </p>
+            ) : null}
+
+            {isActive && myAgent.planSiguiente ? (
+              <p className="mt-1 text-xs text-text-2">
+                {t('suscripcion.cambiaraA')
+                  .replace('{plan}', myAgent.planSiguiente === 'PRO' ? t('plan.pro.nombre') : t('plan.basico.nombre'))
+                  .replace('{fecha}', fmtFecha(myAgent.subscriptionPaidUntil))}
+              </p>
+            ) : null}
+
+            {effectiveStatus === 'TRIAL' ? (
+              <div className="mt-4 rounded-xl border border-accent-line bg-accent-dim px-3.5 py-2.5 text-sm font-medium text-accent">
+                {t('planes.avisoTrial')}
+              </div>
+            ) : null}
+
+            {ctaLabel ? (
+              <Link
+                href="/agentes/suscripcion/planes"
+                className="gradient-btn mt-5 flex w-full items-center justify-center rounded-full px-5 py-3.5 text-center text-base font-bold transition-transform duration-200 hover:scale-[1.01] sm:w-auto sm:px-8"
+              >
+                {ctaLabel}
+              </Link>
+            ) : null}
+
+            {!verified ? (
+              <a href="/agentes/verificar-telefono" className="mt-3 block text-sm font-semibold text-brand hover:underline">
+                {t('suscripcion.verificarPendiente')} →
+              </a>
+            ) : null}
+          </div>
+        </section>
+
+        {/* Bloque secundario: gestion (cambiar/cancelar) + historial de pagos -
+            deliberadamente mas discreto, para no competir con el CTA de arriba. */}
+        <section className="glass-card rounded-[1.8rem] p-4 fade-up sm:p-6">
+          <p className="text-sm font-semibold text-text-2">{myAgent.company ?? t('suscripcion.sinEmpresa')} · {myAgent.phone}</p>
+
+          {isActive && !isDbCanceled ? (
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <Link
+                href="/agentes/suscripcion/planes"
+                className="rounded-full border border-line-strong bg-surface-2 px-3 py-2 text-center text-xs font-semibold text-text-2 transition hover:bg-surface sm:w-auto"
+              >
+                {t('suscripcion.cambiarPlan')}
+              </Link>
+              {!confirmCancel && !canceled ? (
+                <button
+                  onClick={() => setConfirmCancel(true)}
+                  className="rounded-full border border-line px-3 py-2 text-center text-xs font-semibold text-text-2 transition hover:text-danger sm:w-auto"
+                >
+                  {t('suscripcion.cancelarSuscripcion')}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
+          {confirmCancel ? (
+            <div className="mt-3 rounded-xl border border-danger bg-danger-dim p-3">
+              <p className="text-xs text-danger">{t('suscripcion.confirmarCancelacion').replace('{fecha}', fmtFecha(myAgent.subscriptionPaidUntil))}</p>
+              {cancelError ? <p className="mt-1 text-xs text-danger">{cancelError}</p> : null}
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={() => void cancelar()}
+                  disabled={canceling}
+                  className="rounded-full border border-danger px-3 py-1.5 text-xs font-semibold text-danger transition hover:brightness-110 disabled:opacity-60"
+                >
+                  {t('suscripcion.siCancelar')}
+                </button>
+                <button
+                  onClick={() => setConfirmCancel(false)}
+                  className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-text-2 transition hover:bg-surface-2"
+                >
+                  {t('suscripcion.noMantener')}
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {canceled ? (
+            <p className="mt-2 text-xs font-semibold text-accent">
+              {t('suscripcion.cancelacionConfirmada').replace('{fecha}', fmtFecha(myAgent.subscriptionPaidUntil))}
+            </p>
+          ) : null}
+
+          <div className="mt-5 border-t border-line pt-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-text-2">{t('suscripcion.historial.titulo')}</p>
+            {transacciones.length === 0 ? (
+              <p className="mt-2 text-xs text-text-3">{t('suscripcion.historial.vacio')}</p>
+            ) : (
+              <>
+                <ul className="mt-2 space-y-1.5">
+                  {historyToShow.map((txn) => (
+                    <li key={txn.id} className="flex items-center justify-between rounded-lg bg-surface-2 px-3 py-2 text-xs">
+                      <span className="text-text-2">
+                        {fmtFecha(txn.createdAt)} · {txn.plan === 'PRO' ? t('plan.pro.nombre') : t('plan.basico.nombre')}
+                      </span>
+                      <span className="font-semibold text-text">${formatUsd(txn.totalCents)}</span>
+                    </li>
+                  ))}
+                </ul>
+                {!showAllHistory && transacciones.length > HISTORY_PAGE_SIZE ? (
+                  <button
+                    onClick={() => setShowAllHistory(true)}
+                    className="mt-2 text-xs font-semibold text-text-2 underline decoration-dotted underline-offset-2 hover:text-text"
+                  >
+                    {t('suscripcion.historial.mas')}
+                  </button>
+                ) : null}
+              </>
+            )}
+          </div>
         </section>
       </div>
     );
