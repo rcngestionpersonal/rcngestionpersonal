@@ -37,6 +37,14 @@ const opportunitySchema = z.object({
   prefTodosLosServicios: z.enum(['SI', 'NO']).optional(),
   contactName: z.string().trim().optional(),
   contactPhone: z.string().trim().optional(),
+}).refine((data) => data.budgetMin !== undefined || data.budgetMax !== undefined, {
+  // Presupuesto obligatorio para pedidos NUEVOS (criterio excluyente del
+  // matching): sin el, el motor no puede filtrar por precio. Esto solo
+  // corre en el POST (creacion) - el PUT de edicion (opportunities/[id])
+  // no usa este schema, asi que los pedidos existentes sin presupuesto
+  // nunca quedan bloqueados al editarlos.
+  message: 'Ingresa al menos un presupuesto (mínimo o máximo).',
+  path: ['budgetMin'],
 });
 
 export async function GET(request: NextRequest) {

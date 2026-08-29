@@ -174,6 +174,10 @@ export default function PedidosTab({
 
   async function submitOpportunity() {
     if (!city.trim()) return;
+    // Presupuesto obligatorio solo para pedidos NUEVOS (criterio excluyente
+    // del matching) - un pedido existente sin presupuesto se sigue pudiendo
+    // editar sin que esto lo bloquee.
+    if (!editingId && !budgetMin.trim() && !budgetMax.trim()) return;
     const num = (v: string) => (v.trim() ? Number(v) : undefined);
     const input: NewOpportunityInput = {
       operationType,
@@ -268,6 +272,7 @@ export default function PedidosTab({
                 <PriceInput value={budgetMin} onChange={setBudgetMin} placeholder={t('pedidos.form.presupuestoMin.placeholder')} helperText={t('common.precioAyuda')} />
                 <PriceInput value={budgetMax} onChange={setBudgetMax} placeholder={t('pedidos.form.presupuestoMax.placeholder')} />
               </div>
+              {!editingId ? <p className="mt-1.5 text-xs text-text-3">{t('pedidos.form.presupuestoObligatorio')}</p> : null}
 
               {/* Detalles de la busqueda (seccion 3.1) - todo opcional, plegado
                   por defecto para que el formulario se sienta agil pese a
@@ -357,7 +362,7 @@ export default function PedidosTab({
               <div className="mt-4 flex gap-2">
                 <button
                   onClick={submitOpportunity}
-                  disabled={creatingOpportunity || !city.trim()}
+                  disabled={creatingOpportunity || !city.trim() || (!editingId && !budgetMin.trim() && !budgetMax.trim())}
                   className="gradient-btn flex-1 rounded-full px-4 py-2.5 text-sm font-semibold text-grad-contrast transition-transform duration-200 hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 md:flex-none"
                 >
                   {creatingOpportunity ? t('pedidos.form.guardando') : editingId ? t('pedidos.guardarCambios') : t('pedidos.form.submit')}
@@ -390,6 +395,7 @@ export default function PedidosTab({
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
           .map((op) => {
             const canEdit = !isAdmin && Boolean(user?.agentId) && op.createdByAgentId === user?.agentId;
+            const presupuestoIncompleto = canEdit && !op.budgetMin && !op.budgetMax;
             const withinEditWindow = Date.now() - new Date(op.createdAt).getTime() < EDIT_WINDOW_MS;
             const editDeadline = new Date(new Date(op.createdAt).getTime() + EDIT_WINDOW_MS);
 
@@ -490,6 +496,18 @@ export default function PedidosTab({
                     <p className="text-[12.5px] text-text-3">{t('common.aunSinMatches')}</p>
                   )}
                 </div>
+
+                {/* Aviso suave para pedidos existentes sin presupuesto (nunca bloquea). */}
+                {presupuestoIncompleto ? (
+                  <button
+                    type="button"
+                    onClick={() => startEdit(op)}
+                    className="mt-3.5 flex w-full min-h-[44px] items-center gap-2 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2.5 text-left text-xs text-amber-200 transition-colors hover:bg-amber-500/15"
+                  >
+                    <span className="flex-1">{t('pedidos.presupuestoIncompleto')}</span>
+                    <span className="shrink-0 font-semibold underline decoration-dotted underline-offset-2">{t('inmuebles.detalleIncompleto.link')}</span>
+                  </button>
+                ) : null}
 
                 {/* Fila 5 */}
                 <div className="mt-3.5 flex items-end justify-between gap-3 border-t border-[rgba(255,255,255,0.07)] pt-3">
