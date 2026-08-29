@@ -191,6 +191,39 @@ model Listing {
   bathrooms              Int?
   parkingSpaces          Int?
   description            String?
+  // Campos condicionales por tipo (Fase 8, Bloque A) - todos nullable y NINGUNO
+  // filtra ni pondera el matching todavia (eso llega en el Bloque B, ver
+  // src/lib/real-estate/matching.ts, sin tocar aqui). Un mismo campo se
+  // reutiliza entre tipos cuando el significado es el mismo (antiguedad,
+  // amoblado, piso/ascensor, estadoOcupacion) en vez de multiplicar columnas -
+  // ver src/lib/real-estate/listing-fields.ts para que campo aplica a cada
+  // PropertyType y sus valores permitidos.
+  esIndependiente        Boolean?
+  antiguedad             String?
+  amoblado               String?
+  alicuotaMensual        Float?
+  piso                   Int?
+  tieneAscensor          Boolean?
+  areasComunales         Boolean?
+  esquineroOMedianero    String?
+  usoSueloTerreno        String?
+  pisosPermitidos        Int?
+  serviciosBasicos       String?
+  frenteM                Float?
+  nivelLocal             String?
+  distribucionLocal      String?
+  estadoOcupacion        String?
+  canonMensualActual     Float?
+  alturaLibreM           Float?
+  accesoCamion           Boolean?
+  // Terreno y area libre de una Casa (seccion 2.1) - seleccion multiple, NUNCA
+  // calculada por resta (construccion vs terreno total): el agente declara
+  // cada metraje que aplique, independientemente. "Area verde amplia" es una
+  // etiqueta DERIVADA (>250m2 en cualquiera de los tres) - se calcula en
+  // listing-fields.ts, no se guarda en columna propia.
+  terrenoTotalM2         Float?
+  areaLibrePropiaM2      Float?
+  terrenoLibreExclusivoM2 Float?
   // Datos del cliente propietario/arrendador: estrictamente privados, solo el agente
   // que gestiona el inmueble puede verlos (ver src/lib/real-estate/privacy.ts).
   ownerName              String?
@@ -226,6 +259,16 @@ model Opportunity {
   bedrooms         Int?
   bathrooms        Int?
   parkingSpaces    Int?
+  // Interruptores de preferencia (Fase 8, seccion 3.2) - sí/no/indiferente,
+  // 'SI'|'NO'|null (indiferente = no pondera nada, ver Bloque B). Los
+  // numericos de arriba (bedrooms/bathrooms/parkingSpaces/areaM2) se
+  // reinterpretan como "minimo deseado" para pedidos, sin necesidad de
+  // columnas nuevas - nunca se usaron como valor exacto en el matching.
+  prefAreaVerdeAmplia    String?
+  prefAreasComunales     String?
+  prefAscensor           String?
+  prefAmoblado           String?
+  prefTodosLosServicios  String?
   summary          String
   extractedData    Json?
   stage            LeadStage       @default(NEW)

@@ -9,6 +9,20 @@ import { PriceInput } from '../PriceInput';
 import { Card, Chip, DataBlock, IconActionButton, MatchLink, ModuleHeader, RegisterAccordion, abbreviatedTitle, navigateWithFade, relativeLabel, zonaLine } from '../CardKit';
 import { POINT_ACTIONS } from '@/lib/real-estate/points';
 import { compressImage } from '@/lib/real-estate/image-compress';
+import {
+  AMOBLADO_OPTIONS,
+  ANTIGUEDAD_OPTIONS,
+  DISTRIBUCION_LOCAL_OPTIONS,
+  ESQUINERO_MEDIANERO_OPTIONS,
+  ESTADO_OCUPACION_OPTIONS,
+  NIVEL_LOCAL_OPTIONS,
+  SERVICIOS_OPTIONS,
+  USO_SUELO_TERRENO_OPTIONS,
+  hasAreaVerdeAmplia,
+  isListingDetailIncomplete,
+  listingFieldsFor,
+  type OptionDef,
+} from '@/lib/real-estate/listing-fields';
 import type { AgentItem, ListingItem } from '../types';
 
 const PROPERTY_VALUES = ['HOUSE', 'APARTMENT', 'SUITE', 'OFFICE', 'LAND', 'COMMERCIAL', 'WAREHOUSE', 'FARM', 'OTHER'];
@@ -22,11 +36,135 @@ export type NewListingInput = {
   city: string;
   zone?: string;
   price: number;
+  areaM2?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  parkingSpaces?: number;
+  esIndependiente?: boolean;
+  antiguedad?: string;
+  amoblado?: string;
+  alicuotaMensual?: number;
+  piso?: number;
+  tieneAscensor?: boolean;
+  areasComunales?: boolean;
+  esquineroOMedianero?: string;
+  usoSueloTerreno?: string;
+  pisosPermitidos?: number;
+  serviciosBasicos?: string;
+  frenteM?: number;
+  nivelLocal?: string;
+  distribucionLocal?: string;
+  estadoOcupacion?: string;
+  canonMensualActual?: number;
+  alturaLibreM?: number;
+  accesoCamion?: boolean;
+  terrenoTotalM2?: number;
+  areaLibrePropiaM2?: number;
+  terrenoLibreExclusivoM2?: number;
   ownerName?: string;
   ownerPhone?: string;
   commissionSharePercent: number;
   managingAgentId?: string;
 };
+
+// Tap targets de al menos 44px en movil (seccion 5.3) para los chips/toggles
+// nuevos de esta fase - los pills preexistentes (operacion/tipo) no se tocan.
+function chipPillClasses(active: boolean): string {
+  return `min-h-[44px] rounded-full border px-3.5 py-2.5 text-xs font-semibold transition-all duration-200 ${
+    active ? 'gradient-btn border-transparent text-grad-contrast' : 'border-line-strong text-text-2 hover:bg-surface-2'
+  }`;
+}
+
+const detailInputClass =
+  'w-full rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400';
+const detailLabelClass = 'mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-text-2';
+
+function FieldLabel({ children, help }: { children: string; help?: string }) {
+  return (
+    <div className="mb-1">
+      <label className={detailLabelClass}>{children}</label>
+      {help ? <p className="text-[11px] text-text-3">{help}</p> : null}
+    </div>
+  );
+}
+
+function ChipSelect({ label, value, onChange, options, lang }: { label: string; value: string; onChange: (v: string) => void; options: OptionDef[]; lang: 'es' | 'en' }) {
+  return (
+    <div>
+      <FieldLabel>{label}</FieldLabel>
+      <div className="flex flex-wrap gap-2">
+        {options.map((o) => (
+          <button key={o.value} type="button" onClick={() => onChange(value === o.value ? '' : o.value)} className={chipPillClasses(value === o.value)}>
+            {lang === 'es' ? o.labelEs : o.labelEn}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BoolToggle({
+  label,
+  value,
+  onChange,
+  trueLabel,
+  falseLabel,
+}: {
+  label: string;
+  value: boolean | undefined;
+  onChange: (v: boolean | undefined) => void;
+  trueLabel: string;
+  falseLabel: string;
+}) {
+  return (
+    <div>
+      <FieldLabel>{label}</FieldLabel>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => onChange(value === true ? undefined : true)} className={chipPillClasses(value === true)}>
+          {trueLabel}
+        </button>
+        <button type="button" onClick={() => onChange(value === false ? undefined : false)} className={chipPillClasses(value === false)}>
+          {falseLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TerrenoAreaRow({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const checked = value !== '';
+  return (
+    <label className="flex min-h-[44px] items-center gap-2.5 rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked ? '0' : '')}
+        className="h-5 w-5 shrink-0 accent-violet-500"
+      />
+      <span className="flex-1 text-sm text-text">{label}</span>
+      {checked ? (
+        <input
+          type="number"
+          min={0}
+          inputMode="decimal"
+          className="w-24 shrink-0 rounded-lg border border-line-strong bg-input-bg px-2 py-1.5 text-sm text-text outline-none focus:border-violet-400"
+          value={value === '0' ? '' : value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="m²"
+          autoFocus
+        />
+      ) : null}
+    </label>
+  );
+}
 
 function agentName(agentId: string | undefined, agents: AgentItem[]): string | undefined {
   if (!agentId) return undefined;
@@ -97,6 +235,69 @@ export default function InmueblesTab({
   const [managingAgentId, setManagingAgentId] = useState<string>('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Campos condicionales por tipo (Fase 8, Bloque A) - todos opcionales, solo
+  // se leen/envian los que aplican al tipo elegido (ver listingFieldsFor).
+  const [areaM2, setAreaM2] = useState('');
+  const [bedrooms, setBedrooms] = useState('');
+  const [bathrooms, setBathrooms] = useState('');
+  const [parkingSpaces, setParkingSpaces] = useState('');
+  const [esIndependiente, setEsIndependiente] = useState<boolean | undefined>(undefined);
+  const [antiguedad, setAntiguedad] = useState('');
+  const [amoblado, setAmoblado] = useState('');
+  const [alicuotaMensual, setAlicuotaMensual] = useState('');
+  const [piso, setPiso] = useState('');
+  const [tieneAscensor, setTieneAscensor] = useState<boolean | undefined>(undefined);
+  const [areasComunales, setAreasComunales] = useState<boolean | undefined>(undefined);
+  const [esquineroOMedianero, setEsquineroOMedianero] = useState('');
+  const [usoSueloTerreno, setUsoSueloTerreno] = useState('');
+  const [pisosPermitidos, setPisosPermitidos] = useState('');
+  const [serviciosBasicos, setServiciosBasicos] = useState('');
+  const [frenteM, setFrenteM] = useState('');
+  const [nivelLocal, setNivelLocal] = useState('');
+  const [distribucionLocal, setDistribucionLocal] = useState('');
+  const [estadoOcupacion, setEstadoOcupacion] = useState('');
+  const [canonMensualActual, setCanonMensualActual] = useState('');
+  const [alturaLibreM, setAlturaLibreM] = useState('');
+  const [accesoCamion, setAccesoCamion] = useState<boolean | undefined>(undefined);
+  const [terrenoTotalM2, setTerrenoTotalM2] = useState('');
+  const [areaLibrePropiaM2, setAreaLibrePropiaM2] = useState('');
+  const [terrenoLibreExclusivoM2, setTerrenoLibreExclusivoM2] = useState('');
+
+  const fieldFlags = listingFieldsFor(propertyType, operationType);
+  const areaVerdeAmpliaPreview = hasAreaVerdeAmplia({
+    terrenoTotalM2: terrenoTotalM2 ? Number(terrenoTotalM2) : null,
+    areaLibrePropiaM2: areaLibrePropiaM2 ? Number(areaLibrePropiaM2) : null,
+    terrenoLibreExclusivoM2: terrenoLibreExclusivoM2 ? Number(terrenoLibreExclusivoM2) : null,
+  });
+
+  function resetDetailFields() {
+    setAreaM2('');
+    setBedrooms('');
+    setBathrooms('');
+    setParkingSpaces('');
+    setEsIndependiente(undefined);
+    setAntiguedad('');
+    setAmoblado('');
+    setAlicuotaMensual('');
+    setPiso('');
+    setTieneAscensor(undefined);
+    setAreasComunales(undefined);
+    setEsquineroOMedianero('');
+    setUsoSueloTerreno('');
+    setPisosPermitidos('');
+    setServiciosBasicos('');
+    setFrenteM('');
+    setNivelLocal('');
+    setDistribucionLocal('');
+    setEstadoOcupacion('');
+    setCanonMensualActual('');
+    setAlturaLibreM('');
+    setAccesoCamion(undefined);
+    setTerrenoTotalM2('');
+    setAreaLibrePropiaM2('');
+    setTerrenoLibreExclusivoM2('');
+  }
+
   // Foto de portada: para un inmueble ya existente se sube de inmediato (sin limite
   // de 24h); para uno nuevo se guarda en memoria hasta que la creacion devuelva el id.
   const [pendingPhoto, setPendingPhoto] = useState<Blob | null>(null);
@@ -120,6 +321,7 @@ export default function InmueblesTab({
     setPendingPhoto(null);
     setPendingPhotoPreview(null);
     setPhotoError('');
+    resetDetailFields();
   }
 
   function startEdit(listing: ListingItem) {
@@ -136,6 +338,31 @@ export default function InmueblesTab({
     setManagingAgentId(listing.managingAgentId);
     setPendingPhoto(null);
     setPendingPhotoPreview(null);
+    setAreaM2(listing.areaM2 != null ? String(listing.areaM2) : '');
+    setBedrooms(listing.bedrooms != null ? String(listing.bedrooms) : '');
+    setBathrooms(listing.bathrooms != null ? String(listing.bathrooms) : '');
+    setParkingSpaces(listing.parkingSpaces != null ? String(listing.parkingSpaces) : '');
+    setEsIndependiente(listing.esIndependiente ?? undefined);
+    setAntiguedad(listing.antiguedad ?? '');
+    setAmoblado(listing.amoblado ?? '');
+    setAlicuotaMensual(listing.alicuotaMensual != null ? String(listing.alicuotaMensual) : '');
+    setPiso(listing.piso != null ? String(listing.piso) : '');
+    setTieneAscensor(listing.tieneAscensor ?? undefined);
+    setAreasComunales(listing.areasComunales ?? undefined);
+    setEsquineroOMedianero(listing.esquineroOMedianero ?? '');
+    setUsoSueloTerreno(listing.usoSueloTerreno ?? '');
+    setPisosPermitidos(listing.pisosPermitidos != null ? String(listing.pisosPermitidos) : '');
+    setServiciosBasicos(listing.serviciosBasicos ?? '');
+    setFrenteM(listing.frenteM != null ? String(listing.frenteM) : '');
+    setNivelLocal(listing.nivelLocal ?? '');
+    setDistribucionLocal(listing.distribucionLocal ?? '');
+    setEstadoOcupacion(listing.estadoOcupacion ?? '');
+    setCanonMensualActual(listing.canonMensualActual != null ? String(listing.canonMensualActual) : '');
+    setAlturaLibreM(listing.alturaLibreM != null ? String(listing.alturaLibreM) : '');
+    setAccesoCamion(listing.accesoCamion ?? undefined);
+    setTerrenoTotalM2(listing.terrenoTotalM2 != null ? String(listing.terrenoTotalM2) : '');
+    setAreaLibrePropiaM2(listing.areaLibrePropiaM2 != null ? String(listing.areaLibrePropiaM2) : '');
+    setTerrenoLibreExclusivoM2(listing.terrenoLibreExclusivoM2 != null ? String(listing.terrenoLibreExclusivoM2) : '');
     setFormOpen(true);
   }
 
@@ -177,6 +404,7 @@ export default function InmueblesTab({
 
   async function submit() {
     if (!title.trim() || !city.trim() || !price.trim()) return;
+    const num = (v: string) => (v.trim() ? Number(v) : undefined);
     const input: NewListingInput = {
       title: title.trim(),
       operationType,
@@ -184,6 +412,31 @@ export default function InmueblesTab({
       city: city.trim(),
       zone: zone.trim() || undefined,
       price: Number(price),
+      areaM2: num(areaM2),
+      bedrooms: fieldFlags.showDormitorios ? num(bedrooms) : undefined,
+      bathrooms: fieldFlags.showBanos ? num(bathrooms) : undefined,
+      parkingSpaces: fieldFlags.showParqueos ? num(parkingSpaces) : undefined,
+      esIndependiente: fieldFlags.showEsIndependienteCasa || fieldFlags.showEsIndependienteLocal ? esIndependiente : undefined,
+      antiguedad: fieldFlags.showAntiguedad ? antiguedad || undefined : undefined,
+      amoblado: fieldFlags.showAmoblado ? amoblado || undefined : undefined,
+      alicuotaMensual: fieldFlags.showAlicuota ? num(alicuotaMensual) : undefined,
+      piso: fieldFlags.showPiso ? num(piso) : undefined,
+      tieneAscensor: fieldFlags.showAscensor ? tieneAscensor : undefined,
+      areasComunales: fieldFlags.showAreasComunales ? areasComunales : undefined,
+      esquineroOMedianero: fieldFlags.showEsquineroMedianero ? esquineroOMedianero || undefined : undefined,
+      usoSueloTerreno: fieldFlags.showUsoSueloTerreno ? usoSueloTerreno || undefined : undefined,
+      pisosPermitidos: fieldFlags.showPisosPermitidos ? num(pisosPermitidos) : undefined,
+      serviciosBasicos: fieldFlags.showServiciosBasicos ? serviciosBasicos || undefined : undefined,
+      frenteM: fieldFlags.showFrenteM ? num(frenteM) : undefined,
+      nivelLocal: fieldFlags.showNivelLocal ? nivelLocal || undefined : undefined,
+      distribucionLocal: fieldFlags.showDistribucionLocal ? distribucionLocal || undefined : undefined,
+      estadoOcupacion: fieldFlags.showEstadoOcupacion ? estadoOcupacion || undefined : undefined,
+      canonMensualActual: fieldFlags.showEstadoOcupacion && estadoOcupacion === 'ARRENDADO' ? num(canonMensualActual) : undefined,
+      alturaLibreM: fieldFlags.showAlturaLibreM ? num(alturaLibreM) : undefined,
+      accesoCamion: fieldFlags.showAccesoCamion ? accesoCamion : undefined,
+      terrenoTotalM2: fieldFlags.showTerrenoCasa ? num(terrenoTotalM2) : undefined,
+      areaLibrePropiaM2: fieldFlags.showTerrenoCasa ? num(areaLibrePropiaM2) : undefined,
+      terrenoLibreExclusivoM2: fieldFlags.showTerrenoCasa ? num(terrenoLibreExclusivoM2) : undefined,
       ownerName: ownerName.trim() || undefined,
       ownerPhone: ownerPhone.trim() || undefined,
       commissionSharePercent: Number(commissionSharePercent) || 0,
@@ -226,6 +479,7 @@ export default function InmueblesTab({
           onToggle={() => (formOpen ? cancelEdit() : setFormOpen(true))}
         >
             <div>
+              <p className="mb-2.5 text-xs font-bold uppercase tracking-[0.12em] text-text-3">{t('inmuebles.form.seccionUbicacion')}</p>
               <div className="grid gap-3 md:grid-cols-2">
                 <input
                   className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400"
@@ -271,6 +525,152 @@ export default function InmueblesTab({
                   </button>
                 ))}
               </div>
+
+              {/* Detalles del inmueble (seccion 2/5.1) - ponderantes: solo se
+                  muestran los campos que aplican al tipo elegido. */}
+              <div className="mt-5">
+                <p className="mb-2.5 text-xs font-bold uppercase tracking-[0.12em] text-text-3">{t('inmuebles.form.seccionDetalles')}</p>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <FieldLabel>{lang === 'es' ? fieldFlags.areaM2Label.es : fieldFlags.areaM2Label.en}</FieldLabel>
+                    <input type="number" min={0} inputMode="decimal" className={detailInputClass} value={areaM2} onChange={(e) => setAreaM2(e.target.value)} placeholder="m²" />
+                  </div>
+                  {fieldFlags.showDormitorios ? (
+                    <div>
+                      <FieldLabel>{t('inmuebles.form.dormitorios')}</FieldLabel>
+                      <input type="number" min={0} inputMode="numeric" className={detailInputClass} value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} />
+                    </div>
+                  ) : null}
+                  {fieldFlags.showBanos ? (
+                    <div>
+                      <FieldLabel>{t('inmuebles.form.banos')}</FieldLabel>
+                      <input type="number" min={0} inputMode="numeric" className={detailInputClass} value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} />
+                    </div>
+                  ) : null}
+                  {fieldFlags.showParqueos ? (
+                    <div>
+                      <FieldLabel>{t('inmuebles.form.parqueos')}</FieldLabel>
+                      <input type="number" min={0} inputMode="numeric" className={detailInputClass} value={parkingSpaces} onChange={(e) => setParkingSpaces(e.target.value)} />
+                    </div>
+                  ) : null}
+                  {fieldFlags.showPiso ? (
+                    <div>
+                      <FieldLabel>{t('inmuebles.form.piso')}</FieldLabel>
+                      <input type="number" min={0} inputMode="numeric" className={detailInputClass} value={piso} onChange={(e) => setPiso(e.target.value)} />
+                    </div>
+                  ) : null}
+                  {fieldFlags.showAlicuota ? (
+                    <div>
+                      <FieldLabel help={t('inmuebles.form.alicuotaAyuda')}>{t('inmuebles.form.alicuota')}</FieldLabel>
+                      <input type="number" min={0} inputMode="decimal" className={detailInputClass} value={alicuotaMensual} onChange={(e) => setAlicuotaMensual(e.target.value)} placeholder="$" />
+                    </div>
+                  ) : null}
+                  {fieldFlags.showFrenteM ? (
+                    <div>
+                      <FieldLabel help={t('common.opcional')}>{t('inmuebles.form.frente')}</FieldLabel>
+                      <input type="number" min={0} inputMode="decimal" className={detailInputClass} value={frenteM} onChange={(e) => setFrenteM(e.target.value)} placeholder="m" />
+                    </div>
+                  ) : null}
+                  {fieldFlags.showEstadoOcupacion && estadoOcupacion === 'ARRENDADO' ? (
+                    <div>
+                      <FieldLabel>{t('inmuebles.form.canonMensual')}</FieldLabel>
+                      <input type="number" min={0} inputMode="decimal" className={detailInputClass} value={canonMensualActual} onChange={(e) => setCanonMensualActual(e.target.value)} placeholder="$" />
+                    </div>
+                  ) : null}
+                  {fieldFlags.showAlturaLibreM ? (
+                    <div>
+                      <FieldLabel>{t('inmuebles.form.alturaLibre')}</FieldLabel>
+                      <input type="number" min={0} inputMode="decimal" className={detailInputClass} value={alturaLibreM} onChange={(e) => setAlturaLibreM(e.target.value)} placeholder="m" />
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  {fieldFlags.showAntiguedad ? (
+                    <ChipSelect label={t('inmuebles.form.antiguedad')} value={antiguedad} onChange={setAntiguedad} options={[...ANTIGUEDAD_OPTIONS]} lang={lang} />
+                  ) : null}
+                  {fieldFlags.showEsIndependienteCasa ? (
+                    <BoolToggle
+                      label={t('inmuebles.form.independiente')}
+                      value={esIndependiente}
+                      onChange={setEsIndependiente}
+                      trueLabel={t('inmuebles.form.casaIndependiente')}
+                      falseLabel={t('inmuebles.form.casaConjunto')}
+                    />
+                  ) : null}
+                  {fieldFlags.showEsIndependienteLocal ? (
+                    <BoolToggle
+                      label={t('inmuebles.form.independienteLocal')}
+                      value={esIndependiente}
+                      onChange={setEsIndependiente}
+                      trueLabel={t('inmuebles.form.localIndependiente')}
+                      falseLabel={t('inmuebles.form.localCentroComercial')}
+                    />
+                  ) : null}
+                  {fieldFlags.showEsquineroMedianero ? (
+                    <ChipSelect label={t('inmuebles.form.esquineroMedianero')} value={esquineroOMedianero} onChange={setEsquineroOMedianero} options={[...ESQUINERO_MEDIANERO_OPTIONS]} lang={lang} />
+                  ) : null}
+                  {fieldFlags.showUsoSueloTerreno ? (
+                    <ChipSelect label={t('inmuebles.form.usoSuelo')} value={usoSueloTerreno} onChange={setUsoSueloTerreno} options={[...USO_SUELO_TERRENO_OPTIONS]} lang={lang} />
+                  ) : null}
+                  {fieldFlags.showNivelLocal ? (
+                    <ChipSelect label={t('inmuebles.form.nivel')} value={nivelLocal} onChange={setNivelLocal} options={[...NIVEL_LOCAL_OPTIONS]} lang={lang} />
+                  ) : null}
+                  {fieldFlags.showDistribucionLocal ? (
+                    <ChipSelect label={t('inmuebles.form.distribucion')} value={distribucionLocal} onChange={setDistribucionLocal} options={[...DISTRIBUCION_LOCAL_OPTIONS]} lang={lang} />
+                  ) : null}
+                  {fieldFlags.showEstadoOcupacion ? (
+                    <ChipSelect label={t('inmuebles.form.estadoOcupacion')} value={estadoOcupacion} onChange={setEstadoOcupacion} options={[...ESTADO_OCUPACION_OPTIONS]} lang={lang} />
+                  ) : null}
+                </div>
+
+                {fieldFlags.showTerrenoCasa ? (
+                  <div className="mt-3 rounded-2xl border border-line-strong bg-surface-2/60 p-3">
+                    <p className="text-sm font-semibold text-text">{t('inmuebles.form.terrenoTitulo')}</p>
+                    <p className="mt-0.5 text-xs text-text-3">{t('inmuebles.form.terrenoAyuda')}</p>
+                    <div className="mt-2.5 space-y-2">
+                      <TerrenoAreaRow label={t('inmuebles.form.terrenoTotal')} value={terrenoTotalM2} onChange={setTerrenoTotalM2} />
+                      <TerrenoAreaRow label={t('inmuebles.form.areaLibrePropia')} value={areaLibrePropiaM2} onChange={setAreaLibrePropiaM2} />
+                      <TerrenoAreaRow label={t('inmuebles.form.terrenoLibreExclusivo')} value={terrenoLibreExclusivoM2} onChange={setTerrenoLibreExclusivoM2} />
+                    </div>
+                    {areaVerdeAmpliaPreview ? (
+                      <p className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300">
+                        ✓ {t('inmuebles.form.areaVerdeAmplia')}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Extras (informativos - solo se muestran en la ficha, nunca ponderan) */}
+              {fieldFlags.showAmoblado || fieldFlags.showAscensor || fieldFlags.showAreasComunales || fieldFlags.showServiciosBasicos || fieldFlags.showPisosPermitidos || fieldFlags.showAccesoCamion ? (
+                <div className="mt-5">
+                  <p className="mb-2.5 text-xs font-bold uppercase tracking-[0.12em] text-text-3">{t('inmuebles.form.seccionExtras')}</p>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {fieldFlags.showAmoblado ? (
+                      <ChipSelect label={t('inmuebles.form.amoblado')} value={amoblado} onChange={setAmoblado} options={[...AMOBLADO_OPTIONS]} lang={lang} />
+                    ) : null}
+                    {fieldFlags.showAscensor ? (
+                      <BoolToggle label={t('inmuebles.form.ascensor')} value={tieneAscensor} onChange={setTieneAscensor} trueLabel={t('common.si')} falseLabel={t('common.no')} />
+                    ) : null}
+                    {fieldFlags.showAreasComunales ? (
+                      <BoolToggle label={t('inmuebles.form.areasComunales')} value={areasComunales} onChange={setAreasComunales} trueLabel={t('common.si')} falseLabel={t('common.no')} />
+                    ) : null}
+                    {fieldFlags.showServiciosBasicos ? (
+                      <ChipSelect label={t('inmuebles.form.servicios')} value={serviciosBasicos} onChange={setServiciosBasicos} options={[...SERVICIOS_OPTIONS]} lang={lang} />
+                    ) : null}
+                    {fieldFlags.showPisosPermitidos ? (
+                      <div>
+                        <FieldLabel>{t('inmuebles.form.pisosPermitidos')}</FieldLabel>
+                        <input type="number" min={0} inputMode="numeric" className={detailInputClass} value={pisosPermitidos} onChange={(e) => setPisosPermitidos(e.target.value)} />
+                      </div>
+                    ) : null}
+                    {fieldFlags.showAccesoCamion ? (
+                      <BoolToggle label={t('inmuebles.form.accesoCamion')} value={accesoCamion} onChange={setAccesoCamion} trueLabel={t('common.si')} falseLabel={t('common.no')} />
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
 
               <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/5 p-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-emerald-300">{t('inmuebles.fotoPortada.label')}</p>
@@ -404,6 +804,7 @@ export default function InmueblesTab({
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
           .map((listing) => {
             const canEdit = !isAdmin && listing.managingAgentId === myAgentId;
+            const detailIncomplete = canEdit && isListingDetailIncomplete(listing, listing.propertyType, listing.operationType);
             const withinEditWindow = Date.now() - new Date(listing.createdAt).getTime() < EDIT_WINDOW_MS;
             const editDeadline = new Date(new Date(listing.createdAt).getTime() + EDIT_WINDOW_MS);
             const dateLabel = relativeLabel(
@@ -526,6 +927,18 @@ export default function InmueblesTab({
                     <p className="text-[12.5px] text-text-3">{t('common.aunSinMatches')}</p>
                   )}
                 </div>
+
+                {/* Aviso suave de ficha incompleta (seccion 5.2) - nunca bloquea, solo invita. */}
+                {detailIncomplete ? (
+                  <button
+                    type="button"
+                    onClick={() => startEdit(listing)}
+                    className="mt-3.5 flex w-full min-h-[44px] items-center gap-2 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2.5 text-left text-xs text-amber-200 transition-colors hover:bg-amber-500/15"
+                  >
+                    <span className="flex-1">{t('inmuebles.detalleIncompleto')}</span>
+                    <span className="shrink-0 font-semibold underline decoration-dotted underline-offset-2">{t('inmuebles.detalleIncompleto.link')}</span>
+                  </button>
+                ) : null}
 
                 {/* Fila 5 */}
                 {canEdit ? (

@@ -73,6 +73,17 @@ export type OpportunityItem = {
   propertyType: string;
   budgetMin?: number;
   budgetMax?: number;
+  // "Al menos" (minimo deseado), nunca valor exacto - seccion 3.1.
+  areaM2?: number | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  parkingSpaces?: number | null;
+  // Interruptores de preferencia (seccion 3.2): 'SI' | 'NO' | null/undefined (indiferente).
+  prefAreaVerdeAmplia?: string | null;
+  prefAreasComunales?: string | null;
+  prefAscensor?: string | null;
+  prefAmoblado?: string | null;
+  prefTodosLosServicios?: string | null;
   contactName?: string;
   contactPhone?: string;
   matches: MatchItem[];
@@ -131,6 +142,32 @@ export type ListingItem = {
   status: 'ACTIVE' | 'RESERVED' | 'SOLD' | 'RENTED' | 'INACTIVE';
   managingAgentId: string;
   referredByAgentId?: string;
+  areaM2?: number | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  parkingSpaces?: number | null;
+  // Campos condicionales por tipo (Fase 8, Bloque A) - ver src/lib/real-estate/listing-fields.ts.
+  esIndependiente?: boolean | null;
+  antiguedad?: string | null;
+  amoblado?: string | null;
+  alicuotaMensual?: number | null;
+  piso?: number | null;
+  tieneAscensor?: boolean | null;
+  areasComunales?: boolean | null;
+  esquineroOMedianero?: string | null;
+  usoSueloTerreno?: string | null;
+  pisosPermitidos?: number | null;
+  serviciosBasicos?: string | null;
+  frenteM?: number | null;
+  nivelLocal?: string | null;
+  distribucionLocal?: string | null;
+  estadoOcupacion?: string | null;
+  canonMensualActual?: number | null;
+  alturaLibreM?: number | null;
+  accesoCamion?: boolean | null;
+  terrenoTotalM2?: number | null;
+  areaLibrePropiaM2?: number | null;
+  terrenoLibreExclusivoM2?: number | null;
   // Datos del cliente propietario/arrendador: el backend los redacta salvo para el
   // propio agente que gestiona el inmueble (ver src/lib/real-estate/privacy.ts).
   ownerName?: string;

@@ -130,6 +130,15 @@ type OpportunityRecord = {
   zone?: string;
   budgetMin?: number;
   budgetMax?: number;
+  areaM2?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  parkingSpaces?: number;
+  prefAreaVerdeAmplia?: string;
+  prefAreasComunales?: string;
+  prefAscensor?: string;
+  prefAmoblado?: string;
+  prefTodosLosServicios?: string;
   stage: 'NEW' | 'PROCESSING' | 'ACTIVE_MATCH' | 'CLOSED' | 'DISCARDED';
   claimedByAgentId?: string;
   referredByAgentId?: string;
@@ -155,6 +164,27 @@ type ListingRecord = {
   bathrooms?: number;
   parkingSpaces?: number;
   description?: string;
+  esIndependiente?: boolean;
+  antiguedad?: string;
+  amoblado?: string;
+  alicuotaMensual?: number;
+  piso?: number;
+  tieneAscensor?: boolean;
+  areasComunales?: boolean;
+  esquineroOMedianero?: string;
+  usoSueloTerreno?: string;
+  pisosPermitidos?: number;
+  serviciosBasicos?: string;
+  frenteM?: number;
+  nivelLocal?: string;
+  distribucionLocal?: string;
+  estadoOcupacion?: string;
+  canonMensualActual?: number;
+  alturaLibreM?: number;
+  accesoCamion?: boolean;
+  terrenoTotalM2?: number;
+  areaLibrePropiaM2?: number;
+  terrenoLibreExclusivoM2?: number;
   ownerName?: string;
   ownerPhone?: string;
   coverPhotoUrl?: string;
@@ -829,6 +859,27 @@ export function createListing(input: {
   bathrooms?: number;
   parkingSpaces?: number;
   description?: string;
+  esIndependiente?: boolean;
+  antiguedad?: string;
+  amoblado?: string;
+  alicuotaMensual?: number;
+  piso?: number;
+  tieneAscensor?: boolean;
+  areasComunales?: boolean;
+  esquineroOMedianero?: string;
+  usoSueloTerreno?: string;
+  pisosPermitidos?: number;
+  serviciosBasicos?: string;
+  frenteM?: number;
+  nivelLocal?: string;
+  distribucionLocal?: string;
+  estadoOcupacion?: string;
+  canonMensualActual?: number;
+  alturaLibreM?: number;
+  accesoCamion?: boolean;
+  terrenoTotalM2?: number;
+  areaLibrePropiaM2?: number;
+  terrenoLibreExclusivoM2?: number;
   ownerName?: string;
   ownerPhone?: string;
   commissionSharePercent?: number;
@@ -852,6 +903,27 @@ export function createListing(input: {
     bathrooms: input.bathrooms,
     parkingSpaces: input.parkingSpaces,
     description: input.description,
+    esIndependiente: input.esIndependiente,
+    antiguedad: input.antiguedad,
+    amoblado: input.amoblado,
+    alicuotaMensual: input.alicuotaMensual,
+    piso: input.piso,
+    tieneAscensor: input.tieneAscensor,
+    areasComunales: input.areasComunales,
+    esquineroOMedianero: input.esquineroOMedianero,
+    usoSueloTerreno: input.usoSueloTerreno,
+    pisosPermitidos: input.pisosPermitidos,
+    serviciosBasicos: input.serviciosBasicos,
+    frenteM: input.frenteM,
+    nivelLocal: input.nivelLocal,
+    distribucionLocal: input.distribucionLocal,
+    estadoOcupacion: input.estadoOcupacion,
+    canonMensualActual: input.canonMensualActual,
+    alturaLibreM: input.alturaLibreM,
+    accesoCamion: input.accesoCamion,
+    terrenoTotalM2: input.terrenoTotalM2,
+    areaLibrePropiaM2: input.areaLibrePropiaM2,
+    terrenoLibreExclusivoM2: input.terrenoLibreExclusivoM2,
     ownerName: input.ownerName,
     ownerPhone: input.ownerPhone,
     commissionSharePercent: input.commissionSharePercent ?? 0,
@@ -1233,6 +1305,15 @@ export async function createOpportunityByAgent(input: {
   zone?: string;
   budgetMin?: number;
   budgetMax?: number;
+  areaM2?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  parkingSpaces?: number;
+  prefAreaVerdeAmplia?: string;
+  prefAreasComunales?: string;
+  prefAscensor?: string;
+  prefAmoblado?: string;
+  prefTodosLosServicios?: string;
   contactName?: string;
   contactPhone?: string;
   createdByAgentId?: string;
@@ -1252,6 +1333,15 @@ export async function createOpportunityByAgent(input: {
     zone: input.zone,
     budgetMin: input.budgetMin,
     budgetMax: input.budgetMax,
+    areaM2: input.areaM2,
+    bedrooms: input.bedrooms,
+    bathrooms: input.bathrooms,
+    parkingSpaces: input.parkingSpaces,
+    prefAreaVerdeAmplia: input.prefAreaVerdeAmplia,
+    prefAreasComunales: input.prefAreasComunales,
+    prefAscensor: input.prefAscensor,
+    prefAmoblado: input.prefAmoblado,
+    prefTodosLosServicios: input.prefTodosLosServicios,
     stage: 'NEW',
     createdByAgentId: input.createdByAgentId,
     createdAt,

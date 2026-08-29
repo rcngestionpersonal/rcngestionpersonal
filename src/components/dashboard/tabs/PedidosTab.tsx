@@ -7,11 +7,13 @@ import { PointsBanner } from '../PointsWidgets';
 import { PriceInput } from '../PriceInput';
 import { Card, Chip, DataBlock, IconActionButton, MatchLink, ModuleHeader, RegisterAccordion, abbreviatedTitle, fmtBudget, navigateWithFade, relativeLabel, zonaLine } from '../CardKit';
 import { POINT_ACTIONS } from '@/lib/real-estate/points';
+import { listingFieldsFor } from '@/lib/real-estate/listing-fields';
 import type { AgentItem, AuthUser, OpportunityItem } from '../types';
 
 const OPERATION_VALUES = ['SALE', 'RENT', 'BOTH'] as const;
 const PROPERTY_VALUES = ['HOUSE', 'APARTMENT', 'SUITE', 'OFFICE', 'LAND', 'COMMERCIAL', 'WAREHOUSE', 'FARM', 'OTHER'];
 const EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+const PREF_VALUES = ['SI', 'NO'] as const;
 
 export type NewOpportunityInput = {
   operationType: 'SALE' | 'RENT' | 'BOTH';
@@ -20,6 +22,15 @@ export type NewOpportunityInput = {
   zone?: string;
   budgetMin?: number;
   budgetMax?: number;
+  areaM2?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  parkingSpaces?: number;
+  prefAreaVerdeAmplia?: 'SI' | 'NO';
+  prefAreasComunales?: 'SI' | 'NO';
+  prefAscensor?: 'SI' | 'NO';
+  prefAmoblado?: 'SI' | 'NO';
+  prefTodosLosServicios?: 'SI' | 'NO';
   contactName?: string;
   contactPhone?: string;
 };
@@ -28,6 +39,36 @@ function pillClasses(active: boolean): string {
   return active
     ? 'gradient-btn border-transparent text-grad-contrast'
     : 'border-line-strong text-text-2 hover:bg-surface-2';
+}
+
+// Tap targets de al menos 44px en movil (seccion 5.3).
+function detailPillClasses(active: boolean): string {
+  return `min-h-[44px] rounded-full border px-3.5 py-2.5 text-xs font-semibold transition-all duration-200 ${
+    active ? 'gradient-btn border-transparent text-grad-contrast' : 'border-line-strong text-text-2 hover:bg-surface-2'
+  }`;
+}
+
+const detailInputClass =
+  'w-full rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5 text-sm text-text outline-none placeholder:text-text-3 focus:border-violet-400';
+
+// Interruptor de preferencia (seccion 3.2): SI / NO / Indiferente, por
+// defecto Indiferente (value=undefined) - solo pondera si el agente lo activa.
+function PrefToggle({ label, value, onChange, t }: { label: string; value: 'SI' | 'NO' | undefined; onChange: (v: 'SI' | 'NO' | undefined) => void; t: (k: string) => string }) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-text-2">{label}</label>
+      <div className="flex flex-wrap gap-2">
+        {PREF_VALUES.map((v) => (
+          <button key={v} type="button" onClick={() => onChange(value === v ? undefined : v)} className={detailPillClasses(value === v)}>
+            {v === 'SI' ? t('common.si') : t('common.no')}
+          </button>
+        ))}
+        <span className={`inline-flex items-center rounded-full border px-3.5 py-2.5 text-xs font-semibold ${value === undefined ? 'border-brand-line bg-brand-dim text-brand' : 'border-line text-text-3'}`}>
+          {t('pedidos.form.indiferente')}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 export default function PedidosTab({
@@ -67,6 +108,32 @@ export default function PedidosTab({
   const [contactPhone, setContactPhone] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Detalles de la busqueda (seccion 3.1) - todos opcionales, "al menos"
+  // (minimo deseado) en vez de valor exacto.
+  const [areaM2, setAreaM2] = useState('');
+  const [bedrooms, setBedrooms] = useState('');
+  const [bathrooms, setBathrooms] = useState('');
+  const [parkingSpaces, setParkingSpaces] = useState('');
+  const [prefAreaVerdeAmplia, setPrefAreaVerdeAmplia] = useState<'SI' | 'NO' | undefined>(undefined);
+  const [prefAreasComunales, setPrefAreasComunales] = useState<'SI' | 'NO' | undefined>(undefined);
+  const [prefAscensor, setPrefAscensor] = useState<'SI' | 'NO' | undefined>(undefined);
+  const [prefAmoblado, setPrefAmoblado] = useState<'SI' | 'NO' | undefined>(undefined);
+  const [prefTodosLosServicios, setPrefTodosLosServicios] = useState<'SI' | 'NO' | undefined>(undefined);
+
+  const fieldFlags = listingFieldsFor(propertyType, operationType);
+
+  function resetDetailFields() {
+    setAreaM2('');
+    setBedrooms('');
+    setBathrooms('');
+    setParkingSpaces('');
+    setPrefAreaVerdeAmplia(undefined);
+    setPrefAreasComunales(undefined);
+    setPrefAscensor(undefined);
+    setPrefAmoblado(undefined);
+    setPrefTodosLosServicios(undefined);
+  }
+
   function resetForm() {
     setCity('');
     setZone('');
@@ -75,6 +142,7 @@ export default function PedidosTab({
     setContactName('');
     setContactPhone('');
     setEditingId(null);
+    resetDetailFields();
   }
 
   function startEdit(op: OpportunityItem) {
@@ -85,6 +153,15 @@ export default function PedidosTab({
     setZone(op.zone ?? '');
     setBudgetMin(op.budgetMin !== undefined ? String(op.budgetMin) : '');
     setBudgetMax(op.budgetMax !== undefined ? String(op.budgetMax) : '');
+    setAreaM2(op.areaM2 != null ? String(op.areaM2) : '');
+    setBedrooms(op.bedrooms != null ? String(op.bedrooms) : '');
+    setBathrooms(op.bathrooms != null ? String(op.bathrooms) : '');
+    setParkingSpaces(op.parkingSpaces != null ? String(op.parkingSpaces) : '');
+    setPrefAreaVerdeAmplia(op.prefAreaVerdeAmplia === 'SI' || op.prefAreaVerdeAmplia === 'NO' ? op.prefAreaVerdeAmplia : undefined);
+    setPrefAreasComunales(op.prefAreasComunales === 'SI' || op.prefAreasComunales === 'NO' ? op.prefAreasComunales : undefined);
+    setPrefAscensor(op.prefAscensor === 'SI' || op.prefAscensor === 'NO' ? op.prefAscensor : undefined);
+    setPrefAmoblado(op.prefAmoblado === 'SI' || op.prefAmoblado === 'NO' ? op.prefAmoblado : undefined);
+    setPrefTodosLosServicios(op.prefTodosLosServicios === 'SI' || op.prefTodosLosServicios === 'NO' ? op.prefTodosLosServicios : undefined);
     setContactName(op.contactName ?? '');
     setContactPhone(op.contactPhone ?? '');
     setFormOpen(true);
@@ -97,6 +174,7 @@ export default function PedidosTab({
 
   async function submitOpportunity() {
     if (!city.trim()) return;
+    const num = (v: string) => (v.trim() ? Number(v) : undefined);
     const input: NewOpportunityInput = {
       operationType,
       propertyType,
@@ -104,6 +182,15 @@ export default function PedidosTab({
       zone: zone.trim() || undefined,
       budgetMin: budgetMin.trim() ? Number(budgetMin.trim()) : undefined,
       budgetMax: budgetMax.trim() ? Number(budgetMax.trim()) : undefined,
+      areaM2: num(areaM2),
+      bedrooms: fieldFlags.showDormitorios ? num(bedrooms) : undefined,
+      bathrooms: fieldFlags.showBanos ? num(bathrooms) : undefined,
+      parkingSpaces: fieldFlags.showParqueos ? num(parkingSpaces) : undefined,
+      prefAreaVerdeAmplia: propertyType === 'HOUSE' ? prefAreaVerdeAmplia : undefined,
+      prefAreasComunales: propertyType === 'APARTMENT' || propertyType === 'SUITE' ? prefAreasComunales : undefined,
+      prefAscensor: propertyType === 'APARTMENT' || propertyType === 'SUITE' ? prefAscensor : undefined,
+      prefAmoblado: fieldFlags.showAmoblado ? prefAmoblado : undefined,
+      prefTodosLosServicios: propertyType === 'LAND' ? prefTodosLosServicios : undefined,
       contactName: contactName.trim() || undefined,
       contactPhone: contactPhone.trim() || undefined,
     };
@@ -181,6 +268,68 @@ export default function PedidosTab({
                 <PriceInput value={budgetMin} onChange={setBudgetMin} placeholder={t('pedidos.form.presupuestoMin.placeholder')} helperText={t('common.precioAyuda')} />
                 <PriceInput value={budgetMax} onChange={setBudgetMax} placeholder={t('pedidos.form.presupuestoMax.placeholder')} />
               </div>
+
+              {/* Detalles de la busqueda (seccion 3.1) - todo opcional, plegado
+                  por defecto para que el formulario se sienta agil pese a
+                  tener mas campos. */}
+              <details className="mt-3 rounded-2xl border border-line-strong bg-surface-2/60 p-3">
+                <summary className="cursor-pointer select-none text-sm font-semibold text-text-2">{t('pedidos.form.detallesOpcional')}</summary>
+                <div className="mt-3">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-text-2">
+                        {lang === 'es' ? fieldFlags.areaM2Label.es : fieldFlags.areaM2Label.en} — {t('pedidos.form.alMenos')}
+                      </label>
+                      <input type="number" min={0} inputMode="decimal" className={detailInputClass} value={areaM2} onChange={(e) => setAreaM2(e.target.value)} placeholder="m²" />
+                    </div>
+                    {fieldFlags.showDormitorios ? (
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-text-2">
+                          {t('inmuebles.form.dormitorios')} — {t('pedidos.form.alMenos')}
+                        </label>
+                        <input type="number" min={0} inputMode="numeric" className={detailInputClass} value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} />
+                      </div>
+                    ) : null}
+                    {fieldFlags.showBanos ? (
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-text-2">
+                          {t('inmuebles.form.banos')} — {t('pedidos.form.alMenos')}
+                        </label>
+                        <input type="number" min={0} inputMode="numeric" className={detailInputClass} value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} />
+                      </div>
+                    ) : null}
+                    {fieldFlags.showParqueos ? (
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-text-2">
+                          {t('inmuebles.form.parqueos')} — {t('pedidos.form.alMenos')}
+                        </label>
+                        <input type="number" min={0} inputMode="numeric" className={detailInputClass} value={parkingSpaces} onChange={(e) => setParkingSpaces(e.target.value)} />
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {propertyType === 'HOUSE' || propertyType === 'APARTMENT' || propertyType === 'SUITE' || propertyType === 'LAND' || fieldFlags.showAmoblado ? (
+                    <div className="mt-4 space-y-3 border-t border-line pt-3">
+                      <p className="text-xs font-bold uppercase tracking-[0.1em] text-text-3">{t('pedidos.form.interruptores')}</p>
+                      {propertyType === 'HOUSE' ? (
+                        <PrefToggle label={t('pedidos.form.prefAreaVerde')} value={prefAreaVerdeAmplia} onChange={setPrefAreaVerdeAmplia} t={t} />
+                      ) : null}
+                      {propertyType === 'APARTMENT' || propertyType === 'SUITE' ? (
+                        <>
+                          <PrefToggle label={t('pedidos.form.prefAreasComunales')} value={prefAreasComunales} onChange={setPrefAreasComunales} t={t} />
+                          <PrefToggle label={t('pedidos.form.prefAscensor')} value={prefAscensor} onChange={setPrefAscensor} t={t} />
+                        </>
+                      ) : null}
+                      {fieldFlags.showAmoblado ? (
+                        <PrefToggle label={t('pedidos.form.prefAmoblado')} value={prefAmoblado} onChange={setPrefAmoblado} t={t} />
+                      ) : null}
+                      {propertyType === 'LAND' ? (
+                        <PrefToggle label={t('pedidos.form.prefServicios')} value={prefTodosLosServicios} onChange={setPrefTodosLosServicios} t={t} />
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              </details>
 
               <div className="mt-3 rounded-2xl border border-violet-400/20 bg-violet-500/5 p-3">
                 <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-violet-300">
