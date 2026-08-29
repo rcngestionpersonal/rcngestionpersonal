@@ -2,11 +2,16 @@ import Image from 'next/image';
 import {
   BarChart3,
   Check,
+  ClipboardList,
   Clock,
+  Crown,
   EyeOff,
+  FileText,
+  Globe,
   Handshake,
   IdCard,
   Lock,
+  Mail,
   MapPin,
   MessageSquare,
   MessageSquareOff,
@@ -19,6 +24,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { POINT_ACTIONS } from '@/lib/real-estate/points';
+import { PLANES } from '@/config/planes';
 import styles from '../login.module.css';
 
 export function PainSection() {
@@ -104,11 +110,11 @@ export function HowItWorksSection() {
             ASÍ FUNCIONA
           </p>
           <h2 className={styles.h2}>
-            <span className={styles.h2Grad}>Tres pasos y la red de tus colegas empieza a trabajar para ti</span>
+            <span className={styles.h2Grad}>Tres pasos y la red de colegas empieza a trabajar para ti</span>
           </h2>
           <p className={styles.sectionLead}>
-            Redinmo.io no es otro portal de anuncios. Es un motor que cruza lo que tienes con lo que tus colegas buscan — y al
-            revés.
+            Redinmo.io es un motor que hace <span className={styles.matchHighlight}>MATCH</span> de tus inmuebles con los
+            pedidos de tus colegas. Y mucho más.
           </p>
         </div>
         <div className={styles.steps}>
@@ -174,15 +180,6 @@ export function ColegasSection() {
                 </span>
                 <p className={styles.bulletText}>
                   <b>Niveles visibles.</b> De Agente Inicial a Agente Elite. Antes de escribirle, ya sabes en qué nivel juega.
-                </p>
-              </div>
-              <div className={styles.bullet}>
-                <span className={styles.bulletIcon}>
-                  <Check className="h-3 w-3" strokeWidth={2.5} />
-                </span>
-                <p className={styles.bulletText}>
-                  <b>Tus clientes siguen siendo tuyos.</b> Los datos de contacto nunca se muestran a nadie. Compartes el
-                  negocio, no tu cliente.
                 </p>
               </div>
             </div>
@@ -257,9 +254,9 @@ export function BeneficiosSection() {
             </span>
             <h3 className={styles.cardH3}>Mapa de Precios de Cierre</h3>
             <p className={styles.cardP}>
-              El dato que nadie publica: a cuánto se cierra de verdad en cada sector, en dólares por metro cuadrado. Lo
-              construyen tus colegas de forma anónima y te sirve para tasar con evidencia y ganar la captación frente al
-              propietario que pide un precio imposible.
+              El dato que nadie publica: a cuánto se cierra de verdad en cada sector, en dólares por metro cuadrado.{' '}
+              <span className={styles.cardEm}>Lo construyes con tus colegas</span> de forma anónima y te sirve para tasar con
+              evidencia y ganar la captación frente al propietario que pide un precio imposible.
             </p>
             <div className={styles.miniViz}>
               <span className={styles.miniVizValue}>
@@ -308,9 +305,61 @@ export function BeneficiosSection() {
               <span className={styles.sic}>
                 <Lock className="h-5 w-5" strokeWidth={1.8} />
               </span>
-              <h3 className={styles.cardH3}>Tus clientes, protegidos</h3>
+              <h3 className={styles.cardH3}>Tus clientes siguen siendo tuyos</h3>
               <p className={styles.cardP}>
-                Ningún colega ve los datos de contacto de tu cliente. Compartes la oportunidad, nunca tu base.
+                Los datos de contacto de tus clientes nunca se muestran a nadie. Compartes el negocio, no tu cliente.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.proBenefits}>
+          <p className={styles.proBenefitsHead}>
+            <span className={styles.proChip}>PRO</span>
+            Además, con el plan Pro
+          </p>
+          <div className={styles.bulletList}>
+            <div className={styles.bullet}>
+              <span className={styles.bulletIcon}>
+                <Globe className="h-4 w-4" strokeWidth={1.8} />
+              </span>
+              <p className={styles.bulletText}>
+                <b>Mini-sitio profesional.</b> Tu página pública con tu inventario, tu carnet verificado y un formulario que te
+                trae pedidos directos.
+              </p>
+            </div>
+            <div className={styles.bullet}>
+              <span className={styles.bulletIcon}>
+                <FileText className="h-4 w-4" strokeWidth={1.8} />
+              </span>
+              <p className={styles.bulletText}>
+                <b>Fichas de inmueble en PDF.</b> Descarga la ficha de cualquier inmueble con tus datos de contacto, lista para
+                enviar a tu cliente.
+              </p>
+            </div>
+            <div className={styles.bullet}>
+              <span className={styles.bulletIcon}>
+                <Mail className="h-4 w-4" strokeWidth={1.8} />
+              </span>
+              <p className={styles.bulletText}>
+                <b>Carta de presentación.</b> Genera cartas profesionales para propietarios, constructoras o colegas, con tu
+                experiencia y tu inventario.
+              </p>
+            </div>
+            <div className={styles.bullet}>
+              <span className={styles.bulletIcon}>
+                <ClipboardList className="h-4 w-4" strokeWidth={1.8} />
+              </span>
+              <p className={styles.bulletText}>
+                <b>Reportes a clientes.</b> Informa a tu propietario cada semana qué hiciste por su propiedad. Con tu marca.
+              </p>
+            </div>
+            <div className={styles.bullet}>
+              <span className={styles.bulletIcon}>
+                <Crown className="h-4 w-4" strokeWidth={1.8} />
+              </span>
+              <p className={styles.bulletText}>
+                <b>Carnet Pro destacado.</b> Un diseño exclusivo que te distingue frente a tus colegas.
               </p>
             </div>
           </div>
@@ -321,12 +370,24 @@ export function BeneficiosSection() {
 }
 
 export function PrecioSection() {
-  const valueRows = [
-    { text: 'Matches ilimitados con el inventario de tus colegas', strike: '$49/mes' },
-    { text: 'Mapa de Precios de Cierre para tasar con datos reales', strike: '$39/mes' },
-    { text: 'Carnet de Agente verificable y compartible', strike: '$19/mes' },
-    { text: 'Gestión de inmuebles, pedidos y seguimientos', strike: '$29/mes' },
-    { text: 'Perfil, niveles y reputación frente a tus colegas', strike: '—' },
+  const basico = PLANES.BASICO;
+  const pro = PLANES.PRO;
+
+  const basicoFeatures = [
+    'Matches ilimitados con tus colegas',
+    'Gestión de inmuebles, pedidos y seguimientos',
+    'Mapa de Precios de Cierre · lo construimos entre todos',
+    'Carnet de agente verificable',
+    'Ranking y niveles',
+  ];
+
+  const proFeatures = [
+    'Todo lo del plan Básico',
+    'Mini-sitio profesional con tu inventario',
+    'Fichas de inmueble en PDF con tus datos',
+    'Cartas de presentación',
+    'Reportes a clientes',
+    'Carnet Pro destacado',
   ];
 
   return (
@@ -337,57 +398,65 @@ export function PrecioSection() {
         <div className={styles.headCenter}>
           <p className={styles.eyebrow}>
             <Zap className="h-[13px] w-[13px]" strokeWidth={2} />
-            TU INVERSIÓN
+            PLANES
           </p>
           <h2 className={styles.h2}>
-            <span className={styles.h2Grad}>Un solo negocio compartido paga tu suscripción por años</span>
+            <span className={styles.h2Grad}>Elige cómo quieres trabajar</span>
           </h2>
-          <p className={styles.sectionLead}>Sin contratos, sin porcentajes sobre tus comisiones, sin sorpresas.</p>
+          <p className={styles.sectionLead}>
+            Empieza con 30 días de acceso Pro completo, gratis. Al terminar eliges con qué plan continuar.
+          </p>
         </div>
 
-        <div className={styles.offerCard}>
-          <span className={styles.offerPill}>
-            <Sparkle className="h-3 w-3" strokeWidth={2} />
-            PRECIO FUNDADOR · CONGELADO MIENTRAS ESTÉS ACTIVO
-          </span>
-          <div className={styles.offerPrice}>
-            <span className={styles.offerPriceValue}>$8,99</span>
-            <span className={styles.offerPriceUnit}>+ IVA al mes</span>
-          </div>
-          <p className={styles.offerPriceNote}>
-            Tu precio no sube mientras mantengas tu suscripción activa. El precio para nuevos agentes puede cambiar.
-          </p>
-
-          <div className={styles.valueStack}>
-            {valueRows.map((row) => (
-              <div key={row.text} className={styles.valueRow}>
-                <span className={styles.valueCheck}>
-                  <Check className="h-3 w-3" strokeWidth={2.5} />
-                </span>
-                <span className={styles.valueText}>{row.text}</span>
-                <span className={styles.valueStrike}>{row.strike}</span>
-              </div>
-            ))}
+        <div className={styles.plansGrid}>
+          <div className={styles.planCard}>
+            <p className={styles.planName}>{basico.nombre}</p>
+            <div className={styles.planPrice}>
+              <span className={styles.planPriceValue}>{basico.etiqueta}</span>
+              <span className={styles.planPriceUnit}>al mes</span>
+            </div>
+            <p className={styles.planTagline}>{basico.bajada}</p>
+            <div className={styles.valueStack}>
+              {basicoFeatures.map((text) => (
+                <div key={text} className={styles.valueRow}>
+                  <span className={styles.valueCheck}>
+                    <Check className="h-3 w-3" strokeWidth={2.5} />
+                  </span>
+                  <span className={styles.valueText}>{text}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className={styles.guaranteeBox}>
-            <ShieldCheck className="h-[18px] w-[18px]" strokeWidth={1.8} />
-            <p className={styles.guaranteeText}>
-              <b>Pruébalo sin riesgo:</b> 30 días gratis para cargar tu inventario y recibir tus primeros matches. Si no te
-              sirve, cancelas desde tu panel en un clic — sin llamadas ni penalidades. Y Redinmo.io nunca toca un centavo de tus
-              comisiones.
-            </p>
+          <div className={`${styles.planCard} ${styles.planCardPro}`}>
+            <span className={styles.planRecommended}>Recomendado</span>
+            <p className={styles.planName}>{pro.nombre}</p>
+            <div className={styles.planPrice}>
+              <span className={styles.planPriceValue}>{pro.etiqueta}</span>
+              <span className={styles.planPriceUnit}>al mes</span>
+            </div>
+            <p className={styles.planTagline}>{pro.bajada}</p>
+            <div className={styles.valueStack}>
+              {proFeatures.map((text) => (
+                <div key={text} className={styles.valueRow}>
+                  <span className={styles.valueCheck}>
+                    <Check className="h-3 w-3" strokeWidth={2.5} />
+                  </span>
+                  <span className={styles.valueText}>{text}</span>
+                </div>
+              ))}
+            </div>
           </div>
+        </div>
 
-          <div className={styles.offerCtaWrap}>
-            <a href="/agentes/registro" className={styles.offerCta}>
-              Empezar mis 30 días gratis
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14M13 5l7 7-7 7" />
-              </svg>
-            </a>
-            <p className={styles.offerMicro}>Pago con tarjeta de crédito o débito · Factura electrónica automática</p>
-          </div>
+        <div className={styles.offerCtaWrap}>
+          <a href="/agentes/registro" className={styles.offerCta}>
+            Empezar mis 30 días gratis
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M13 5l7 7-7 7" />
+            </svg>
+          </a>
+          <p className={styles.offerMicro}>Sin tarjeta para empezar. Cancela cuando quieras.</p>
         </div>
       </div>
     </section>

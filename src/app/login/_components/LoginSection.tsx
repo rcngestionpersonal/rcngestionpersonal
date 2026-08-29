@@ -218,7 +218,7 @@ function LoginForm() {
             <p className={styles.inviteLine}>
               Puedes acceder con el link de invitación de un colega o{' '}
               <a href="/agentes/registro" className={styles.registerLink}>
-                Regístrate aquí
+                Registrarte por primera vez aquí
               </a>
               .
             </p>

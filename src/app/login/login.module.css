@@ -545,6 +545,14 @@
   color: var(--text-2);
 }
 
+.matchHighlight {
+  background: var(--grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 800;
+}
+
 .grid3 {
   display: grid;
   grid-template-columns: 1fr;
@@ -576,6 +584,11 @@
   font-size: 13.5px;
   line-height: 1.55;
   color: var(--text-2);
+}
+
+.cardEm {
+  color: var(--accent);
+  font-weight: 700;
 }
 
 /* ---------- Como funciona ---------- */
@@ -928,6 +941,45 @@
   font-weight: 700;
 }
 
+.proBenefits {
+  margin-top: 40px;
+  padding-top: 36px;
+  border-top: 1px solid var(--line);
+}
+
+.proBenefitsHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.proChip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--grad-contrast);
+  background: var(--grad);
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+.proBenefits .bulletList {
+  margin-top: 20px;
+}
+
+@media (min-width: 860px) {
+  .proBenefits .bulletList {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 28px;
+  }
+}
+
 /* ---------- Carnet ---------- */
 
 .carnetSection {
@@ -959,7 +1011,7 @@
 .carnetCard {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(165deg, #1c1636, #171130 52%, #1d1540);
+  background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
   border: 1px solid var(--brand-line);
   border-radius: 18px;
   padding: 18px 19px 16px;
@@ -973,7 +1025,7 @@
   width: 150px;
   height: 150px;
   border-radius: 999px;
-  border: 1px solid rgba(183, 165, 255, 0.15);
+  border: 1px solid var(--line-strong);
   pointer-events: none;
 }
 
@@ -1026,7 +1078,7 @@
   gap: 5px;
   margin-top: 10px;
   font-size: 10px;
-  color: #918bb0;
+  color: var(--text-2);
 }
 
 .carnetZones svg {
@@ -1043,7 +1095,7 @@
 }
 
 .carnetStat {
-  background: rgba(183, 165, 255, 0.06);
+  background: var(--brand-dim);
   border: 1px solid var(--line);
   border-radius: 9px;
   padding: 7px 4px;
@@ -1069,18 +1121,20 @@
   align-items: center;
   gap: 10px;
   margin-top: 12px;
-  background: rgba(45, 212, 191, 0.07);
+  background: var(--accent-dim);
   border: 1px solid var(--accent-line);
   border-radius: 11px;
   padding: 9px 10px;
 }
 
+/* Fondo blanco fijo (nunca tokenizado, ver BrokerCard): un QR necesita
+   contraste oscuro-sobre-claro para escanear bien, sin importar el tema. */
 .carnetQrImg {
   width: 44px;
   height: 44px;
   flex-shrink: 0;
   border-radius: 4px;
-  background: #f3f1fa;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .carnetQrText {
@@ -1119,65 +1173,84 @@
   padding: 76px 0;
 }
 
-.offerCard {
+.plansGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-top: 40px;
+  align-items: start;
+}
+
+@media (min-width: 860px) {
+  .plansGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.planCard {
   position: relative;
-  overflow: hidden;
-  max-width: 660px;
-  margin: 40px auto 0;
   background: var(--surface);
-  border: 1px solid var(--brand-line);
+  border: 1px solid var(--line);
   border-radius: 20px;
-  padding: 32px 30px;
+  padding: 28px 26px;
 }
 
-.offerCard::before {
-  content: '';
-  position: absolute;
-  top: -80px;
-  right: -80px;
-  width: 220px;
-  height: 220px;
-  border-radius: 999px;
-  background: radial-gradient(rgba(167, 139, 250, 0.28), transparent 70%);
-  pointer-events: none;
-}
-
-.offerPill {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 10.5px;
-  font-weight: 700;
-  color: var(--brand);
-  background: var(--brand-dim);
+.planCardPro {
   border: 1px solid var(--brand-line);
-  padding: 6px 13px;
+  background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
+  box-shadow: var(--shadow-md);
+}
+
+.planRecommended {
+  position: absolute;
+  top: -13px;
+  right: 24px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--grad-contrast);
+  background: var(--grad);
+  padding: 5px 12px;
   border-radius: 999px;
 }
 
-.offerPrice {
-  position: relative;
-  margin: 18px 0 0;
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.offerPriceValue {
-  font-size: 52px;
+.planName {
+  margin: 0;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: -0.035em;
-}
-
-.offerPriceUnit {
-  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--text-3);
 }
 
-.offerPriceNote {
+.planCardPro .planName {
+  color: var(--brand);
+}
+
+.planPrice {
   position: relative;
-  margin: 8px 0 0;
+  margin: 10px 0 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.planPriceValue {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.planPriceUnit {
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.planTagline {
+  margin: 6px 0 0;
   font-size: 13.5px;
   color: var(--text-2);
 }
@@ -1187,7 +1260,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 24px;
+  margin-top: 22px;
 }
 
 .valueRow {
@@ -1218,42 +1291,6 @@
   font-size: 13.5px;
   font-weight: 500;
   color: var(--text);
-}
-
-.valueStrike {
-  flex-shrink: 0;
-  font-size: 12px;
-  color: var(--text-3);
-  text-decoration: line-through;
-}
-
-.guaranteeBox {
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-top: 24px;
-  background: var(--surface-2);
-  border: 1px dashed var(--accent-line);
-  border-radius: 12px;
-  padding: 15px;
-}
-
-.guaranteeBox svg {
-  flex-shrink: 0;
-  margin-top: 1px;
-  color: var(--accent);
-}
-
-.guaranteeText {
-  font-size: 13.5px;
-  line-height: 1.55;
-  color: var(--text-2);
-}
-
-.guaranteeText b {
-  color: var(--text);
-  font-weight: 600;
 }
 
 .offerCtaWrap {

@@ -82,7 +82,7 @@ export default function CarnetSection() {
           <div>
             <p className={styles.eyebrow}>
               <IdCard className="h-[13px] w-[13px]" strokeWidth={2} />
-              TU CREDENCIAL DE AGENTE
+              TU CARNET DE AGENTE
             </p>
             <h2 className={styles.h2}>
               <span className={styles.h2Grad}>La forma más rápida de demostrarle a un cliente que eres un agente serio</span>
@@ -111,8 +111,8 @@ export default function CarnetSection() {
                   <Check className="h-3 w-3" strokeWidth={2.5} />
                 </span>
                 <p className={styles.bulletText}>
-                  <b>Habla de resultados.</b> Nivel, cierres registrados y vigencia al día. Deja de prometer profesionalismo:
-                  muéstralo.
+                  <b>Habla de resultados.</b> Tu nivel, años de experiencia, sectores en los que te especializas y vigencia al
+                  día. Deja de prometer profesionalismo: muéstralo.
                 </p>
               </div>
             </div>
