@@ -2,7 +2,7 @@ import { LeadStage, ListingStatus, MatchStatus, OperationType, PropertyType } fr
 import { prisma } from '@/lib/prisma';
 import { sendEmailNotification } from '@/lib/real-estate/email';
 import { buildMatchCreatedEmail } from '@/lib/real-estate/email-templates';
-import { scoreListingForOpportunity, shouldNotify } from '@/lib/real-estate/matching';
+import { meetsListingMatchThreshold, scoreListingForOpportunity } from '@/lib/real-estate/matching';
 import { getAppUrl } from '@/lib/real-estate/subscription-config';
 import { awardMatchReceived } from '@/lib/real-estate/points-log';
 
@@ -16,6 +16,20 @@ type ListingLike = {
   price: number;
   managingAgentId: string;
   referredByAgentId: string | null;
+  areaM2: number | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  parkingSpaces: number | null;
+  antiguedad: string | null;
+  espaciosAdicionales: number | null;
+  mediosBanos: number | null;
+  tieneAscensor: boolean | null;
+  areasComunales: boolean | null;
+  amoblado: string | null;
+  serviciosBasicos: string | null;
+  terrenoTotalM2: number | null;
+  areaLibrePropiaM2: number | null;
+  terrenoLibreExclusivoM2: number | null;
 };
 
 type OpportunityLike = {
@@ -28,6 +42,16 @@ type OpportunityLike = {
   budgetMin: number | null;
   budgetMax: number | null;
   createdByAgentId: string | null;
+  areaM2: number | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  parkingSpaces: number | null;
+  aceptaEspaciosAdicionales: boolean | null;
+  prefAreaVerdeAmplia: string | null;
+  prefAreasComunales: string | null;
+  prefAscensor: string | null;
+  prefAmoblado: string | null;
+  prefTodosLosServicios: string | null;
 };
 
 async function notifyAgentForListingMatch(
@@ -103,6 +127,20 @@ async function createMatchAndNotify(opportunity: OpportunityLike, listing: Listi
       city: listing.city,
       zone: listing.zone,
       price: listing.price,
+      areaM2: listing.areaM2,
+      bedrooms: listing.bedrooms,
+      bathrooms: listing.bathrooms,
+      parkingSpaces: listing.parkingSpaces,
+      antiguedad: listing.antiguedad,
+      espaciosAdicionales: listing.espaciosAdicionales,
+      mediosBanos: listing.mediosBanos,
+      tieneAscensor: listing.tieneAscensor,
+      areasComunales: listing.areasComunales,
+      amoblado: listing.amoblado,
+      serviciosBasicos: listing.serviciosBasicos,
+      terrenoTotalM2: listing.terrenoTotalM2,
+      areaLibrePropiaM2: listing.areaLibrePropiaM2,
+      terrenoLibreExclusivoM2: listing.terrenoLibreExclusivoM2,
     },
     {
       city: opportunity.city,
@@ -111,9 +149,19 @@ async function createMatchAndNotify(opportunity: OpportunityLike, listing: Listi
       operationType: opportunity.operationType,
       budgetMin: opportunity.budgetMin,
       budgetMax: opportunity.budgetMax,
+      areaM2: opportunity.areaM2,
+      bedrooms: opportunity.bedrooms,
+      bathrooms: opportunity.bathrooms,
+      parkingSpaces: opportunity.parkingSpaces,
+      aceptaEspaciosAdicionales: opportunity.aceptaEspaciosAdicionales,
+      prefAreaVerdeAmplia: opportunity.prefAreaVerdeAmplia,
+      prefAreasComunales: opportunity.prefAreasComunales,
+      prefAscensor: opportunity.prefAscensor,
+      prefAmoblado: opportunity.prefAmoblado,
+      prefTodosLosServicios: opportunity.prefTodosLosServicios,
     },
   );
-  if (!shouldNotify(score)) return false;
+  if (!meetsListingMatchThreshold(score)) return false;
 
   const match = await prisma.listingMatch.create({
     data: {

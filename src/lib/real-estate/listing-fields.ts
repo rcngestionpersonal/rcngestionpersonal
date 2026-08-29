@@ -81,6 +81,8 @@ export type ListingFieldFlags = {
   showEstadoOcupacion: boolean;
   showAlturaLibreM: boolean;
   showAccesoCamion: boolean;
+  // Fase 8, Bloque B, seccion 1.2 - Casa, Departamento, Suite y Oficina.
+  showEspaciosYMediosBanos: boolean;
 };
 
 export function listingFieldsFor(propertyType: string, operationType: OperationTypeValue): ListingFieldFlags {
@@ -109,6 +111,7 @@ export function listingFieldsFor(propertyType: string, operationType: OperationT
     showEstadoOcupacion: false,
     showAlturaLibreM: false,
     showAccesoCamion: false,
+    showEspaciosYMediosBanos: false,
   };
 
   switch (propertyType) {
@@ -124,6 +127,7 @@ export function listingFieldsFor(propertyType: string, operationType: OperationT
         showAlicuota: true, // solo relevante si esIndependiente=false (conjunto), ver UI
         showAmoblado: isRentPossible,
         showTerrenoCasa: true,
+        showEspaciosYMediosBanos: true,
       };
     case 'APARTMENT':
     case 'SUITE':
@@ -139,6 +143,7 @@ export function listingFieldsFor(propertyType: string, operationType: OperationT
         showAreasComunales: true,
         showAlicuota: true,
         showAmoblado: isRentPossible,
+        showEspaciosYMediosBanos: true,
       };
     case 'LAND':
       return {
@@ -173,6 +178,7 @@ export function listingFieldsFor(propertyType: string, operationType: OperationT
         showPiso: true,
         showAscensor: true,
         showEstadoOcupacion: true,
+        showEspaciosYMediosBanos: true,
       };
     case 'WAREHOUSE':
       return {

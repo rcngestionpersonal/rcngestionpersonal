@@ -84,6 +84,9 @@ export type OpportunityItem = {
   prefAscensor?: string | null;
   prefAmoblado?: string | null;
   prefTodosLosServicios?: string | null;
+  // Fase 8, Bloque B, seccion 1.3a - null/true = acepta espacios adicionales
+  // como dormitorio (checkbox marcado por defecto).
+  aceptaEspaciosAdicionales?: boolean | null;
   contactName?: string;
   contactPhone?: string;
   matches: MatchItem[];
@@ -168,6 +171,10 @@ export type ListingItem = {
   terrenoTotalM2?: number | null;
   areaLibrePropiaM2?: number | null;
   terrenoLibreExclusivoM2?: number | null;
+  // Fase 8, Bloque B, seccion 1.2 - espacios que antes no existian como dato.
+  espaciosAdicionales?: number | null;
+  mediosBanos?: number | null;
+  balconOTerraza?: boolean | null;
   // Datos del cliente propietario/arrendador: el backend los redacta salvo para el
   // propio agente que gestiona el inmueble (ver src/lib/real-estate/privacy.ts).
   ownerName?: string;

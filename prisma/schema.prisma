@@ -224,6 +224,13 @@ model Listing {
   terrenoTotalM2         Float?
   areaLibrePropiaM2      Float?
   terrenoLibreExclusivoM2 Float?
+  // Espacios que el agente menciona verbalmente y que antes no existian como
+  // dato (Fase 8, Bloque B, seccion 1.2) - Casa/Departamento/Suite/Oficina.
+  // espaciosAdicionales pondera en el matching con peso 0.7 por unidad (ver
+  // matching.ts); balconOTerraza es puramente informativo (nunca pondera).
+  espaciosAdicionales    Int?
+  mediosBanos            Int?
+  balconOTerraza         Boolean?
   // Datos del cliente propietario/arrendador: estrictamente privados, solo el agente
   // que gestiona el inmueble puede verlos (ver src/lib/real-estate/privacy.ts).
   ownerName              String?
@@ -269,6 +276,11 @@ model Opportunity {
   prefAscensor           String?
   prefAmoblado           String?
   prefTodosLosServicios  String?
+  // Fase 8, Bloque B, seccion 1.3a - null o true = acepta que espacios
+  // adicionales del inmueble (estudio, cuarto de servicio) cuenten como
+  // dormitorio con peso 0.7 (checkbox marcado por defecto); false = solo
+  // cuentan los dormitorios reales. Solo aplica si bedrooms esta definido.
+  aceptaEspaciosAdicionales Boolean?
   summary          String
   extractedData    Json?
   stage            LeadStage       @default(NEW)

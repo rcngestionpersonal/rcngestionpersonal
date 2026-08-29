@@ -35,6 +35,9 @@ const opportunitySchema = z.object({
   prefAscensor: z.enum(['SI', 'NO']).optional(),
   prefAmoblado: z.enum(['SI', 'NO']).optional(),
   prefTodosLosServicios: z.enum(['SI', 'NO']).optional(),
+  // Espacios adicionales como dormitorio (Fase 8, Bloque B, seccion 1.3a) -
+  // checkbox marcado por defecto en el formulario; ausente/true = acepta.
+  aceptaEspaciosAdicionales: z.boolean().optional(),
   contactName: z.string().trim().optional(),
   contactPhone: z.string().trim().optional(),
 }).refine((data) => data.budgetMin !== undefined || data.budgetMax !== undefined, {
@@ -176,6 +179,7 @@ export async function POST(request: NextRequest) {
         prefAscensor: input.prefAscensor,
         prefAmoblado: input.prefAmoblado,
         prefTodosLosServicios: input.prefTodosLosServicios,
+        aceptaEspaciosAdicionales: input.aceptaEspaciosAdicionales,
         contactName: input.contactName,
         contactPhone: input.contactPhone,
         summary,

@@ -61,6 +61,9 @@ export type NewListingInput = {
   terrenoTotalM2?: number;
   areaLibrePropiaM2?: number;
   terrenoLibreExclusivoM2?: number;
+  espaciosAdicionales?: number;
+  mediosBanos?: number;
+  balconOTerraza?: boolean;
   ownerName?: string;
   ownerPhone?: string;
   commissionSharePercent: number;
@@ -262,6 +265,10 @@ export default function InmueblesTab({
   const [terrenoTotalM2, setTerrenoTotalM2] = useState('');
   const [areaLibrePropiaM2, setAreaLibrePropiaM2] = useState('');
   const [terrenoLibreExclusivoM2, setTerrenoLibreExclusivoM2] = useState('');
+  // Fase 8, Bloque B, seccion 1.2 - espacios que antes no existian como dato.
+  const [espaciosAdicionales, setEspaciosAdicionales] = useState('');
+  const [mediosBanos, setMediosBanos] = useState('');
+  const [balconOTerraza, setBalconOTerraza] = useState<boolean | undefined>(undefined);
 
   const fieldFlags = listingFieldsFor(propertyType, operationType);
   const areaVerdeAmpliaPreview = hasAreaVerdeAmplia({
@@ -296,6 +303,9 @@ export default function InmueblesTab({
     setTerrenoTotalM2('');
     setAreaLibrePropiaM2('');
     setTerrenoLibreExclusivoM2('');
+    setEspaciosAdicionales('');
+    setMediosBanos('');
+    setBalconOTerraza(undefined);
   }
 
   // Foto de portada: para un inmueble ya existente se sube de inmediato (sin limite
@@ -363,6 +373,9 @@ export default function InmueblesTab({
     setTerrenoTotalM2(listing.terrenoTotalM2 != null ? String(listing.terrenoTotalM2) : '');
     setAreaLibrePropiaM2(listing.areaLibrePropiaM2 != null ? String(listing.areaLibrePropiaM2) : '');
     setTerrenoLibreExclusivoM2(listing.terrenoLibreExclusivoM2 != null ? String(listing.terrenoLibreExclusivoM2) : '');
+    setEspaciosAdicionales(listing.espaciosAdicionales != null ? String(listing.espaciosAdicionales) : '');
+    setMediosBanos(listing.mediosBanos != null ? String(listing.mediosBanos) : '');
+    setBalconOTerraza(listing.balconOTerraza ?? undefined);
     setFormOpen(true);
   }
 
@@ -437,6 +450,9 @@ export default function InmueblesTab({
       terrenoTotalM2: fieldFlags.showTerrenoCasa ? num(terrenoTotalM2) : undefined,
       areaLibrePropiaM2: fieldFlags.showTerrenoCasa ? num(areaLibrePropiaM2) : undefined,
       terrenoLibreExclusivoM2: fieldFlags.showTerrenoCasa ? num(terrenoLibreExclusivoM2) : undefined,
+      espaciosAdicionales: fieldFlags.showEspaciosYMediosBanos ? num(espaciosAdicionales) : undefined,
+      mediosBanos: fieldFlags.showEspaciosYMediosBanos ? num(mediosBanos) : undefined,
+      balconOTerraza: fieldFlags.showEspaciosYMediosBanos ? balconOTerraza : undefined,
       ownerName: ownerName.trim() || undefined,
       ownerPhone: ownerPhone.trim() || undefined,
       commissionSharePercent: Number(commissionSharePercent) || 0,
@@ -541,10 +557,22 @@ export default function InmueblesTab({
                       <input type="number" min={0} inputMode="numeric" className={detailInputClass} value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} />
                     </div>
                   ) : null}
+                  {fieldFlags.showEspaciosYMediosBanos ? (
+                    <div>
+                      <FieldLabel help={t('inmuebles.form.espaciosAdicionalesAyuda')}>{t('inmuebles.form.espaciosAdicionales')}</FieldLabel>
+                      <input type="number" min={0} inputMode="numeric" className={detailInputClass} value={espaciosAdicionales} onChange={(e) => setEspaciosAdicionales(e.target.value)} placeholder="0" />
+                    </div>
+                  ) : null}
                   {fieldFlags.showBanos ? (
                     <div>
                       <FieldLabel>{t('inmuebles.form.banos')}</FieldLabel>
                       <input type="number" min={0} inputMode="numeric" className={detailInputClass} value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} />
+                    </div>
+                  ) : null}
+                  {fieldFlags.showEspaciosYMediosBanos ? (
+                    <div>
+                      <FieldLabel>{t('inmuebles.form.mediosBanos')}</FieldLabel>
+                      <input type="number" min={0} inputMode="numeric" className={detailInputClass} value={mediosBanos} onChange={(e) => setMediosBanos(e.target.value)} placeholder="0" />
                     </div>
                   ) : null}
                   {fieldFlags.showParqueos ? (
@@ -643,7 +671,7 @@ export default function InmueblesTab({
               </div>
 
               {/* Extras (informativos - solo se muestran en la ficha, nunca ponderan) */}
-              {fieldFlags.showAmoblado || fieldFlags.showAscensor || fieldFlags.showAreasComunales || fieldFlags.showServiciosBasicos || fieldFlags.showPisosPermitidos || fieldFlags.showAccesoCamion ? (
+              {fieldFlags.showAmoblado || fieldFlags.showAscensor || fieldFlags.showAreasComunales || fieldFlags.showServiciosBasicos || fieldFlags.showPisosPermitidos || fieldFlags.showAccesoCamion || fieldFlags.showEspaciosYMediosBanos ? (
                 <div className="mt-5">
                   <p className="mb-2.5 text-xs font-bold uppercase tracking-[0.12em] text-text-3">{t('inmuebles.form.seccionExtras')}</p>
                   <div className="grid gap-3 md:grid-cols-2">
@@ -667,6 +695,9 @@ export default function InmueblesTab({
                     ) : null}
                     {fieldFlags.showAccesoCamion ? (
                       <BoolToggle label={t('inmuebles.form.accesoCamion')} value={accesoCamion} onChange={setAccesoCamion} trueLabel={t('common.si')} falseLabel={t('common.no')} />
+                    ) : null}
+                    {fieldFlags.showEspaciosYMediosBanos ? (
+                      <BoolToggle label={t('inmuebles.form.balconOTerraza')} value={balconOTerraza} onChange={setBalconOTerraza} trueLabel={t('common.si')} falseLabel={t('common.no')} />
                     ) : null}
                   </div>
                 </div>
@@ -903,7 +934,8 @@ export default function InmueblesTab({
                         <span className="rounded-full bg-[rgba(45,212,191,0.12)] px-[7px] py-px text-[10.5px] font-semibold text-[#2dd4bf]">{listing.matches.length}</span>
                       </div>
                       <div className="space-y-2">
-                        {listing.matches.map((lm) => {
+                        {/* Orden por compatibilidad descendente (Fase 8, seccion 2.8). */}
+                        {[...listing.matches].sort((a, b) => b.score - a.score).map((lm) => {
                           const name = agentName(lm.createdByAgentId, agents) ?? '—';
                           const matchDate = relativeLabel(
                             lm.createdAt,

@@ -10,6 +10,7 @@ import { zoneCentroid } from '@/lib/real-estate/quito-zones';
 import {
   AgentScoringInput,
   OpportunityScoringInput,
+  meetsListingMatchThreshold,
   normalize,
   scoreAgentForOpportunity,
   scoreListingForOpportunity,
@@ -139,6 +140,7 @@ type OpportunityRecord = {
   prefAscensor?: string;
   prefAmoblado?: string;
   prefTodosLosServicios?: string;
+  aceptaEspaciosAdicionales?: boolean;
   stage: 'NEW' | 'PROCESSING' | 'ACTIVE_MATCH' | 'CLOSED' | 'DISCARDED';
   claimedByAgentId?: string;
   referredByAgentId?: string;
@@ -185,6 +187,9 @@ type ListingRecord = {
   terrenoTotalM2?: number;
   areaLibrePropiaM2?: number;
   terrenoLibreExclusivoM2?: number;
+  espaciosAdicionales?: number;
+  mediosBanos?: number;
+  balconOTerraza?: boolean;
   ownerName?: string;
   ownerPhone?: string;
   coverPhotoUrl?: string;
@@ -880,6 +885,9 @@ export function createListing(input: {
   terrenoTotalM2?: number;
   areaLibrePropiaM2?: number;
   terrenoLibreExclusivoM2?: number;
+  espaciosAdicionales?: number;
+  mediosBanos?: number;
+  balconOTerraza?: boolean;
   ownerName?: string;
   ownerPhone?: string;
   commissionSharePercent?: number;
@@ -924,6 +932,9 @@ export function createListing(input: {
     terrenoTotalM2: input.terrenoTotalM2,
     areaLibrePropiaM2: input.areaLibrePropiaM2,
     terrenoLibreExclusivoM2: input.terrenoLibreExclusivoM2,
+    espaciosAdicionales: input.espaciosAdicionales,
+    mediosBanos: input.mediosBanos,
+    balconOTerraza: input.balconOTerraza,
     ownerName: input.ownerName,
     ownerPhone: input.ownerPhone,
     commissionSharePercent: input.commissionSharePercent ?? 0,
@@ -1102,6 +1113,20 @@ async function crossMatchOpportunityAndListing(
       city: listing.city,
       zone: listing.zone,
       price: listing.price,
+      areaM2: listing.areaM2,
+      bedrooms: listing.bedrooms,
+      bathrooms: listing.bathrooms,
+      parkingSpaces: listing.parkingSpaces,
+      antiguedad: listing.antiguedad,
+      espaciosAdicionales: listing.espaciosAdicionales,
+      mediosBanos: listing.mediosBanos,
+      tieneAscensor: listing.tieneAscensor,
+      areasComunales: listing.areasComunales,
+      amoblado: listing.amoblado,
+      serviciosBasicos: listing.serviciosBasicos,
+      terrenoTotalM2: listing.terrenoTotalM2,
+      areaLibrePropiaM2: listing.areaLibrePropiaM2,
+      terrenoLibreExclusivoM2: listing.terrenoLibreExclusivoM2,
     },
     {
       city: opportunity.city,
@@ -1110,9 +1135,19 @@ async function crossMatchOpportunityAndListing(
       operationType: opportunity.operationType as OperationType,
       budgetMin: opportunity.budgetMin,
       budgetMax: opportunity.budgetMax,
+      areaM2: opportunity.areaM2,
+      bedrooms: opportunity.bedrooms,
+      bathrooms: opportunity.bathrooms,
+      parkingSpaces: opportunity.parkingSpaces,
+      aceptaEspaciosAdicionales: opportunity.aceptaEspaciosAdicionales,
+      prefAreaVerdeAmplia: opportunity.prefAreaVerdeAmplia,
+      prefAreasComunales: opportunity.prefAreasComunales,
+      prefAscensor: opportunity.prefAscensor,
+      prefAmoblado: opportunity.prefAmoblado,
+      prefTodosLosServicios: opportunity.prefTodosLosServicios,
     },
   );
-  if (!shouldNotify(score)) return null;
+  if (!meetsListingMatchThreshold(score)) return null;
 
   const createdAt = nowIso();
   const match: ListingMatchRecord = {
@@ -1314,6 +1349,7 @@ export async function createOpportunityByAgent(input: {
   prefAscensor?: string;
   prefAmoblado?: string;
   prefTodosLosServicios?: string;
+  aceptaEspaciosAdicionales?: boolean;
   contactName?: string;
   contactPhone?: string;
   createdByAgentId?: string;
@@ -1342,6 +1378,7 @@ export async function createOpportunityByAgent(input: {
     prefAscensor: input.prefAscensor,
     prefAmoblado: input.prefAmoblado,
     prefTodosLosServicios: input.prefTodosLosServicios,
+    aceptaEspaciosAdicionales: input.aceptaEspaciosAdicionales,
     stage: 'NEW',
     createdByAgentId: input.createdByAgentId,
     createdAt,

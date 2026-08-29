@@ -31,6 +31,7 @@ export type NewOpportunityInput = {
   prefAscensor?: 'SI' | 'NO';
   prefAmoblado?: 'SI' | 'NO';
   prefTodosLosServicios?: 'SI' | 'NO';
+  aceptaEspaciosAdicionales?: boolean;
   contactName?: string;
   contactPhone?: string;
 };
@@ -119,6 +120,10 @@ export default function PedidosTab({
   const [prefAscensor, setPrefAscensor] = useState<'SI' | 'NO' | undefined>(undefined);
   const [prefAmoblado, setPrefAmoblado] = useState<'SI' | 'NO' | undefined>(undefined);
   const [prefTodosLosServicios, setPrefTodosLosServicios] = useState<'SI' | 'NO' | undefined>(undefined);
+  // Regla de espacios adicionales (Fase 8, Bloque B, seccion 1.3a) - marcado
+  // por defecto (el cliente casi siempre acepta un estudio/cuarto de
+  // servicio como dormitorio); solo se muestra si se especifico dormitorios.
+  const [aceptaEspaciosAdicionales, setAceptaEspaciosAdicionales] = useState(true);
 
   const fieldFlags = listingFieldsFor(propertyType, operationType);
 
@@ -132,6 +137,7 @@ export default function PedidosTab({
     setPrefAscensor(undefined);
     setPrefAmoblado(undefined);
     setPrefTodosLosServicios(undefined);
+    setAceptaEspaciosAdicionales(true);
   }
 
   function resetForm() {
@@ -162,6 +168,7 @@ export default function PedidosTab({
     setPrefAscensor(op.prefAscensor === 'SI' || op.prefAscensor === 'NO' ? op.prefAscensor : undefined);
     setPrefAmoblado(op.prefAmoblado === 'SI' || op.prefAmoblado === 'NO' ? op.prefAmoblado : undefined);
     setPrefTodosLosServicios(op.prefTodosLosServicios === 'SI' || op.prefTodosLosServicios === 'NO' ? op.prefTodosLosServicios : undefined);
+    setAceptaEspaciosAdicionales(op.aceptaEspaciosAdicionales !== false);
     setContactName(op.contactName ?? '');
     setContactPhone(op.contactPhone ?? '');
     setFormOpen(true);
@@ -195,6 +202,7 @@ export default function PedidosTab({
       prefAscensor: propertyType === 'APARTMENT' || propertyType === 'SUITE' ? prefAscensor : undefined,
       prefAmoblado: fieldFlags.showAmoblado ? prefAmoblado : undefined,
       prefTodosLosServicios: propertyType === 'LAND' ? prefTodosLosServicios : undefined,
+      aceptaEspaciosAdicionales: fieldFlags.showDormitorios && bedrooms.trim() ? aceptaEspaciosAdicionales : undefined,
       contactName: contactName.trim() || undefined,
       contactPhone: contactPhone.trim() || undefined,
     };
@@ -293,6 +301,17 @@ export default function PedidosTab({
                           {t('inmuebles.form.dormitorios')} — {t('pedidos.form.alMenos')}
                         </label>
                         <input type="number" min={0} inputMode="numeric" className={detailInputClass} value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} />
+                        {bedrooms.trim() ? (
+                          <label className="mt-2 flex min-h-[44px] items-center gap-2.5 rounded-xl border border-line-strong bg-surface-2 px-3 py-2.5">
+                            <input
+                              type="checkbox"
+                              checked={aceptaEspaciosAdicionales}
+                              onChange={(e) => setAceptaEspaciosAdicionales(e.target.checked)}
+                              className="h-5 w-5 shrink-0 accent-violet-500"
+                            />
+                            <span className="flex-1 text-sm text-text">{t('pedidos.form.aceptaEspaciosAdicionales')}</span>
+                          </label>
+                        ) : null}
                       </div>
                     ) : null}
                     {fieldFlags.showBanos ? (
@@ -472,7 +491,8 @@ export default function PedidosTab({
                         <span className="rounded-full bg-brand-dim px-[7px] py-px text-[10.5px] font-semibold text-brand">{matches.length}</span>
                       </div>
                       <div className="space-y-2">
-                        {matches.map((lm) => {
+                        {/* Orden por compatibilidad descendente (Fase 8, seccion 2.8). */}
+                        {[...matches].sort((a, b) => b.score - a.score).map((lm) => {
                           const name = agents.find((a) => a.id === lm.managingAgentId)?.fullName ?? '—';
                           const matchDate = relativeLabel(
                             lm.createdAt,

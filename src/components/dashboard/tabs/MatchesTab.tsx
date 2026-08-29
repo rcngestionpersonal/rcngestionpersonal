@@ -21,6 +21,15 @@ function fmtShortDate(iso: string, lang: 'es' | 'en'): string {
   return new Date(iso).toLocaleDateString(lang === 'es' ? 'es-EC' : 'en-US', { day: 'numeric', month: 'short' });
 }
 
+// Explicacion breve del porcentaje (Fase 8, Bloque B, Parte 3) - las
+// "reasons" ya vienen pre-armadas por matching.ts como clausulas listas para
+// unir con " · " (lead-in + hasta 2 diferencias + "y N mas" si sobran, o la
+// unica clausula "Coincide en todo lo que pediste." cuando es 100%, seccion 3.3).
+function matchExplanationLine(reasons?: string[]): string | null {
+  if (!reasons || reasons.length === 0) return null;
+  return reasons.join(' · ');
+}
+
 // Ultima accion de gestion registrada en el match (la mas avanzada de las ya
 // marcadas), con su fecha y los puntos que gano especificamente esa accion -
 // reemplaza el boton de Contactar una vez que el match ya fue contactado
@@ -137,7 +146,9 @@ export default function MatchesTab({
         )
         .map((lm) => ({ opportunity: op, listingMatch: lm })),
     )
-    .sort((a, b) => new Date(b.listingMatch.createdAt).getTime() - new Date(a.listingMatch.createdAt).getTime());
+    // Orden por compatibilidad descendente (Fase 8, seccion 2.8) - fecha de
+    // creacion como desempate entre matches con el mismo porcentaje.
+    .sort((a, b) => b.listingMatch.score - a.listingMatch.score || new Date(b.listingMatch.createdAt).getTime() - new Date(a.listingMatch.createdAt).getTime());
 
   function agentPhone(agentId?: string): string | undefined {
     if (!agentId) return undefined;
@@ -207,6 +218,7 @@ export default function MatchesTab({
               lang,
             );
             const lastAction = lastMilestone(listingMatch, t);
+            const explanationLine = matchExplanationLine(listingMatch.reasons);
 
             if (isAdmin) {
               return (
@@ -215,13 +227,18 @@ export default function MatchesTab({
                     <MatchBadge label={t('matches.badgeMatch')} />
                     <span className="text-right text-[13px] font-semibold text-brand">{listingMatch.score.toFixed(0)}%</span>
                   </div>
-                  <p className="mt-3 pb-3 text-[13.5px] font-semibold text-text">
+                  <p className="mt-3 text-[13.5px] font-semibold text-text">
                     {agentFullName(listingMatch.managingAgentId) ?? '—'}
                     {' ('}{listingMatch.listingTitle ?? listingMatch.listing?.title}{')'}
                     {' ↔ '}
                     {agentFullName(listingMatch.createdByAgentId) ?? 'chat web'}
                     {' ('}{listingMatch.opportunitySummary ?? listingMatch.opportunity?.summary}{')'}
                   </p>
+                  {explanationLine ? (
+                    <p className="line-clamp-2 pb-3 pt-1 text-[12px] text-text-3">{explanationLine}</p>
+                  ) : (
+                    <div className="pb-3" />
+                  )}
                 </Card>
               );
             }
@@ -251,6 +268,12 @@ export default function MatchesTab({
                   </div>
                   <MatchHalf sideLabel={bottomHalf.sideLabel} title={bottomHalf.title} name={bottomHalf.name} verified={bottomHalf.verified} />
                 </div>
+
+                {/* Explicacion del porcentaje (Fase 8, Bloque B, Parte 3) - maximo 2
+                    lineas en movil via line-clamp, centrada bajo el badge flotante. */}
+                {explanationLine ? (
+                  <p className="line-clamp-2 mt-2.5 text-center text-[12px] text-text-3">{explanationLine}</p>
+                ) : null}
 
                 {/* Fila 5: antes de contactar, boton de WhatsApp; una vez contactado, el
                     boton desaparece y se reemplaza por la ultima accion + fecha + puntos
