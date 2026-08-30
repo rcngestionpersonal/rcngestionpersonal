@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Trophy } from 'lucide-react';
+import { Download, Trophy } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import MatchTimeline from '../MatchTimeline';
 import { Card, ModuleHeader, firstName, pedidoBrief, relativeLabel } from '../CardKit';
 import { IconStar, IconWhatsapp } from '../icons';
+import FichaDownloadModal from '../FichaDownloadModal';
+import type { AccesoInput } from '@/lib/real-estate/access';
 import { pointsForMilestoneKey } from '@/lib/real-estate/ranking';
 import { isAgentVerified, type AgentItem, type ListingMatchItem, type OpportunityItem, type ProgressPatch } from '../types';
 
@@ -112,6 +114,7 @@ export default function MatchesTab({
   opportunities,
   agents,
   myAgentId,
+  myAgent,
   onContact,
   onUpdateProgress,
 }: {
@@ -120,10 +123,20 @@ export default function MatchesTab({
   opportunities: OpportunityItem[];
   agents: AgentItem[];
   myAgentId?: string;
+  myAgent?: AgentItem;
   onContact: (matchId: string) => void;
   onUpdateProgress: (matchId: string, patch: ProgressPatch) => void;
 }) {
   const { lang, t, tProperty } = useLanguage();
+  const [fichaListingId, setFichaListingId] = useState<string | null>(null);
+  const accesoInput: AccesoInput | null = myAgent
+    ? {
+        subscriptionStatus: myAgent.subscriptionStatus,
+        trialEndsAt: myAgent.trialEndsAt,
+        subscriptionPaidUntil: myAgent.subscriptionPaidUntil,
+        plan: myAgent.plan ?? 'BASICO',
+      }
+    : null;
 
   if (!isAdmin && !canAccess) {
     return (
@@ -275,6 +288,20 @@ export default function MatchesTab({
                   <p className="line-clamp-2 mt-2.5 text-center text-[12px] text-text-3">{explanationLine}</p>
                 ) : null}
 
+                {/* Descargar ficha (Fase 2, seccion 1.1): la ficha SIEMPRE lleva los
+                    datos del agente que la descarga, nunca los del dueno original del
+                    inmueble - por eso alcanza con el listingId, el servidor resuelve al
+                    agente desde la sesion (regla 0, innegociable). */}
+                {accesoInput && listingMatch.listing?.id ? (
+                  <button
+                    type="button"
+                    onClick={() => setFichaListingId(listingMatch.listing!.id)}
+                    className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[10px] border border-line-strong px-3 py-2 text-xs font-semibold text-text-2 transition-colors duration-150 hover:border-accent hover:text-accent"
+                  >
+                    <Download className="h-3.5 w-3.5" strokeWidth={2} /> {t('ficha.descargar')}
+                  </button>
+                ) : null}
+
                 {/* Fila 5: antes de contactar, boton de WhatsApp; una vez contactado, el
                     boton desaparece y se reemplaza por la ultima accion + fecha + puntos
                     (item 10.2 del pedido) - el historial completo sigue disponible abajo. */}
@@ -334,6 +361,17 @@ export default function MatchesTab({
           })}
         </div>
       </section>
+
+      {fichaListingId && accesoInput ? (
+        <FichaDownloadModal
+          listingId={fichaListingId}
+          listingHasPhoto
+          suscripcion={accesoInput}
+          lang={lang}
+          t={t}
+          onClose={() => setFichaListingId(null)}
+        />
+      ) : null}
     </div>
   );
 }

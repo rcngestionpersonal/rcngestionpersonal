@@ -142,10 +142,15 @@ export function IconActionButton({
   onClick: () => void;
   ariaLabel: string;
   title?: string;
-  tone?: 'edit' | 'delete';
+  tone?: 'edit' | 'delete' | 'download';
   disabled?: boolean;
 }) {
-  const hoverClass = tone === 'delete' ? 'hover:border-[#e5484d] hover:text-[#e5484d]' : 'hover:border-brand hover:text-brand';
+  const hoverClass =
+    tone === 'delete'
+      ? 'hover:border-[#e5484d] hover:text-[#e5484d]'
+      : tone === 'download'
+        ? 'hover:border-accent hover:text-accent'
+        : 'hover:border-brand hover:text-brand';
   return (
     <button
       onClick={onClick}

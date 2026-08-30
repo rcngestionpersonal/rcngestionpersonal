@@ -290,6 +290,32 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
 
     'requiereFeature.mejorarAPro': 'Mejorar a Pro',
 
+    // Ficha PDF de inmueble (Fase 2) - boton y modal de descarga en Tus
+    // Inmuebles/Matches. El contenido de la ficha en si (portada, franja de
+    // datos, pie del agente) se arma en el servidor y no pasa por este
+    // diccionario - ver src/lib/real-estate/ficha/templates.tsx.
+    'ficha.descargar': 'Descargar ficha',
+    'ficha.modal.titulo': 'Descargar ficha del inmueble',
+    'ficha.version.titulo': 'Elige la versión',
+    'ficha.version.cliente': 'Para mi cliente',
+    'ficha.version.cliente.detalle': 'Con tu foto, tu contacto y tu sello de verificado.',
+    'ficha.version.sinMarca': 'Sin marca',
+    'ficha.version.sinMarca.detalle': 'Solo el inmueble, sin datos de ningún agente.',
+    'ficha.version.redes': 'Para redes',
+    'ficha.version.redes.detalle': 'Imagen lista para publicar, con tu marca.',
+    'ficha.redesFormato.titulo': 'Formato',
+    'ficha.redesFormato.post': 'Publicación · 1080×1080',
+    'ficha.redesFormato.story': 'Historia · 1080×1920',
+    'ficha.paleta.titulo': 'Paleta',
+    'ficha.paleta.oscura': 'Oscura',
+    'ficha.paleta.clara': 'Clara · para imprimir',
+    'ficha.fotoFaltante': 'Agrega fotos para que tu ficha luzca profesional.',
+    'ficha.descargarBoton': 'Descargar',
+    'ficha.generando': 'Generando ficha...',
+    'ficha.listo': 'Ficha lista.',
+    'ficha.error': 'No se pudo generar la ficha. Intenta de nuevo.',
+    'ficha.errorBloqueada': 'Esta función requiere el plan Pro.',
+
     'inmuebles.form.title': 'Registrar un Inmueble',
     'inmuebles.form.subtitle': 'En cuanto haya un pedido compatible, el sistema te avisa con un match.',
     'inmuebles.form.titulo.placeholder': 'Título (ej: Casa 3 hab en Cumbayá)',
@@ -1086,6 +1112,28 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'feature.carnet_pro.valor': 'Your agent card with the Pro design and a distinctive badge.',
 
     'requiereFeature.mejorarAPro': 'Upgrade to Pro',
+
+    'ficha.descargar': 'Download sheet',
+    'ficha.modal.titulo': 'Download listing sheet',
+    'ficha.version.titulo': 'Choose the version',
+    'ficha.version.cliente': 'For my client',
+    'ficha.version.cliente.detalle': 'With your photo, contact info, and verified badge.',
+    'ficha.version.sinMarca': 'No branding',
+    'ficha.version.sinMarca.detalle': 'Just the listing, with no agent data.',
+    'ficha.version.redes': 'For social media',
+    'ficha.version.redes.detalle': 'Image ready to post, with your branding.',
+    'ficha.redesFormato.titulo': 'Format',
+    'ficha.redesFormato.post': 'Post · 1080×1080',
+    'ficha.redesFormato.story': 'Story · 1080×1920',
+    'ficha.paleta.titulo': 'Palette',
+    'ficha.paleta.oscura': 'Dark',
+    'ficha.paleta.clara': 'Light · for printing',
+    'ficha.fotoFaltante': 'Add photos so your sheet looks professional.',
+    'ficha.descargarBoton': 'Download',
+    'ficha.generando': 'Generating sheet...',
+    'ficha.listo': 'Sheet ready.',
+    'ficha.error': "Couldn't generate the sheet. Please try again.",
+    'ficha.errorBloqueada': 'This feature requires the Pro plan.',
 
     'inmuebles.form.title': 'Register a Listing',
     'inmuebles.form.subtitle': "As soon as there's a matching request, the system notifies you with a match.",

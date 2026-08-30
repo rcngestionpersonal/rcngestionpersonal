@@ -2,11 +2,13 @@
 
 import { useRef, useState } from 'react';
 import Image from 'next/image';
-import { Building2, Home, Lock, Pencil, Trash2, Upload, Warehouse } from 'lucide-react';
+import { Building2, Download, Home, Lock, Pencil, Trash2, Upload, Warehouse } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import { PointsBanner } from '../PointsWidgets';
 import { PriceInput } from '../PriceInput';
 import { Card, Chip, DataBlock, IconActionButton, MatchLink, ModuleHeader, RegisterAccordion, abbreviatedTitle, navigateWithFade, relativeLabel, zonaLine } from '../CardKit';
+import FichaDownloadModal from '../FichaDownloadModal';
+import type { AccesoInput } from '@/lib/real-estate/access';
 import { POINT_ACTIONS } from '@/lib/real-estate/points';
 import { compressImage } from '@/lib/real-estate/image-compress';
 import {
@@ -203,6 +205,7 @@ export default function InmueblesTab({
   listings,
   agents,
   myAgentId,
+  myAgent,
   onCreateListing,
   creating,
   onUpdateListing,
@@ -215,6 +218,7 @@ export default function InmueblesTab({
   listings: ListingItem[];
   agents: AgentItem[];
   myAgentId?: string;
+  myAgent?: AgentItem;
   onCreateListing: (input: NewListingInput) => Promise<string | undefined | void>;
   creating: boolean;
   onUpdateListing: (id: string, input: NewListingInput) => Promise<void>;
@@ -223,6 +227,15 @@ export default function InmueblesTab({
   onGoToMatches?: () => void;
 }) {
   const { t, tProperty, tOperation, tListingStatus, lang } = useLanguage();
+  const [fichaListingId, setFichaListingId] = useState<string | null>(null);
+  const accesoInput: AccesoInput | null = myAgent
+    ? {
+        subscriptionStatus: myAgent.subscriptionStatus,
+        trialEndsAt: myAgent.trialEndsAt,
+        subscriptionPaidUntil: myAgent.subscriptionPaidUntil,
+        plan: myAgent.plan ?? 'BASICO',
+      }
+    : null;
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -981,6 +994,14 @@ export default function InmueblesTab({
                         : t('common.editVencido24h')}
                     </p>
                     <div className="flex shrink-0 items-center gap-2">
+                      {accesoInput ? (
+                        <IconActionButton
+                          icon={<Download className="h-[14px] w-[14px]" strokeWidth={2} />}
+                          onClick={() => setFichaListingId(listing.id)}
+                          ariaLabel={t('ficha.descargar')}
+                          tone="download"
+                        />
+                      ) : null}
                       {withinEditWindow ? (
                         <IconActionButton
                           icon={<Pencil className="h-[14px] w-[14px]" strokeWidth={2} />}
@@ -1003,6 +1024,17 @@ export default function InmueblesTab({
             );
           })}
       </div>
+
+      {fichaListingId && accesoInput ? (
+        <FichaDownloadModal
+          listingId={fichaListingId}
+          listingHasPhoto={Boolean(listings.find((l) => l.id === fichaListingId)?.coverPhotoUrl)}
+          suscripcion={accesoInput}
+          lang={lang}
+          t={t}
+          onClose={() => setFichaListingId(null)}
+        />
+      ) : null}
     </div>
   );
 }

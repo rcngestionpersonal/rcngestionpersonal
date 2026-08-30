@@ -828,6 +828,7 @@ function DashboardPage() {
           listings={listings}
           agents={agents}
           myAgentId={user?.agentId}
+          myAgent={myAgent}
           onCreateListing={createListing}
           creating={creatingListing}
           onUpdateListing={updateListing}
@@ -857,6 +858,7 @@ function DashboardPage() {
           opportunities={agentOpportunities}
           agents={agents}
           myAgentId={user?.agentId}
+          myAgent={myAgent}
           onContact={contactMatch}
           onUpdateProgress={updateMatchProgress}
         />
