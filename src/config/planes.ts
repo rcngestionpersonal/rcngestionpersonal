@@ -34,7 +34,7 @@ export type PlanDefinicion = {
   precioBase: number; // centavos
   impuesto: number; // centavos
   total: number; // centavos
-  etiqueta: string;
+  precioLabel: string;
   bajada: string;
   features: Feature[];
 };
@@ -67,7 +67,7 @@ function construirPlan(input: {
   tipo: PlanTipo;
   nombre: string;
   precioBase: number;
-  etiqueta: string;
+  precioLabel: string;
   bajada: string;
   features: Feature[];
 }): PlanDefinicion {
@@ -80,7 +80,7 @@ export const PLANES: Record<PlanTipo, PlanDefinicion> = {
     tipo: 'BASICO',
     nombre: 'Básico',
     precioBase: 899,
-    etiqueta: '$8,99 + IVA',
+    precioLabel: '$8,99',
     bajada: 'Lo esencial para hacer matches',
     features: FEATURES_BASICO,
   }),
@@ -88,7 +88,7 @@ export const PLANES: Record<PlanTipo, PlanDefinicion> = {
     tipo: 'PRO',
     nombre: 'Pro',
     precioBase: 2499,
-    etiqueta: '$24,99 + IVA',
+    precioLabel: '$24,99',
     bajada: 'Tu vitrina profesional completa',
     features: FEATURES_PRO,
   }),

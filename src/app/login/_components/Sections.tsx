@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { POINT_ACTIONS } from '@/lib/real-estate/points';
 import { PLANES } from '@/config/planes';
+import { PriceTag } from '@/components/PriceTag';
 import styles from '../login.module.css';
 
 export function PainSection() {
@@ -422,8 +423,7 @@ export function PrecioSection() {
           <div className={styles.planCard}>
             <p className={styles.planName}>{basico.nombre}</p>
             <div className={styles.planPrice}>
-              <span className={styles.planPriceValue}>{basico.etiqueta}</span>
-              <span className={styles.planPriceUnit}>al mes</span>
+              <PriceTag className={styles.planPriceValue} amount={basico.precioLabel} suffix="+ IVA al mes" />
             </div>
             <p className={styles.planTagline}>{basico.bajada}</p>
             <div className={styles.valueStack}>
@@ -442,8 +442,7 @@ export function PrecioSection() {
             <span className={styles.planRecommended}>Recomendado</span>
             <p className={styles.planName}>{pro.nombre}</p>
             <div className={styles.planPrice}>
-              <span className={styles.planPriceValue}>{pro.etiqueta}</span>
-              <span className={styles.planPriceUnit}>al mes</span>
+              <PriceTag className={styles.planPriceValue} amount={pro.precioLabel} suffix="+ IVA al mes" />
             </div>
             <p className={styles.planTagline}>{pro.bajada}</p>
             <div className={styles.valueStack}>

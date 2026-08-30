@@ -1096,10 +1096,6 @@
 .planPrice {
   position: relative;
   margin: 10px 0 0;
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  flex-wrap: wrap;
 }
 
 .planPriceValue {
@@ -1107,11 +1103,6 @@
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text);
-}
-
-.planPriceUnit {
-  font-size: 13px;
-  color: var(--text-3);
 }
 
 .planTagline {

@@ -7,6 +7,7 @@ import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageProvider';
 import { resolveEffectiveSubscriptionStatus } from '@/lib/real-estate/subscription-status';
 import { PLANES, formatUsd, planTipoToParam, type Feature, type PlanTipo } from '@/config/planes';
 import { IconCheck } from '@/components/dashboard/icons';
+import { PriceTag } from '@/components/PriceTag';
 
 type MeAgent = {
   id: string;
@@ -265,10 +266,11 @@ function PlanCard({
       <h2 className="text-xl font-bold text-text">{nombre}</h2>
       <p className="mt-1 text-sm text-text-2">{bajada}</p>
 
-      <div className="mt-4 flex items-baseline gap-1">
-        <span className="text-3xl font-bold text-text">${formatUsd(plan.precioBase)}</span>
-        <span className="text-sm text-text-3">{lang === 'es' ? '+ IVA/mes' : '+ tax/mo'}</span>
-      </div>
+      <PriceTag
+        className="mt-4 text-3xl font-bold text-text"
+        amount={`$${formatUsd(plan.precioBase)}`}
+        suffix={lang === 'es' ? '+ IVA al mes' : '+ tax/mo'}
+      />
 
       <ul className="mt-5 flex-1 space-y-2.5">
         {FEATURE_ORDER.filter((f) => plan.features.includes(f)).map((f) => (
