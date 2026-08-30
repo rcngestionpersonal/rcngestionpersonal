@@ -7,7 +7,7 @@ import { Resvg } from '@resvg/resvg-js';
 import { PDFDocument } from 'pdf-lib';
 import { loadFichaFonts } from './fonts';
 import { FICHA_PALETTES, type FichaPaletteKey } from './palettes';
-import { fichaCoverPage, fichaDetailPage, fichaSocialImage, type FichaAgentSnapshot, type FichaListingSnapshot } from './templates';
+import { fichaCoverPage, fichaDetailPage, fichaGalleryPage, fichaSocialImage, type FichaAgentSnapshot, type FichaListingSnapshot } from './templates';
 import { optimizePng, pngPageToJpeg } from './photos';
 
 export type FichaVersion = 'cliente' | 'sin_marca' | 'redes_post' | 'redes_story';
@@ -58,19 +58,31 @@ export async function renderFicha(input: RenderFichaInput): Promise<RenderedFich
     photoMissingNotice: input.photoMissing,
   });
 
-  const [coverPng, detailPng] = await Promise.all([
+  // Pagina de galeria (Fase 4): solo si hay mas fotos ademas de la portada -
+  // un inmueble con 1 sola foto (o ninguna) se queda en 2 paginas, igual que
+  // antes de la galeria.
+  const hasGallery = input.listing.galleryPhotoDataUris.length > 0;
+  const galleryNode = hasGallery ? fichaGalleryPage({ listing: input.listing, palette, lang: input.lang, width, height }) : null;
+
+  const [coverPng, galleryPng, detailPng] = await Promise.all([
     svgToPngBuffer(coverNode, width, height, palette.bg),
+    galleryNode ? svgToPngBuffer(galleryNode, width, height, palette.bg) : Promise.resolve(null),
     svgToPngBuffer(detailNode, width, height, palette.bg),
   ]);
 
-  const [coverJpg, detailJpg] = await Promise.all([pngPageToJpeg(coverPng), pngPageToJpeg(detailPng)]);
+  const [coverJpg, galleryJpg, detailJpg] = await Promise.all([
+    pngPageToJpeg(coverPng),
+    galleryPng ? pngPageToJpeg(galleryPng) : Promise.resolve(null),
+    pngPageToJpeg(detailPng),
+  ]);
 
   const pdfDoc = await PDFDocument.create();
   pdfDoc.setProducer('Redinmo.io');
   pdfDoc.setCreator('Redinmo.io');
   pdfDoc.setTitle('Ficha de inmueble - Redinmo');
 
-  for (const jpg of [coverJpg, detailJpg]) {
+  const pages = [coverJpg, galleryJpg, detailJpg].filter((p): p is Buffer => p !== null);
+  for (const jpg of pages) {
     const img = await pdfDoc.embedJpg(jpg);
     const page = pdfDoc.addPage(A4_PT);
     page.drawImage(img, { x: 0, y: 0, width: A4_PT[0], height: A4_PT[1] });

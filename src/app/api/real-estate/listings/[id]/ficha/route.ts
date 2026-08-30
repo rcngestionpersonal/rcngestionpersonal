@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { findAgentById, findListingById, shouldUseMockStore } from '@/lib/real-estate/mock-store';
+import { findAgentById, findListingById, listListingPhotos, shouldUseMockStore } from '@/lib/real-estate/mock-store';
 import { tieneAccesoPorAgenteId } from '@/lib/real-estate/access-server';
 import { fetchImageAsDataUri } from '@/lib/real-estate/ficha/photos';
 import { buildFichaAgentSnapshot, buildFichaListingSnapshot, sectorLineFor } from '@/lib/real-estate/ficha/snapshot';
@@ -98,18 +98,23 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   let listingRaw: Record<string, unknown> | null = null;
   let agentRaw: Record<string, unknown> | null = null;
+  let photoUrls: string[] = []; // ordenadas, portada primero (ver mas abajo)
 
   if (shouldUseMockStore()) {
     listingRaw = findListingById(id) as unknown as Record<string, unknown> | null;
     agentRaw = findAgentById(session.agentId) as unknown as Record<string, unknown> | null;
+    const photos = listListingPhotos(id);
+    photoUrls = [...photos].sort((a, b) => Number(b.esPortada) - Number(a.esPortada)).map((p) => p.url);
   } else {
     try {
-      const [l, a] = await Promise.all([
+      const [l, a, photos] = await Promise.all([
         prisma.listing.findUnique({ where: { id } }),
         prisma.agent.findUnique({ where: { id: session.agentId } }),
+        prisma.listingPhoto.findMany({ where: { listingId: id }, orderBy: { orden: 'asc' } }),
       ]);
       listingRaw = l as unknown as Record<string, unknown> | null;
       agentRaw = a as unknown as Record<string, unknown> | null;
+      photoUrls = [...photos].sort((x, y) => Number(y.esPortada) - Number(x.esPortada)).map((p) => p.url);
     } catch {
       return NextResponse.json({ error: 'No se pudo generar la ficha.' }, { status: 500 });
     }
@@ -124,12 +129,26 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   try {
     const listingFields = pickListingFields(listingRaw);
-    const photoMissing = !listingFields.coverPhotoUrl;
-    const photoDataUri = listingFields.coverPhotoUrl
-      ? await fetchImageAsDataUri(listingFields.coverPhotoUrl, { maxWidth: 1400, quality: 78 })
-      : null;
+    // Portada: preferir la primera de photoUrls (fuente de verdad, Fase 4) y
+    // caer a coverPhotoUrl solo como respaldo (inmuebles viejos sin
+    // backfill). Galeria: el resto, hasta 6 (seccion 3.a del pedido de
+    // galeria) - a menor resolucion que la portada porque van varias por
+    // pagina, no una sola a pantalla completa.
+    const coverUrl = photoUrls[0] ?? listingFields.coverPhotoUrl ?? null;
+    const galleryUrls = photoUrls.slice(1, 7);
+    const photoMissing = !coverUrl;
 
-    const listingSnapshot = buildFichaListingSnapshot(listingFields, lang, photoDataUri);
+    const [photoDataUri, galleryPhotoDataUris] = await Promise.all([
+      coverUrl ? fetchImageAsDataUri(coverUrl, { maxWidth: 1400, quality: 78 }) : Promise.resolve(null),
+      Promise.all(galleryUrls.map((u) => fetchImageAsDataUri(u, { maxWidth: 800, quality: 72 }))),
+    ]);
+
+    const listingSnapshot = buildFichaListingSnapshot(
+      listingFields,
+      lang,
+      photoDataUri,
+      galleryPhotoDataUris.filter((u): u is string => u !== null),
+    );
 
     // "Sin marca" (seccion 2.2): ningun dato del agente, ni siquiera el que
     // descarga - el resto de versiones SIEMPRE llevan al agente que descarga,

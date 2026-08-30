@@ -568,8 +568,8 @@ function DashboardPage() {
   async function uploadListingPhoto(listingId: string, photo: Blob): Promise<void> {
     try {
       const formData = new FormData();
-      formData.append('photo', photo, 'cover.jpg');
-      const response = await fetch(`/api/real-estate/listings/${listingId}/photo`, { method: 'POST', body: formData });
+      formData.append('photo', photo, 'foto.jpg');
+      const response = await fetch(`/api/real-estate/listings/${listingId}/photos`, { method: 'POST', body: formData });
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error ?? 'No se pudo subir la foto.');
@@ -577,6 +577,78 @@ function DashboardPage() {
       await loadData(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error subiendo la foto');
+      throw err;
+    }
+  }
+
+  // Galeria de fotos (Fase 4): subir varias en secuencia (un POST por foto,
+  // mismo endpoint que uploadListingPhoto de arriba) - secuencial y no en
+  // paralelo para que "orden" quede determinista (cada subida depende de
+  // cuantas fotos ya existen). Un solo loadData al final, no uno por foto.
+  async function uploadListingPhotos(listingId: string, photos: Blob[]): Promise<void> {
+    try {
+      for (const photo of photos) {
+        const formData = new FormData();
+        formData.append('photo', photo, 'foto.jpg');
+        const response = await fetch(`/api/real-estate/listings/${listingId}/photos`, { method: 'POST', body: formData });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error ?? 'No se pudo subir una de las fotos.');
+        }
+      }
+      await loadData(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error subiendo las fotos');
+      throw err;
+    }
+  }
+
+  async function deleteListingPhoto(listingId: string, photoId: string): Promise<void> {
+    try {
+      const response = await fetch(`/api/real-estate/listings/${listingId}/photos/${photoId}`, { method: 'DELETE' });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? 'No se pudo eliminar la foto.');
+      }
+      await loadData(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error eliminando la foto');
+      throw err;
+    }
+  }
+
+  async function setListingPhotoCover(listingId: string, photoId: string): Promise<void> {
+    try {
+      const response = await fetch(`/api/real-estate/listings/${listingId}/photos/${photoId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ esPortada: true }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? 'No se pudo actualizar la portada.');
+      }
+      await loadData(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error actualizando la portada');
+      throw err;
+    }
+  }
+
+  async function reorderListingPhotos(listingId: string, order: string[]): Promise<void> {
+    try {
+      const response = await fetch(`/api/real-estate/listings/${listingId}/photos/reorder`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? 'No se pudo reordenar las fotos.');
+      }
+      await loadData(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error reordenando las fotos');
       throw err;
     }
   }
@@ -834,6 +906,10 @@ function DashboardPage() {
           onUpdateListing={updateListing}
           onDeleteListing={deleteListing}
           onUploadPhoto={uploadListingPhoto}
+          onUploadPhotos={uploadListingPhotos}
+          onDeletePhoto={deleteListingPhoto}
+          onSetCoverPhoto={setListingPhotoCover}
+          onReorderPhotos={reorderListingPhotos}
           onGoToMatches={() => setActiveTab('matches')}
         />
       )}

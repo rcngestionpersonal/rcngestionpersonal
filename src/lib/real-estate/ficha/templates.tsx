@@ -34,6 +34,10 @@ export type FichaListingSnapshot = {
   currency: string;
   description: string | null;
   photoDataUri: string | null;
+  // Galeria (Fase 4, seccion 3.a): resto de fotos del inmueble, sin contar la
+  // portada (esa ya es el hero de fichaCoverPage) - hasta 6, ya resueltas a
+  // data URI. Vacio si el inmueble tiene 1 sola foto o ninguna.
+  galleryPhotoDataUris: string[];
   placeholderKind: 'house' | 'land' | 'warehouse' | 'building';
   primaryRows: FichaFieldRow[];
   extraChips: FichaFieldRow[];
@@ -410,6 +414,62 @@ export function fichaDetailPage({
       ) : null}
 
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: agent ? 20 : 0 }}>
+        <BrandMark color={palette.text3} size={13} />
+      </div>
+    </div>
+  );
+}
+
+// Pagina de galeria (Fase 4, seccion 3.a): grilla de 4 a 6 fotos ademas de la
+// portada (que ya se ve en fichaCoverPage). Solo se renderiza esta pagina
+// cuando el inmueble tiene mas de 1 foto - ver render.ts.
+export function fichaGalleryPage({
+  listing,
+  palette,
+  lang,
+  width,
+  height,
+}: {
+  listing: FichaListingSnapshot;
+  palette: FichaPalette;
+  lang: 'es' | 'en';
+  width: number;
+  height: number;
+}) {
+  const photos = listing.galleryPhotoDataUris;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', width, height, background: palette.bg, fontFamily: FONT, padding: 44 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: 1.4, textTransform: 'uppercase', color: palette.text3 }}>
+          {lang === 'es' ? 'Galería' : 'Gallery'}
+        </span>
+        <span style={{ fontSize: 19, fontWeight: 800, color: palette.text }}>
+          {listing.propertyTypeLabel} {lang === 'es' ? 'en' : 'for'} {listing.operationLabel} · {listing.sectorLine}
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', marginTop: 22, gap: 16 }}>
+        {photos.map((uri, i) => (
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              width: (width - 44 * 2 - 16) / 2,
+              height: (width - 44 * 2 - 16) / 2 / 1.33,
+              borderRadius: 18,
+              overflow: 'hidden',
+              border: `1px solid ${palette.line}`,
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={uri} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', flex: 1 }} />
+
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
         <BrandMark color={palette.text3} size={13} />
       </div>
     </div>

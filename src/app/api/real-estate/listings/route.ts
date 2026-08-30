@@ -85,6 +85,7 @@ export async function GET(request: NextRequest) {
       include: {
         managingAgent: { select: { id: true, fullName: true, phone: true } },
         referredByAgent: { select: { id: true, fullName: true, phone: true } },
+        photos: { orderBy: { orden: 'asc' } },
         matches: {
           orderBy: { score: 'desc' },
           include: { opportunity: true },

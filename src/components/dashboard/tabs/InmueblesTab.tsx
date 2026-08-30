@@ -2,17 +2,20 @@
 
 import { useRef, useState } from 'react';
 import Image from 'next/image';
-import { Building2, Download, Home, Lock, Pencil, Trash2, Upload, Warehouse } from 'lucide-react';
+import { Building2, Download, Home, ImagesIcon, Lock, Pencil, Trash2, Upload, Warehouse } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import { PointsBanner } from '../PointsWidgets';
 import { PriceInput } from '../PriceInput';
 import { Card, Chip, IconActionButton, MatchLink, ModuleHeader, RegisterAccordion, abbreviatedTitle, navigateWithFade, relativeLabel, zonaLine } from '../CardKit';
 import FichaDownloadModal from '../FichaDownloadModal';
+import ListingPhotoManager, { type GalleryItem } from '../ListingPhotoManager';
+import PhotoLightbox from '../PhotoLightbox';
 import type { AccesoInput } from '@/lib/real-estate/access';
 import { FICHA_ICONS } from '@/lib/real-estate/ficha/icons';
 import { fichaPrimaryRows } from '@/lib/real-estate/ficha/fields';
 import { POINT_ACTIONS } from '@/lib/real-estate/points';
-import { compressImage } from '@/lib/real-estate/image-compress';
+import { MAX_LISTING_PHOTOS } from '@/lib/real-estate/listing-photos-shared';
+import { compressGalleryPhoto } from '@/lib/real-estate/image-compress';
 import {
   AMOBLADO_OPTIONS,
   ANTIGUEDAD_OPTIONS,
@@ -213,6 +216,10 @@ export default function InmueblesTab({
   onUpdateListing,
   onDeleteListing,
   onUploadPhoto,
+  onUploadPhotos,
+  onDeletePhoto,
+  onSetCoverPhoto,
+  onReorderPhotos,
   onGoToMatches,
 }: {
   isAdmin: boolean;
@@ -226,6 +233,10 @@ export default function InmueblesTab({
   onUpdateListing: (id: string, input: NewListingInput) => Promise<void>;
   onDeleteListing: (id: string) => Promise<void>;
   onUploadPhoto?: (listingId: string, photo: Blob) => Promise<void>;
+  onUploadPhotos?: (listingId: string, photos: Blob[]) => Promise<void>;
+  onDeletePhoto?: (listingId: string, photoId: string) => Promise<void>;
+  onSetCoverPhoto?: (listingId: string, photoId: string) => Promise<void>;
+  onReorderPhotos?: (listingId: string, order: string[]) => Promise<void>;
   onGoToMatches?: () => void;
 }) {
   const { t, tProperty, tOperation, tListingStatus, lang } = useLanguage();
@@ -323,12 +334,14 @@ export default function InmueblesTab({
     setBalconOTerraza(undefined);
   }
 
-  // Foto de portada: para un inmueble ya existente se sube de inmediato (sin limite
-  // de 24h); para uno nuevo se guarda en memoria hasta que la creacion devuelva el id.
-  const [pendingPhoto, setPendingPhoto] = useState<Blob | null>(null);
-  const [pendingPhotoPreview, setPendingPhotoPreview] = useState<string | null>(null);
+  // Galeria de fotos (Fase 4): para un inmueble ya existente cada foto se sube
+  // de inmediato; para uno nuevo se guardan en memoria (con su preview local)
+  // hasta que la creacion devuelva el id, y ahi se suben en el orden elegido.
+  const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
+  const [pendingPhotoPreviews, setPendingPhotoPreviews] = useState<string[]>([]);
   const [uploadingPhotoFor, setUploadingPhotoFor] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState('');
+  const [lightboxListingId, setLightboxListingId] = useState<string | null>(null);
   const cardFileInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const visibleListings = isAdmin ? listings : listings.filter((l) => l.managingAgentId === myAgentId || l.referredByAgentId === myAgentId);
@@ -343,8 +356,8 @@ export default function InmueblesTab({
     setCommissionSharePercent('50');
     setManagingAgentId('');
     setEditingId(null);
-    setPendingPhoto(null);
-    setPendingPhotoPreview(null);
+    setPendingPhotos([]);
+    setPendingPhotoPreviews([]);
     setPhotoError('');
     resetDetailFields();
   }
@@ -361,8 +374,8 @@ export default function InmueblesTab({
     setOwnerPhone(listing.ownerPhone ?? '');
     setCommissionSharePercent(String(listing.commissionSharePercent ?? 50));
     setManagingAgentId(listing.managingAgentId);
-    setPendingPhoto(null);
-    setPendingPhotoPreview(null);
+    setPendingPhotos([]);
+    setPendingPhotoPreviews([]);
     setAreaM2(listing.areaM2 != null ? String(listing.areaM2) : '');
     setBedrooms(listing.bedrooms != null ? String(listing.bedrooms) : '');
     setBathrooms(listing.bathrooms != null ? String(listing.bathrooms) : '');
@@ -399,28 +412,48 @@ export default function InmueblesTab({
     setFormOpen(false);
   }
 
-  async function handleFormPhotoSelected(file: File) {
+  // Galeria del formulario (Fase 4): agregar N fotos de una - a un inmueble
+  // ya existente se suben de inmediato (secuencial, un solo refresh al
+  // final); a uno nuevo se guardan en memoria con su preview hasta que la
+  // creacion devuelva el id. Respeta el maximo de 8 sumando lo que ya haya.
+  async function handleAddPhotoFiles(fileList: FileList) {
     setPhotoError('');
+    const existingCount = editingId ? (listings.find((l) => l.id === editingId)?.photos?.length ?? 0) : 0;
+    const room = MAX_LISTING_PHOTOS - existingCount - pendingPhotos.length;
+    const files = Array.from(fileList).slice(0, Math.max(room, 0));
+    if (files.length < fileList.length) setPhotoError(t('inmuebles.fotos.errorMaximo'));
+    if (files.length === 0) return;
+
     try {
-      const compressed = await compressImage(file);
+      const compressed = await Promise.all(files.map((f) => compressGalleryPhoto(f)));
       if (editingId) {
         setUploadingPhotoFor(editingId);
-        await onUploadPhoto?.(editingId, compressed);
+        await onUploadPhotos?.(editingId, compressed);
         setUploadingPhotoFor(null);
       } else {
-        setPendingPhoto(compressed);
-        setPendingPhotoPreview(URL.createObjectURL(compressed));
+        setPendingPhotos((prev) => [...prev, ...files]);
+        setPendingPhotoPreviews((prev) => [...prev, ...compressed.map((b) => URL.createObjectURL(b))]);
       }
     } catch {
-      setPhotoError(t('inmuebles.fotoPortada.error'));
+      setPhotoError(t('inmuebles.fotos.errorSubir'));
       setUploadingPhotoFor(null);
     }
+  }
+
+  function handlePendingPhotoDelete(index: number) {
+    setPendingPhotos((prev) => prev.filter((_, i) => i !== index));
+    setPendingPhotoPreviews((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function handlePendingPhotoReorder(order: number[]) {
+    setPendingPhotos((prev) => order.map((i) => prev[i]));
+    setPendingPhotoPreviews((prev) => order.map((i) => prev[i]));
   }
 
   async function handleCardPhotoSelected(file: File, listingId: string) {
     setPhotoError('');
     try {
-      const compressed = await compressImage(file);
+      const compressed = await compressGalleryPhoto(file);
       setUploadingPhotoFor(listingId);
       await onUploadPhoto?.(listingId, compressed);
     } catch {
@@ -477,8 +510,9 @@ export default function InmueblesTab({
       await onUpdateListing(editingId, input);
     } else {
       const newId = await onCreateListing(input);
-      if (newId && pendingPhoto) {
-        await onUploadPhoto?.(newId, pendingPhoto);
+      if (newId && pendingPhotos.length > 0) {
+        const compressed = await Promise.all(pendingPhotos.map((f) => compressGalleryPhoto(f)));
+        await onUploadPhotos?.(newId, compressed);
       }
     }
     resetForm();
@@ -719,40 +753,43 @@ export default function InmueblesTab({
               ) : null}
 
               <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/5 p-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-emerald-300">{t('inmuebles.fotoPortada.label')}</p>
-                <div className="mt-2 flex items-center gap-3">
-                  <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[11px] border border-line bg-surface-2">
-                    {pendingPhotoPreview || (editingId && listings.find((l) => l.id === editingId)?.coverPhotoUrl) ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={pendingPhotoPreview ?? listings.find((l) => l.id === editingId)?.coverPhotoUrl}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <>
-                        <PlaceholderIcon propertyType={propertyType} />
-                        <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-emerald-400/40 bg-bg text-emerald-300">
-                          <Upload className="h-3 w-3" strokeWidth={2.2} />
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  <label className="cursor-pointer rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 transition-colors duration-200 hover:bg-emerald-500/20">
-                    {uploadingPhotoFor === editingId && editingId ? t('inmuebles.fotoPortada.subiendo') : t('inmuebles.fotoPortada.cambiar')}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) void handleFormPhotoSelected(file);
-                        e.target.value = '';
-                      }}
-                    />
-                  </label>
-                </div>
-                <p className="mt-2 text-xs text-emerald-300/80">{t('inmuebles.fotoIncentivo')}</p>
+                <ListingPhotoManager
+                  items={
+                    editingId
+                      ? (listings.find((l) => l.id === editingId)?.photos ?? []).map((p): GalleryItem => ({ key: p.id, previewUrl: p.url, isCover: p.esPortada }))
+                      : pendingPhotoPreviews.map((url, i): GalleryItem => ({ key: `pending-${i}`, previewUrl: url, isCover: i === 0 }))
+                  }
+                  maxPhotos={MAX_LISTING_PHOTOS}
+                  uploading={uploadingPhotoFor === editingId && Boolean(editingId)}
+                  onAddFiles={(files) => void handleAddPhotoFiles(files)}
+                  onDelete={(key) => {
+                    if (editingId) {
+                      void onDeletePhoto?.(editingId, key);
+                    } else {
+                      handlePendingPhotoDelete(Number(key.replace('pending-', '')));
+                    }
+                  }}
+                  onSetCover={(key) => {
+                    if (editingId) {
+                      void onSetCoverPhoto?.(editingId, key);
+                    } else {
+                      const index = Number(key.replace('pending-', ''));
+                      const order = pendingPhotos.map((_, i) => i);
+                      order.splice(order.indexOf(index), 1);
+                      order.unshift(index);
+                      handlePendingPhotoReorder(order);
+                    }
+                  }}
+                  onReorder={(newKeyOrder) => {
+                    if (editingId) {
+                      void onReorderPhotos?.(editingId, newKeyOrder);
+                    } else {
+                      handlePendingPhotoReorder(newKeyOrder.map((k) => Number(k.replace('pending-', ''))));
+                    }
+                  }}
+                  t={t}
+                />
+                <p className="mt-2.5 text-xs text-emerald-300/80">{t('inmuebles.fotoIncentivo')}</p>
                 {photoError ? <p className="mt-1 text-xs text-pink-300">{photoError}</p> : null}
               </div>
 
@@ -873,40 +910,49 @@ export default function InmueblesTab({
 
                 {/* Fila 2 */}
                 <div className="mt-3 flex min-w-0 items-start gap-[13px]">
-                  <label className="group relative flex h-[52px] w-[52px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-[11px] border border-line bg-surface-2 text-accent">
-                    {listing.coverPhotoUrl ? (
+                  {listing.coverPhotoUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => setLightboxListingId(listing.id)}
+                      aria-label={t('inmuebles.fotos.verGaleria')}
+                      className="group relative flex h-[52px] w-[52px] shrink-0 items-center justify-center overflow-hidden rounded-[11px] border border-line bg-surface-2 text-accent"
+                    >
                       <Image src={listing.coverPhotoUrl} alt={listing.title} fill sizes="52px" className="object-cover" />
-                    ) : (
-                      <>
-                        <PlaceholderIcon propertyType={listing.propertyType} />
-                        {canEdit ? (
+                      {(listing.photos?.length ?? 0) > 1 ? (
+                        <span className="absolute bottom-0.5 right-0.5 flex items-center gap-0.5 rounded-full bg-black/60 px-1 py-px text-[8.5px] font-bold text-white">
+                          <ImagesIcon className="h-2.5 w-2.5" strokeWidth={2.4} />
+                          {listing.photos?.length}
+                        </span>
+                      ) : null}
+                    </button>
+                  ) : (
+                    <label className="group relative flex h-[52px] w-[52px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-[11px] border border-line bg-surface-2 text-accent">
+                      <PlaceholderIcon propertyType={listing.propertyType} />
+                      {canEdit ? (
+                        <>
                           <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-emerald-400/40 bg-bg text-emerald-300">
                             <Upload className="h-3 w-3" strokeWidth={2.2} />
                           </span>
-                        ) : null}
-                        {canEdit ? (
                           <span className="absolute inset-0 flex items-center justify-center bg-black/70 text-center text-[9px] font-semibold text-text opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                             {isUploading ? t('inmuebles.fotoPortada.subiendo') : t('inmuebles.fotoPortada.agregar')}
                           </span>
-                        ) : null}
-                      </>
-                    )}
-                    {canEdit ? (
-                      <input
-                        ref={(el) => {
-                          cardFileInputs.current[listing.id] = el;
-                        }}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) void handleCardPhotoSelected(file, listing.id);
-                          e.target.value = '';
-                        }}
-                      />
-                    ) : null}
-                  </label>
+                          <input
+                            ref={(el) => {
+                              cardFileInputs.current[listing.id] = el;
+                            }}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) void handleCardPhotoSelected(file, listing.id);
+                              e.target.value = '';
+                            }}
+                          />
+                        </>
+                      ) : null}
+                    </label>
+                  )}
                   <div className="min-w-0 flex-1">
                     <h3 className="truncate text-[16px] font-bold leading-tight text-text">
                       {abbreviatedTitle(listing.propertyType, listing.zone || listing.city, tProperty, lang)}
@@ -976,6 +1022,18 @@ export default function InmueblesTab({
                   )}
                 </div>
 
+                {/* Aviso suave de galeria vacia (Fase 4, seccion 4) - nunca bloquea, solo invita. */}
+                {canEdit && !listing.coverPhotoUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => startEdit(listing)}
+                    className="mt-3.5 flex w-full min-h-[44px] items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-2.5 text-left text-xs text-emerald-200 transition-colors hover:bg-emerald-500/15"
+                  >
+                    <span className="flex-1">{t('inmuebles.fotos.avisoVacio')}</span>
+                    <span className="shrink-0 font-semibold underline decoration-dotted underline-offset-2">{t('inmuebles.fotoPortada.agregar')}</span>
+                  </button>
+                ) : null}
+
                 {/* Aviso suave de ficha incompleta (seccion 5.2) - nunca bloquea, solo invita. */}
                 {detailIncomplete ? (
                   <button
@@ -1036,6 +1094,17 @@ export default function InmueblesTab({
           lang={lang}
           t={t}
           onClose={() => setFichaListingId(null)}
+        />
+      ) : null}
+
+      {lightboxListingId ? (
+        <PhotoLightbox
+          photos={(() => {
+            const l = listings.find((x) => x.id === lightboxListingId);
+            const urls = (l?.photos ?? []).map((p) => p.url);
+            return urls.length > 0 ? urls : l?.coverPhotoUrl ? [l.coverPhotoUrl] : [];
+          })()}
+          onClose={() => setLightboxListingId(null)}
         />
       ) : null}
     </div>

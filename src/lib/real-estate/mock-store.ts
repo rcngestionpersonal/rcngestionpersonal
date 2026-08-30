@@ -201,6 +201,18 @@ type ListingRecord = {
   updatedAt: string;
 };
 
+// Galeria de fotos del inmueble (Fase 4) - espejo en memoria de ListingPhoto
+// (ver prisma/schema.prisma). ownerAgentId no existe aqui a proposito: la
+// autorizacion de cada ruta ya resuelve el Listing dueno via listingId.
+type ListingPhotoRecord = {
+  id: string;
+  listingId: string;
+  url: string;
+  orden: number;
+  esPortada: boolean;
+  createdAt: string;
+};
+
 type ClosedDealRecord = {
   id: string;
   operationType: 'SALE' | 'RENT' | 'BOTH';
@@ -285,6 +297,7 @@ type Store = {
   agents: AgentRecord[];
   opportunities: OpportunityRecord[];
   listings: ListingRecord[];
+  listingPhotos: ListingPhotoRecord[];
   listingMatches: ListingMatchRecord[];
   closedDeals: ClosedDealRecord[];
   paypalEvents: Set<string>;
@@ -372,6 +385,7 @@ function getStore(): Store {
       agents: [],
       opportunities: [],
       listings: [],
+      listingPhotos: [],
       listingMatches: [],
       closedDeals: [],
       paypalEvents: new Set<string>(),
@@ -393,6 +407,10 @@ function getStore(): Store {
 
   if (!(globalStore.__realEstateMockStore as Partial<Store>).listings) {
     globalStore.__realEstateMockStore.listings = [];
+  }
+
+  if (!(globalStore.__realEstateMockStore as Partial<Store>).listingPhotos) {
+    globalStore.__realEstateMockStore.listingPhotos = [];
   }
 
   if (!(globalStore.__realEstateMockStore as Partial<Store>).listingMatches) {
@@ -837,12 +855,16 @@ export function claimOpportunity(
   return updated;
 }
 
-export function listListings(filter?: { managingAgentId?: string }): Array<ListingRecord & { matches: ListingMatchRecord[] }> {
+function attachListingPhotos(store: Store, listingId: string): ListingPhotoRecord[] {
+  return store.listingPhotos.filter((p) => p.listingId === listingId).sort((a, b) => a.orden - b.orden);
+}
+
+export function listListings(filter?: { managingAgentId?: string }): Array<ListingRecord & { matches: ListingMatchRecord[]; photos: ListingPhotoRecord[] }> {
   const store = getStore();
   return store.listings
     .filter((l) => (filter?.managingAgentId ? l.managingAgentId === filter.managingAgentId : true))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .map((l) => ({ ...l, matches: attachOpportunityMatches(store, l.id) }));
+    .map((l) => ({ ...l, matches: attachOpportunityMatches(store, l.id), photos: attachListingPhotos(store, l.id) }));
 }
 
 export function findListingById(listingId: string): ListingRecord | null {
@@ -964,6 +986,85 @@ export function deleteListing(listingId: string, managingAgentId?: string): bool
   );
   if (idx < 0) return false;
   store.listings.splice(idx, 1);
+  // Sin FK real en memoria: hay que purgar la galeria a mano (Prisma lo hace
+  // solo via onDelete: Cascade).
+  store.listingPhotos = store.listingPhotos.filter((p) => p.listingId !== listingId);
+  return true;
+}
+
+// --- Galeria de fotos (Fase 4) ---------------------------------------------
+// Invariante: como mucho una ListingPhoto por listing tiene esPortada=true, y
+// Listing.coverPhotoUrl siempre refleja esa foto (o queda vacio si no hay
+// ninguna) - syncCoverPhotoUrl() es el UNICO lugar que lo escribe.
+
+function syncCoverPhotoUrl(listingId: string): void {
+  const store = getStore();
+  const photos = attachListingPhotos(store, listingId);
+  const cover = photos.find((p) => p.esPortada) ?? photos[0] ?? null;
+  updateListing(listingId, { coverPhotoUrl: cover?.url });
+}
+
+export function listListingPhotos(listingId: string): ListingPhotoRecord[] {
+  return attachListingPhotos(getStore(), listingId);
+}
+
+export function countListingPhotos(listingId: string): number {
+  return listListingPhotos(listingId).length;
+}
+
+export function addListingPhoto(listingId: string, url: string): ListingPhotoRecord {
+  const store = getStore();
+  const existing = attachListingPhotos(store, listingId);
+  const photo: ListingPhotoRecord = {
+    id: uid('photo'),
+    listingId,
+    url,
+    orden: existing.length,
+    // La primera foto que sube el agente queda de portada por defecto.
+    esPortada: existing.length === 0,
+    createdAt: nowIso(),
+  };
+  store.listingPhotos.push(photo);
+  syncCoverPhotoUrl(listingId);
+  return photo;
+}
+
+export function deleteListingPhoto(photoId: string): { listingId: string } | null {
+  const store = getStore();
+  const idx = store.listingPhotos.findIndex((p) => p.id === photoId);
+  if (idx < 0) return null;
+  const { listingId } = store.listingPhotos[idx];
+  store.listingPhotos.splice(idx, 1);
+  // Renumera para que "orden" siga siendo 0..n-1 contiguo, y si se borro la
+  // portada, la foto que quede primera la hereda.
+  const remaining = attachListingPhotos(store, listingId);
+  const hadCover = !remaining.some((p) => p.esPortada);
+  remaining.forEach((p, i) => {
+    p.orden = i;
+    if (hadCover && i === 0) p.esPortada = true;
+  });
+  syncCoverPhotoUrl(listingId);
+  return { listingId };
+}
+
+export function reorderListingPhotos(listingId: string, orderedPhotoIds: string[]): boolean {
+  const store = getStore();
+  const byId = new Map(attachListingPhotos(store, listingId).map((p) => [p.id, p]));
+  if (byId.size !== orderedPhotoIds.length || orderedPhotoIds.some((id) => !byId.has(id))) return false;
+  orderedPhotoIds.forEach((id, i) => {
+    byId.get(id)!.orden = i;
+  });
+  return true;
+}
+
+export function setListingPhotoCover(listingId: string, photoId: string): boolean {
+  const store = getStore();
+  const photos = attachListingPhotos(store, listingId);
+  if (!photos.some((p) => p.id === photoId)) return false;
+  for (const p of store.listingPhotos) {
+    if (p.listingId === listingId) p.esPortada = p.id === photoId;
+  }
+  syncCoverPhotoUrl(listingId);
   return true;
 }
 

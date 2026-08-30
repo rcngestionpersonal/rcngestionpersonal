@@ -235,7 +235,12 @@ model Listing {
   // que gestiona el inmueble puede verlos (ver src/lib/real-estate/privacy.ts).
   ownerName              String?
   ownerPhone             String?
-  // URL en Vercel Blob (nunca la imagen en si) de la foto de portada del inmueble.
+  // URL en Vercel Blob (nunca la imagen en si) de la foto de portada del
+  // inmueble - CAMPO DERIVADO desde Fase 4 (galeria de fotos): se mantiene en
+  // sincronia con la ListingPhoto que tenga esPortada=true (ver
+  // src/lib/real-estate/listing-photos.ts) exclusivamente para no romper a
+  // los consumidores que ya leian este campo directo (tarjeta del listado,
+  // ficha PDF). Ninguna ruta debe escribirlo a mano fuera de ese helper.
   coverPhotoUrl          String?
   commissionSharePercent Float         @default(0)
   status                 ListingStatus @default(ACTIVE)
@@ -246,9 +251,27 @@ model Listing {
   createdAt              DateTime      @default(now())
   updatedAt              DateTime      @updatedAt
   matches                ListingMatch[]
+  photos                 ListingPhoto[]
 
   @@index([city, propertyType, operationType])
   @@index([status])
+}
+
+// Galeria de fotos del inmueble (Fase 4) - hasta 8 por inmueble (validado en
+// la ruta de subida, no aqui). Una sola foto por listing tiene esPortada=true
+// a la vez (invariante mantenido por listing-photos.ts, nunca por SQL); esa
+// es la que se refleja en Listing.coverPhotoUrl. "orden" define la posicion
+// en la grilla/carrusel, empezando en 0.
+model ListingPhoto {
+  id        String   @id @default(cuid())
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId String
+  url       String
+  orden     Int      @default(0)
+  esPortada Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([listingId, orden])
 }
 
 model Opportunity {

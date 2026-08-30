@@ -132,6 +132,16 @@ export function isAgentVerified(agent?: Pick<AgentItem, 'idNumber' | 'phoneVerif
   return Boolean(agent?.idNumber) && Boolean(agent?.phoneVerifiedAt);
 }
 
+// Galeria de fotos del inmueble (Fase 4) - coverPhotoUrl sigue existiendo
+// como campo derivado (ver prisma/schema.prisma) para no romper a quien ya
+// lo lee directo; "photos" es la fuente de verdad para orden/portada.
+export type ListingPhotoItem = {
+  id: string;
+  url: string;
+  orden: number;
+  esPortada: boolean;
+};
+
 export type ListingItem = {
   id: string;
   title: string;
@@ -180,6 +190,7 @@ export type ListingItem = {
   ownerName?: string;
   ownerPhone?: string;
   coverPhotoUrl?: string;
+  photos?: ListingPhotoItem[];
   matches?: ListingMatchItem[];
   createdAt: string;
 };

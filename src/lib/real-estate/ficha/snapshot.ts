@@ -26,6 +26,7 @@ export function buildFichaListingSnapshot(
   listing: FichaListingFields & { title: string; city: string; zone?: string | null; price: number; currency: string; description?: string | null },
   lang: Language,
   photoDataUri: string | null,
+  galleryPhotoDataUris: string[] = [],
 ): FichaListingSnapshot {
   return {
     propertyTypeLabel: PROPERTY_TYPE_LABELS[lang][listing.propertyType] ?? listing.propertyType,
@@ -35,6 +36,7 @@ export function buildFichaListingSnapshot(
     currency: listing.currency,
     description: listing.description ?? null,
     photoDataUri,
+    galleryPhotoDataUris,
     placeholderKind: placeholderKindFor(listing.propertyType),
     primaryRows: fichaPrimaryRows(listing, lang),
     extraChips: fichaExtraChips(listing, lang),

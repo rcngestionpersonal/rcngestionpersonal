@@ -377,6 +377,19 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'inmuebles.fotoPortada.subiendo': 'Subiendo...',
     'inmuebles.fotoPortada.error': 'No se pudo subir la foto. Intenta de nuevo.',
 
+    // Galeria de fotos (Fase 4).
+    'inmuebles.fotos.label': 'Fotos del inmueble',
+    'inmuebles.fotos.ayuda': 'Hasta 8 fotos. Arrastra para reordenar; la primera es la portada.',
+    'inmuebles.fotos.portada': 'Portada',
+    'inmuebles.fotos.marcarPortada': 'Usar como portada',
+    'inmuebles.fotos.eliminar': 'Eliminar foto',
+    'inmuebles.fotos.agregar': 'Agregar',
+    'inmuebles.fotos.subiendo': 'Subiendo...',
+    'inmuebles.fotos.errorSubir': 'No se pudo subir una de las fotos. Intenta de nuevo.',
+    'inmuebles.fotos.errorMaximo': 'Máximo 8 fotos por inmueble.',
+    'inmuebles.fotos.avisoVacio': 'Agrega fotos para que tu ficha y tus matches luzcan profesionales.',
+    'inmuebles.fotos.verGaleria': 'Ver galería',
+
     // Campos condicionales por tipo (Fase 8, Bloque A)
     'inmuebles.form.seccionUbicacion': 'Ubicación y precio',
     'inmuebles.form.seccionDetalles': 'Detalles del inmueble',
@@ -1196,6 +1209,18 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'inmuebles.fotoPortada.agregar': 'Add photo',
     'inmuebles.fotoPortada.subiendo': 'Uploading...',
     'inmuebles.fotoPortada.error': "Couldn't upload the photo. Try again.",
+
+    'inmuebles.fotos.label': 'Listing photos',
+    'inmuebles.fotos.ayuda': 'Up to 8 photos. Drag to reorder; the first one is the cover.',
+    'inmuebles.fotos.portada': 'Cover',
+    'inmuebles.fotos.marcarPortada': 'Use as cover',
+    'inmuebles.fotos.eliminar': 'Delete photo',
+    'inmuebles.fotos.agregar': 'Add',
+    'inmuebles.fotos.subiendo': 'Uploading...',
+    'inmuebles.fotos.errorSubir': "Couldn't upload one of the photos. Try again.",
+    'inmuebles.fotos.errorMaximo': 'Maximum 8 photos per listing.',
+    'inmuebles.fotos.avisoVacio': 'Add photos so your sheet and your matches look professional.',
+    'inmuebles.fotos.verGaleria': 'View gallery',
 
     // Type-conditional fields (Phase 8, Block A)
     'inmuebles.form.seccionUbicacion': 'Location and price',
