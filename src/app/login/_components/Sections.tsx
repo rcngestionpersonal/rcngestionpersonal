@@ -198,29 +198,39 @@ export function ColegasSection() {
             </div>
             <div className={styles.profileStats}>
               <div className={styles.profileStatRow}>
-                <IdCard className="h-[15px] w-[15px]" style={{ color: 'var(--brand)' }} strokeWidth={1.8} />
+                <span className={styles.profileStatIcon}>
+                  <IdCard className="h-4 w-4" strokeWidth={2} />
+                </span>
                 <span className={styles.profileStatLabel}>Inmuebles en su inventario</span>
                 <span className={styles.profileStatValue}>24</span>
               </div>
               <div className={styles.profileStatRow}>
-                <Sparkles className="h-[15px] w-[15px]" style={{ color: 'var(--brand)' }} strokeWidth={1.8} />
-                <span className={styles.profileStatLabel}>Matches concretados</span>
+                <span className={styles.profileStatIcon}>
+                  <Sparkles className="h-4 w-4" strokeWidth={2} />
+                </span>
+                <span className={styles.profileStatLabel}>Matches generados</span>
                 <span className={styles.profileStatValue}>11</span>
               </div>
               <div className={styles.profileStatRow}>
-                <Handshake className="h-[15px] w-[15px]" style={{ color: 'var(--brand)' }} strokeWidth={1.8} />
-                <span className={styles.profileStatLabel}>Cierres registrados</span>
+                <span className={styles.profileStatIcon}>
+                  <MapPin className="h-4 w-4" strokeWidth={2} />
+                </span>
+                <span className={styles.profileStatLabel}>Data aportada al Mapa de Precios</span>
                 <span className={styles.profileStatValue}>18</span>
               </div>
               <div className={styles.profileStatRow}>
-                <BarChart3 className="h-[15px] w-[15px]" style={{ color: 'var(--brand)' }} strokeWidth={1.8} />
+                <span className={styles.profileStatIcon}>
+                  <BarChart3 className="h-4 w-4" strokeWidth={2} />
+                </span>
                 <span className={styles.profileStatLabel}>Constancia (12 meses)</span>
-                <span className={styles.profileStatValue}>Alta</span>
+                <span className={styles.chipTeal}>Alta</span>
               </div>
             </div>
             <div className={styles.levelBarWrap}>
               <div className={styles.levelBarLabels}>
-                <span>Agente Elite</span>
+                <span>
+                  <b>Agente Elite</b>
+                </span>
                 <span>1.480 puntos</span>
               </div>
               <div className={styles.levelBarTrack}>

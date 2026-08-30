@@ -795,18 +795,31 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 11px;
   margin-top: 18px;
 }
 
 .profileStatRow {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   background: var(--surface-2);
   border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 9px 12px;
+  border-radius: 12px;
+  padding: 11px 13px;
+}
+
+.profileStatIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-line);
+  color: var(--accent);
 }
 
 .profileStatLabel {
@@ -818,8 +831,9 @@
 
 .profileStatValue {
   flex-shrink: 0;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
   color: var(--accent);
 }
 
@@ -831,10 +845,15 @@
 .levelBarLabels {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 600;
-  color: var(--text-3);
+  color: var(--text-2);
   margin-bottom: 6px;
+}
+
+.levelBarLabels b {
+  color: var(--text);
+  font-weight: 700;
 }
 
 .levelBarTrack {
@@ -1003,167 +1022,13 @@
   }
 }
 
+/* El carnet en si (foto, nombre, stats, QR) ya no tiene CSS propio aqui: es
+   el mismo componente BrokerCard que usa el modulo de Ranking (Tailwind +
+   los tokens de globals.css), para que exista un solo diseno de carnet en
+   todo el producto. Ver CarnetSection.tsx. */
 .carnetCardWrap {
   max-width: 360px;
   margin: 0 auto;
-}
-
-.carnetCard {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
-  border: 1px solid var(--brand-line);
-  border-radius: 18px;
-  padding: 18px 19px 16px;
-}
-
-.carnetCard::after {
-  content: '';
-  position: absolute;
-  top: -50px;
-  right: -50px;
-  width: 150px;
-  height: 150px;
-  border-radius: 999px;
-  border: 1px solid var(--line-strong);
-  pointer-events: none;
-}
-
-.carnetHeader {
-  position: relative;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--text-3);
-}
-
-.carnetHeader b {
-  color: var(--brand);
-}
-
-.carnetIdentity {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.carnetAvatar {
-  width: 60px;
-  height: 60px;
-  border-radius: 999px;
-  flex-shrink: 0;
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 19px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.carnetName {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.carnetZones {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 10px;
-  font-size: 10px;
-  color: var(--text-2);
-}
-
-.carnetZones svg {
-  color: var(--brand);
-  flex-shrink: 0;
-}
-
-.carnetStats {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  margin-top: 12px;
-}
-
-.carnetStat {
-  background: var(--brand-dim);
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  padding: 7px 4px;
-  text-align: center;
-}
-
-.carnetStatValue {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--accent);
-}
-
-.carnetStatLabel {
-  font-size: 7px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--text-3);
-}
-
-.carnetQr {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 12px;
-  background: var(--accent-dim);
-  border: 1px solid var(--accent-line);
-  border-radius: 11px;
-  padding: 9px 10px;
-}
-
-/* Fondo blanco fijo (nunca tokenizado, ver BrokerCard): un QR necesita
-   contraste oscuro-sobre-claro para escanear bien, sin importar el tema. */
-.carnetQrImg {
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.9);
-}
-
-.carnetQrText {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.carnetQrSubtext {
-  margin-top: 1px;
-  font-size: 9px;
-  color: var(--text-2);
-}
-
-.carnetShareBtn {
-  composes: btnGrad;
-  position: relative;
-  width: 100%;
-  margin-top: 12px;
-  font-size: 10.5px;
-  padding: 9px;
-}
-
-.carnetFooter {
-  position: relative;
-  margin: 10px 0 0;
-  font-size: 7.5px;
-  color: var(--text-3);
-  text-align: center;
 }
 
 /* ---------- Oferta ---------- */

@@ -1,77 +1,42 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import { Check, IdCard, MapPin, Share2 } from 'lucide-react';
-import QRCode from 'qrcode';
+import { Check, IdCard } from 'lucide-react';
+import { BrokerCard, type BrokerCardData } from '@/components/dashboard/BrokerCard';
 import styles from '../login.module.css';
 
-function CarnetCard() {
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+// Datos de ejemplo para ilustrar el carnet en la landing. El componente es el
+// MISMO BrokerCard que ve un agente real en Ranking - un solo diseño de
+// carnet en todo el producto, mantenido en un solo lugar (ver
+// src/components/dashboard/BrokerCard.tsx).
+const EXAMPLE_CARNET_DATA: BrokerCardData = {
+  displayName: 'Roberto Tapia',
+  photoUrl: '/landing/agente-rt.jpg',
+  verified: true,
+  level: { key: 'BROKER_ELITE', labelEs: 'Agente Elite', labelEn: 'Elite Agent', min: 1200 },
+  totalPoints: 1620,
+  rank: 5,
+  cierres: 18,
+  listingsActive: 24,
+  joinYear: 2022,
+  specializationZones: ['CENTRO_NORTE', 'VALLE_CHILLOS'],
+  phone: '+593999999999',
+  subscriptionActive: true,
+  carnetSlug: 'roberto-tapia',
+  yearsExperience: 6,
+};
 
-  useEffect(() => {
-    let cancelled = false;
-    const target = 'https://wa.me/593999999999?text=' + encodeURIComponent('Hola Roberto, vi tu carnet en Redinmo.io y quisiera conversar contigo.');
-    QRCode.toDataURL(target, { width: 176, margin: 0, color: { dark: '#04201c', light: '#00000000' } })
-      .then((url) => {
-        if (!cancelled) setQrDataUrl(url);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+// La landing no tiene LanguageProvider (es 100% espanol, ver decision del
+// 2026-08-29) - BrokerCard solo necesita estas 4 claves para audience
+// "colegas", asi que se resuelven aqui sin depender del dictionary.ts.
+const CARNET_STRINGS_ES: Record<string, string> = {
+  'ranking.carnet.tipo': '· CARNET DE AGENTE',
+  'shell.verificado': 'Verificado',
+  'ranking.carnet.cierresLabel': 'CIERRES',
+  'ranking.carnet.puntosLabel': 'PUNTOS',
+};
 
-  return (
-    <div aria-hidden="true" className={styles.carnetCardWrap}>
-      <div className={styles.carnetCard}>
-        <p className={styles.carnetHeader}>
-          <b>REDINMO.IO</b> - CARNET DE AGENTE
-        </p>
-        <div className={styles.carnetIdentity}>
-          <Image src="/landing/agente-rt.jpg" alt="Foto de Roberto Tapia" width={60} height={60} className={styles.carnetAvatar} style={{ objectFit: 'cover' }} />
-          <div>
-            <p className={styles.carnetName}>Roberto Tapia</p>
-            <div className={styles.profileChips}>
-              <span className={styles.chipTeal}>✓ VERIFICADO</span>
-              <span className={styles.chipViolet}>● AGENTE ELITE</span>
-            </div>
-          </div>
-        </div>
-        <p className={styles.carnetZones}>
-          <MapPin className="h-3 w-3" strokeWidth={1.8} />
-          Centro Norte · Valles · Residencial y comercial
-        </p>
-        <div className={styles.carnetStats}>
-          <div className={styles.carnetStat}>
-            <p className={styles.carnetStatValue}>#5</p>
-            <p className={styles.carnetStatLabel}>En la red</p>
-          </div>
-          <div className={styles.carnetStat}>
-            <p className={styles.carnetStatValue}>18</p>
-            <p className={styles.carnetStatLabel}>Cierres</p>
-          </div>
-          <div className={styles.carnetStat}>
-            <p className={styles.carnetStatValue}>2026</p>
-            <p className={styles.carnetStatLabel}>Vigente</p>
-          </div>
-        </div>
-        <div className={styles.carnetQr}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          {qrDataUrl ? <img src={qrDataUrl} alt="" className={styles.carnetQrImg} /> : <div className={styles.carnetQrImg} />}
-          <div>
-            <p className={styles.carnetQrText}>Escáneame y hablemos</p>
-            <p className={styles.carnetQrSubtext}>Abre WhatsApp con un mensaje listo</p>
-          </div>
-        </div>
-        <button type="button" className={styles.carnetShareBtn}>
-          <Share2 className="h-3 w-3" strokeWidth={2} />
-          COMPARTIR CON MI CLIENTE
-        </button>
-        <p className={styles.carnetFooter}>Verificable en redinmo.io/v/roberto-tapia</p>
-      </div>
-    </div>
-  );
+function landingCarnetT(key: string): string {
+  return CARNET_STRINGS_ES[key] ?? key;
 }
 
 export default function CarnetSection() {
@@ -118,7 +83,9 @@ export default function CarnetSection() {
             </div>
           </div>
 
-          <CarnetCard />
+          <div aria-hidden="true" className={styles.carnetCardWrap}>
+            <BrokerCard data={EXAMPLE_CARNET_DATA} audience="colegas" lang="es" t={landingCarnetT} />
+          </div>
         </div>
       </div>
     </section>
