@@ -126,4 +126,24 @@ export function zoneForCoordinates(lat: number, lng: number): string | null {
   return null;
 }
 
+// Fallback garantizado para el pin del formulario simplificado (Fase 5): si el punto
+// cae fuera de las 8 zonas nombradas (posible en los bordes de PERIFERIA_RURAL, cuya
+// caja es enorme pero no infinita), se asigna la zona del centroide mas cercano en vez
+// de dejar la zona vacia - el pin SIEMPRE debe poder autocompletar una zona.
+export function nearestZoneForCoordinates(lat: number, lng: number): string {
+  const exact = zoneForCoordinates(lat, lng);
+  if (exact) return exact;
+  let closestKey = QUITO_ZONES[0].key;
+  let closestDist = Infinity;
+  for (const zone of QUITO_ZONES) {
+    const [cLat, cLng] = zone.centroid;
+    const dist = (lat - cLat) ** 2 + (lng - cLng) ** 2;
+    if (dist < closestDist) {
+      closestDist = dist;
+      closestKey = zone.key;
+    }
+  }
+  return closestKey;
+}
+
 export const MIN_SAMPLE_SIZE = 3;

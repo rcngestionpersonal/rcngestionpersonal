@@ -3,6 +3,8 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { DARK_TILE_FILTER, tileLayerConfig } from '@/lib/real-estate/map-tiles';
+import { useDarkTheme } from './useDarkTheme';
 
 // Los bundlers rompen las rutas por defecto de los iconos de Leaflet; se resuelven via CDN.
 delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
@@ -45,19 +47,19 @@ export default function ClosedDealsMap({
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
   const pickMarkerRef = useRef<L.Marker | null>(null);
   const onPickRef = useRef(onPick);
   onPickRef.current = onPick;
+  const isDark = useDarkTheme();
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
     const map = L.map(containerRef.current).setView(DEFAULT_CENTER, 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 19,
-    }).addTo(map);
+    const tiles = tileLayerConfig();
+    tileLayerRef.current = L.tileLayer(tiles.url, { attribution: tiles.attribution, maxZoom: 19 }).addTo(map);
 
     map.on('click', (event: L.LeafletMouseEvent) => {
       onPickRef.current?.(event.latlng.lat, event.latlng.lng);
@@ -69,7 +71,15 @@ export default function ClosedDealsMap({
       map.remove();
       mapRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const pane = map.getPane('tilePane');
+    if (pane) pane.style.filter = isDark ? DARK_TILE_FILTER : '';
+  }, [isDark]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -100,11 +110,20 @@ export default function ClosedDealsMap({
     }
 
     if (pickedPosition) {
-      pickMarkerRef.current = L.marker([pickedPosition.lat, pickedPosition.lng], {
+      const marker = L.marker([pickedPosition.lat, pickedPosition.lng], {
         opacity: 0.9,
+        draggable: Boolean(pickable),
       }).addTo(map);
+      if (pickable) {
+        marker.on('dragend', () => {
+          const pos = marker.getLatLng();
+          onPickRef.current?.(pos.lat, pos.lng);
+        });
+      }
+      pickMarkerRef.current = marker;
       map.setView([pickedPosition.lat, pickedPosition.lng], Math.max(map.getZoom(), 13));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickedPosition]);
 
   return (

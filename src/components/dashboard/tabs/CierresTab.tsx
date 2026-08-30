@@ -2,12 +2,14 @@
 
 import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
+import { Pencil, Plus } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import { ModuleHeader } from '../CardKit';
 import { IconMapPin } from '../icons';
+import SlideOverPanel from '../SlideOverPanel';
+import CierreFormPanel, { type NewClosedDealInput, type SavedDealResult } from './CierreFormPanel';
 import {
   CLOSED_DEAL_PROPERTY_TYPES,
-  PROPERTY_PIN_COLORS,
   pinColorFor,
   pricePerM2,
 } from '@/lib/real-estate/closed-deals-config';
@@ -19,12 +21,22 @@ const CierresMapa = dynamic(() => import('../CierresMapa'), { ssr: false, loadin
 
 export default function CierresTab({
   canAccess,
+  canCreate,
   deals,
-  onGoToRegister,
+  myZones,
+  onCreateDeal,
+  onUpdateDeal,
+  onDeleteDeal,
+  creating,
 }: {
   canAccess: boolean;
+  canCreate: boolean;
   deals: ClosedDealItem[];
-  onGoToRegister?: () => void;
+  myZones?: string[];
+  onCreateDeal: (input: NewClosedDealInput) => Promise<void>;
+  onUpdateDeal: (id: string, input: NewClosedDealInput) => Promise<void>;
+  onDeleteDeal: (id: string) => Promise<void>;
+  creating: boolean;
 }) {
   const { t, tProperty, lang } = useLanguage();
 
@@ -40,6 +52,11 @@ export default function CierresTab({
   const [focusZoneKey, setFocusZoneKey] = useState<string | null>(null);
   const [mapCount, setMapCount] = useState(0);
   const [mobilePanel, setMobilePanel] = useState<'mapa' | 'resumen'>('mapa');
+
+  const [showForm, setShowForm] = useState(false);
+  const [editingDeal, setEditingDeal] = useState<ClosedDealItem | null>(null);
+  const [pendingFocus, setPendingFocus] = useState<{ lat: number; lng: number } | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Resumen por zona: solo lo esencial (nombre, conteo, precio/m2 promedio) - el
   // detalle real (antiguedad, forma de pago, tiempo en mercado) vive en el popup
@@ -83,6 +100,37 @@ export default function CierresTab({
     else {
       setSortKey(key);
       setSortDesc(true);
+    }
+  }
+
+  function openCreateForm() {
+    setEditingDeal(null);
+    setShowForm(true);
+  }
+
+  function openEditForm(deal: ClosedDealItem) {
+    setEditingDeal(deal);
+    setShowForm(true);
+  }
+
+  function closeForm() {
+    setShowForm(false);
+    setEditingDeal(null);
+  }
+
+  function handleSaved(result: SavedDealResult) {
+    setShowForm(false);
+    setEditingDeal(null);
+    setConsultaView('mapa');
+    setPendingFocus({ lat: result.latitude, lng: result.longitude });
+  }
+
+  async function handleDelete(id: string) {
+    setDeletingId(id);
+    try {
+      await onDeleteDeal(id);
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -136,21 +184,34 @@ export default function CierresTab({
         </div>
 
         {deals.length === 0 ? (
-          <EmptyMapState t={t} onRegister={onGoToRegister} />
+          <EmptyMapState t={t} onRegister={canCreate ? openCreateForm : undefined} />
         ) : consultaView === 'mapa' ? (
           <div className="space-y-3">
+            {/* Leyenda-filtro (seccion 2.4): chips tocables, no una caja pasiva. Finca
+                comparte el color/bucket de Casa (ver paleta aprobada) y no tiene chip
+                propio - sus pines quedan visibles solo en la vista "todos". */}
+            <div className="flex flex-wrap gap-2" role="group" aria-label={t('cierres.filtro.tipo')}>
+              {CLOSED_DEAL_PROPERTY_TYPES.filter((pt) => pt !== 'FARM').map((pt) => {
+                const active = mapFilters.propertyType === pt;
+                return (
+                  <button
+                    key={pt}
+                    onClick={() => setMapFilters((f) => ({ ...f, propertyType: active ? undefined : pt }))}
+                    aria-pressed={active}
+                    className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold transition-all duration-200 ${
+                      active ? 'border-transparent text-white shadow-sm' : 'border-line-strong text-text-2 hover:bg-surface-2'
+                    }`}
+                    style={active ? { backgroundColor: pinColorFor(pt) } : undefined}
+                  >
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: pinColorFor(pt) }} />
+                    {tProperty(pt)}
+                  </button>
+                );
+              })}
+            </div>
+
             {mapFiltersOpen ? (
               <div className="flex flex-wrap gap-2 rounded-2xl border border-line bg-surface-2 p-3">
-                <select
-                  className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2 text-xs text-text outline-none focus:border-brand"
-                  value={mapFilters.propertyType ?? ''}
-                  onChange={(e) => setMapFilters((f) => ({ ...f, propertyType: e.target.value || undefined }))}
-                >
-                  <option className="bg-bg" value="">{t('cierres.filtro.tipo')}</option>
-                  {CLOSED_DEAL_PROPERTY_TYPES.map((v) => (
-                    <option key={v} className="bg-bg" value={v}>{tProperty(v)}</option>
-                  ))}
-                </select>
                 <select
                   className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2 text-xs text-text outline-none focus:border-brand"
                   value={mapFilters.sector ?? ''}
@@ -177,17 +238,16 @@ export default function CierresTab({
 
             <div className={`grid gap-4 ${zoneStats.length > 0 ? 'lg:grid-cols-[1fr,230px]' : ''}`}>
               <div className={mobilePanel === 'resumen' ? 'hidden lg:block' : ''}>
-                <div className="relative">
-                  <CierresMapa filters={mapFilters} focusZoneKey={focusZoneKey} lang={lang} tProperty={tProperty} onCountChange={setMapCount} />
-                  <div className="pointer-events-none absolute right-3 top-3 space-y-1 rounded-xl border border-line bg-surface/90 p-2 text-[10px] text-text-2 shadow-md">
-                    {Object.keys(PROPERTY_PIN_COLORS).map((pt) => (
-                      <div key={pt} className="flex items-center gap-1.5">
-                        <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: pinColorFor(pt) }} />
-                        <span className="truncate">{tProperty(pt)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <CierresMapa
+                  filters={mapFilters}
+                  focusZoneKey={focusZoneKey}
+                  lang={lang}
+                  tProperty={tProperty}
+                  onCountChange={setMapCount}
+                  myZones={myZones}
+                  pendingFocus={pendingFocus}
+                  onFocusHandled={() => setPendingFocus(null)}
+                />
               </div>
 
               {zoneStats.length > 0 ? (
@@ -206,6 +266,7 @@ export default function CierresTab({
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-semibold text-text">{zoneLabel(zs.zone.key, lang)}</span>
                           <span className="block text-[11px] text-text-3">{zs.count} {t('cierres.cierresRegistrados')}</span>
+                          {smallSample ? <span className="block text-[10.5px] font-semibold text-amber-400">{t('cierres.muestraChica')}</span> : null}
                         </span>
                         {!smallSample && zs.avgPpm2 ? (
                           <span className="shrink-0 text-right text-xs font-bold text-text">${Math.round(zs.avgPpm2).toLocaleString('en-US')}/m²</span>
@@ -237,29 +298,35 @@ export default function CierresTab({
             ) : null}
 
             {tableRows.length === 0 ? (
-              <EmptyMapState t={t} onRegister={onGoToRegister} />
+              <EmptyMapState t={t} onRegister={canCreate ? openCreateForm : undefined} />
             ) : (
               <div className="overflow-x-auto rounded-2xl border border-line bg-surface p-3">
                 <table className="hidden w-full min-w-[680px] text-left text-xs text-text-2 sm:table">
                   <thead>
                     <tr className="border-b border-line text-text-3">
                       <th className="py-2 pr-3">{t('cierres.zonaQuito')}</th>
-                      <th className="py-2 pr-3">{t('cierres.filtro.sector')}</th>
                       <th className="py-2 pr-3">{t('cierres.filtro.tipo')}</th>
                       <th className="cursor-pointer py-2 pr-3" onClick={() => toggleSort('price')}>{t('cierres.form.precio.placeholder')} {sortKey === 'price' ? (sortDesc ? '↓' : '↑') : ''}</th>
                       <th className="cursor-pointer py-2 pr-3" onClick={() => toggleSort('pricePerM2')}>$/m² {sortKey === 'pricePerM2' ? (sortDesc ? '↓' : '↑') : ''}</th>
                       <th className="cursor-pointer py-2 pr-3" onClick={() => toggleSort('closedAt')}>{t('cierres.cerrado')} {sortKey === 'closedAt' ? (sortDesc ? '↓' : '↑') : ''}</th>
+                      <th className="py-2 pr-3" />
                     </tr>
                   </thead>
                   <tbody>
                     {tableRows.map(({ deal, ppm2 }) => (
                       <tr key={deal.id} className="border-b border-line">
                         <td className="py-2 pr-3">{zoneLabel(deal.zone ?? '', lang)}</td>
-                        <td className="py-2 pr-3">{deal.sector ?? '—'}</td>
                         <td className="py-2 pr-3">{tProperty(deal.propertyType)}</td>
                         <td className="py-2 pr-3 font-semibold text-text">${deal.price.toLocaleString('en-US')}</td>
                         <td className="py-2 pr-3">{ppm2 ? `$${Math.round(ppm2).toLocaleString('en-US')}` : '—'}</td>
                         <td className="py-2 pr-3">{new Date(deal.closedAt).toLocaleDateString(lang === 'es' ? 'es-EC' : 'en-US', { month: 'short', year: 'numeric' })}</td>
+                        <td className="py-2 pr-3">
+                          {deal.canEdit ? (
+                            <button onClick={() => openEditForm(deal)} aria-label={t('cierres.editar')} className="rounded-full border border-line-strong p-1.5 text-text-2 transition-colors hover:text-brand">
+                              <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} />
+                            </button>
+                          ) : null}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -268,7 +335,14 @@ export default function CierresTab({
                 <div className="space-y-2 sm:hidden">
                   {tableRows.map(({ deal, ppm2 }) => (
                     <div key={deal.id} className="min-w-0 rounded-xl border border-line bg-surface-2 p-3 text-xs text-text-2">
-                      <p className="truncate font-semibold text-text">{tProperty(deal.propertyType)} · {zoneLabel(deal.zone ?? '', lang)}{deal.sector ? ` - ${deal.sector}` : ''}</p>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="min-w-0 truncate font-semibold text-text">{tProperty(deal.propertyType)} · {zoneLabel(deal.zone ?? '', lang)}{deal.sector ? ` - ${deal.sector}` : ''}</p>
+                        {deal.canEdit ? (
+                          <button onClick={() => openEditForm(deal)} aria-label={t('cierres.editar')} className="shrink-0 rounded-full border border-line-strong p-1.5 text-text-2">
+                            <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} />
+                          </button>
+                        ) : null}
+                      </div>
                       <p className="mt-1">${deal.price.toLocaleString('en-US')} {ppm2 ? `· $${Math.round(ppm2).toLocaleString('en-US')}/m²` : ''}</p>
                       <p className="mt-1 text-text-3">{new Date(deal.closedAt).toLocaleDateString(lang === 'es' ? 'es-EC' : 'en-US', { month: 'short', year: 'numeric' })}</p>
                     </div>
@@ -278,7 +352,59 @@ export default function CierresTab({
             )}
           </div>
         )}
+
+        {canCreate && deals.some((d) => d.canEdit) ? (
+          <div className="mt-4 border-t border-line pt-4">
+            <p className="mb-3 text-sm font-bold text-text">{t('cierres.misCierres')}</p>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {deals.filter((d) => d.canEdit).map((deal) => (
+                <div key={deal.id} className="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-line bg-surface-2 px-3 py-2 text-xs text-text-2">
+                  <span className="min-w-0 truncate">{tProperty(deal.propertyType)} · {zoneLabel(deal.zone ?? '', lang)}</span>
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    <button
+                      onClick={() => openEditForm(deal)}
+                      aria-label={t('cierres.editar')}
+                      className="rounded-full border border-line-strong px-2.5 py-1 font-semibold text-text-2 transition-colors duration-200 hover:border-brand hover:text-brand"
+                    >
+                      {t('cierres.editar')}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(deal.id)}
+                      disabled={deletingId === deal.id}
+                      className="rounded-full border border-danger bg-danger-dim px-2.5 py-1 font-semibold text-danger transition-colors duration-200 hover:brightness-125 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {deletingId === deal.id ? t('cierres.eliminando') : t('cierres.eliminar')}
+                    </button>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </section>
+
+      {canCreate ? (
+        <button
+          onClick={openCreateForm}
+          aria-label={t('cierres.fab.ariaLabel')}
+          title={t('cierres.fab.ariaLabel')}
+          className="gradient-btn fixed bottom-6 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full text-grad-contrast shadow-xl transition-transform duration-200 hover:scale-105 sm:bottom-8 sm:right-8"
+        >
+          <Plus className="h-6 w-6" strokeWidth={2.2} />
+        </button>
+      ) : null}
+
+      <SlideOverPanel open={showForm} onClose={closeForm} title={editingDeal ? t('cierres.editando') : t('cierres.form.title')}>
+        <CierreFormPanel
+          deals={deals}
+          editingDeal={editingDeal}
+          onCreateDeal={onCreateDeal}
+          onUpdateDeal={onUpdateDeal}
+          creating={creating}
+          onSaved={handleSaved}
+          onCancel={closeForm}
+        />
+      </SlideOverPanel>
     </div>
   );
 }

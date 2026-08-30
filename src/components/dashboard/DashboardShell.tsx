@@ -4,16 +4,16 @@ import { useState, type ReactNode, type SVGProps } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import { AvatarInitials } from './CardKit';
-import { IconClipboard, IconGrid, IconHouse, IconInvite, IconMapPin, IconPodium, IconStar, IconSubscription, IconTarget } from './icons';
+import { IconClipboard, IconGrid, IconHouse, IconInvite, IconMapPin, IconPodium, IconStar, IconSubscription } from './icons';
 import ThemeSwitch from './ThemeSwitch';
 import type { DashboardTab } from './types';
 
 // Invitar (agora "Invita a un Colega") va primero para agentes: es la accion
 // que hace crecer la Red, y el pedido explicito fue darle prioridad visual.
-// "cierres" (antes un solo tab con formulario + mapa) se separo en dos: registrar
-// (accion) y el mapa (consulta) - cada uno mas simple por separado.
-const AGENT_TABS: DashboardTab[] = ['invitar', 'resumen', 'ranking', 'suscripcion', 'inmuebles', 'pedidos', 'matches', 'registrocierre', 'cierres'];
-const ADMIN_TABS: DashboardTab[] = ['resumen', 'ranking', 'suscripcion', 'inmuebles', 'pedidos', 'matches', 'registrocierre', 'cierres', 'metricas'];
+// "cierres" (Fase 5): un solo tab "Mapa de Cierres" que combina mapa + registro (el
+// registro se abre desde un boton flotante sobre el mapa, ya no es un tab aparte).
+const AGENT_TABS: DashboardTab[] = ['invitar', 'resumen', 'ranking', 'suscripcion', 'inmuebles', 'pedidos', 'matches', 'cierres'];
+const ADMIN_TABS: DashboardTab[] = ['resumen', 'ranking', 'suscripcion', 'inmuebles', 'pedidos', 'matches', 'cierres', 'metricas'];
 
 function IconMetricas(props: SVGProps<SVGSVGElement>) {
   return (
@@ -47,7 +47,6 @@ const TAB_ICONS: Record<DashboardTab, (props: SVGProps<SVGSVGElement>) => ReactN
   inmuebles: IconHouse,
   pedidos: IconClipboard,
   matches: IconStar,
-  registrocierre: IconTarget,
   cierres: IconMapPin,
   invitar: IconInvite,
   metricas: IconMetricas,

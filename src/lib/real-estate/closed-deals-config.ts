@@ -71,21 +71,64 @@ export function roundCoord(value: number): number {
   return Math.round(value * 1000) / 1000;
 }
 
-// Color de pin por tipo de inmueble (paleta del design system), visible en la leyenda
-// del mapa de cierres.
+// Color de pin por tipo de inmueble (paleta aprobada Fase 5: 5 tonos distinguibles
+// entre si y para daltonismo, armonizados con el violeta/teal de marca). FARM comparte
+// el color de HOUSE (mismo formulario/seccion B); no hay una 6ta categoria para "Finca"
+// en el pedido. OTHER no tiene tipo asignado (no se ofrece en el formulario de cierres)
+// y cae al gris de fallback de pinColorFor().
 export const PROPERTY_PIN_COLORS: Record<string, string> = {
-  HOUSE: '#2dd4bf',
-  APARTMENT: '#818cf8',
-  SUITE: '#818cf8',
-  LAND: '#f59e0b',
-  COMMERCIAL: '#fb7185',
-  OFFICE: '#fb7185',
-  WAREHOUSE: '#fb7185',
-  FARM: '#84cc16',
+  HOUSE: '#7c5cff',
+  FARM: '#7c5cff',
+  APARTMENT: '#2dd4bf',
+  SUITE: '#2dd4bf',
+  LAND: '#f5a623',
+  COMMERCIAL: '#f4478a',
+  OFFICE: '#f4478a',
+  WAREHOUSE: '#38bdf8',
 };
 
 export function pinColorFor(propertyType: string): string {
   return PROPERTY_PIN_COLORS[propertyType] ?? '#94a3b8';
+}
+
+// Metraje del Mapa de Cierres simplificado (Fase 5): un solo campo numerico cuya
+// etiqueta cambia por tipo, y que se enruta a areaM2 o landAreaM2 exactamente como
+// pricePerM2() lo consume (LAND -> landAreaM2, todo el resto -> areaM2).
+export function metrajeFieldFor(propertyType: string): 'areaM2' | 'landAreaM2' {
+  return propertyType === 'LAND' ? 'landAreaM2' : 'areaM2';
+}
+
+export function metrajeLabelKeyFor(propertyType: string): string {
+  if (propertyType === 'LAND') return 'cierres.metraje.labelTerreno';
+  if (propertyType === 'APARTMENT' || propertyType === 'SUITE') return 'cierres.metraje.labelDepto';
+  if (propertyType === 'HOUSE' || propertyType === 'FARM') return 'cierres.metraje.labelCasa';
+  return 'cierres.metraje.labelComercial';
+}
+
+export type SectorInsight = {
+  sampleSize: number;
+  avgPpm2: number | null;
+  diffPct: number | null;
+};
+
+// Devolucion de valor al guardar (Fase 5, seccion 4): compara el $/m2 recien
+// registrado contra el promedio de otros cierres de la MISMA zona y MISMO tipo de
+// inmueble (comparar una casa contra un terreno en el mismo sector no diria nada util).
+// Requiere una muestra minima (MIN_SAMPLE_SIZE, hoy 3) para mostrar el promedio.
+export function computeSectorInsight(
+  myPpm2: number,
+  otherDeals: Array<{ propertyType: string; price: number; areaM2?: number | null; landAreaM2?: number | null }>,
+  minSampleSize: number,
+): SectorInsight {
+  const samples = otherDeals
+    .map((d) => pricePerM2(d))
+    .filter((x): x is number => typeof x === 'number' && x > 0);
+  if (samples.length < minSampleSize) {
+    return { sampleSize: samples.length, avgPpm2: null, diffPct: null };
+  }
+  const avg = samples.reduce((a, b) => a + b, 0) / samples.length;
+  const diffPct = ((myPpm2 - avg) / avg) * 100;
+  return { sampleSize: samples.length, avgPpm2: avg, diffPct };
 }
 
 export type ClosedDealDetails = {

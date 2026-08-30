@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
+import { LocateFixed } from 'lucide-react';
 import {
   ANTIGUEDAD_OPTIONS,
   ESTADO_OPTIONS,
@@ -14,7 +15,9 @@ import {
   pinColorFor,
   pricePerM2,
 } from '@/lib/real-estate/closed-deals-config';
-import { QUITO_ZONES, zoneLabel } from '@/lib/real-estate/quito-zones';
+import { QUITO_ZONES, zoneLabel, type ZoneBounds } from '@/lib/real-estate/quito-zones';
+import { DARK_TILE_FILTER, tileLayerConfig } from '@/lib/real-estate/map-tiles';
+import { useDarkTheme } from './useDarkTheme';
 import type { ClosedDealItem } from './types';
 
 // Los bundlers rompen las rutas por defecto de los iconos de Leaflet; se resuelven via CDN.
@@ -160,26 +163,44 @@ function buildPopupHtml(
   `;
 }
 
+function unionBounds(boundsList: ZoneBounds[]): ZoneBounds | null {
+  if (boundsList.length === 0) return null;
+  return boundsList.reduce((acc, b) => ({
+    south: Math.min(acc.south, b.south),
+    west: Math.min(acc.west, b.west),
+    north: Math.max(acc.north, b.north),
+    east: Math.max(acc.east, b.east),
+  }));
+}
+
 export default function CierresMapa({
   filters,
   focusZoneKey,
   lang,
   tProperty,
   onCountChange,
+  myZones,
+  pendingFocus,
+  onFocusHandled,
 }: {
   filters: MapFilters;
   focusZoneKey?: string | null;
   lang: 'es' | 'en';
   tProperty: (v: string) => string;
   onCountChange?: (count: number) => void;
+  myZones?: string[];
+  pendingFocus?: { lat: number; lng: number } | null;
+  onFocusHandled?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const clusterRef = useRef<L.MarkerClusterGroup | null>(null);
   const [deals, setDeals] = useState<MapDeal[]>([]);
   const [loading, setLoading] = useState(false);
   const filtersRef = useRef(filters);
   filtersRef.current = filters;
+  const isDark = useDarkTheme();
 
   async function fetchViewport() {
     const map = mapRef.current;
@@ -206,10 +227,8 @@ export default function CierresMapa({
     if (!containerRef.current || mapRef.current) return;
 
     const map = L.map(containerRef.current).setView(QUITO_CENTER, QUITO_ZOOM);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 19,
-    }).addTo(map);
+    const tiles = tileLayerConfig();
+    tileLayerRef.current = L.tileLayer(tiles.url, { attribution: tiles.attribution, maxZoom: 19 }).addTo(map);
 
     const cluster = L.markerClusterGroup({ maxClusterRadius: 55, spiderfyOnMaxZoom: true });
     cluster.addTo(map);
@@ -232,6 +251,45 @@ export default function CierresMapa({
     void fetchViewport();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.propertyType]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const pane = map.getPane('tilePane');
+    if (pane) pane.style.filter = isDark ? DARK_TILE_FILTER : '';
+  }, [isDark]);
+
+  // Al registrar un cierre nuevo, el padre pide centrar y acercar el mapa a su pin
+  // (seccion 4.4 del pedido) - moveend ya esta conectado a fetchViewport, asi que
+  // flyTo por si solo refresca los pins visibles al terminar la animacion.
+  useEffect(() => {
+    if (!pendingFocus) return;
+    const map = mapRef.current;
+    if (!map) return;
+    map.flyTo([pendingFocus.lat, pendingFocus.lng], Math.max(map.getZoom(), 15), { duration: 1.1 });
+    onFocusHandled?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingFocus]);
+
+  function locateToMyZones() {
+    const map = mapRef.current;
+    if (!map) return;
+    const zoneBounds = (myZones ?? [])
+      .map((key) => QUITO_ZONES.find((z) => z.key === key)?.bounds)
+      .filter((b): b is ZoneBounds => Boolean(b));
+    const bounds = unionBounds(zoneBounds);
+    if (!bounds) {
+      map.setView(QUITO_CENTER, QUITO_ZOOM);
+      return;
+    }
+    map.fitBounds(
+      [
+        [bounds.south, bounds.west],
+        [bounds.north, bounds.east],
+      ],
+      { maxZoom: 14 },
+    );
+  }
 
   const filteredDeals = useMemo(() => {
     return deals.filter((d) => {
@@ -288,22 +346,33 @@ export default function CierresMapa({
     <div className="relative">
       <style>{`
         @keyframes pulseHalo { 0% { opacity: 0.9; transform: scale(0.8); } 100% { opacity: 0; transform: scale(1.6); } }
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface); color: var(--text); }
         .cm-popup { font-family: inherit; min-width: 190px; }
-        .cm-head { display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#334155; }
+        .cm-head { display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color: var(--text-2); }
         .cm-badge { display:inline-block; border-radius:9999px; padding:1px 7px; font-size:9px; font-weight:700; margin-top:3px; }
         .cm-badge-recent { background:#d1fae5; color:#047857; }
         .cm-badge-est { background:#fef3c7; color:#92400e; }
-        .cm-price { font-size:18px; font-weight:800; color:#0f172a; margin-top:4px; }
-        .cm-ppm2 { font-size:12px; font-weight:600; color:#475569; }
-        .cm-pub { font-size:11px; color:#64748b; margin-top:1px; }
-        .cm-row { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:11.5px; color:#334155; margin-top:3px; }
-        .cm-row span:first-child { color:#94a3b8; }
-        .cm-foot { border-top:1px solid #e2e8f0; margin-top:6px; padding-top:5px; }
+        .cm-price { font-size:18px; font-weight:800; color: var(--text); margin-top:4px; }
+        .cm-ppm2 { font-size:12px; font-weight:600; color: var(--text-2); }
+        .cm-pub { font-size:11px; color: var(--text-3); margin-top:1px; }
+        .cm-row { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:11.5px; color: var(--text-2); margin-top:3px; }
+        .cm-row span:first-child { color: var(--text-3); }
+        .cm-foot { border-top:1px solid var(--line); margin-top:6px; padding-top:5px; }
       `}</style>
       <div ref={containerRef} className="h-[420px] w-full rounded-2xl sm:h-[560px]" />
 
+      <button
+        type="button"
+        onClick={locateToMyZones}
+        aria-label={lang === 'es' ? 'Centrar en mi zona' : 'Center on my area'}
+        title={lang === 'es' ? 'Centrar en mi zona' : 'Center on my area'}
+        className="absolute left-3 top-3 z-[500] flex h-11 w-11 items-center justify-center rounded-full border border-line-strong bg-surface/95 text-text-2 shadow-md transition-colors duration-150 hover:text-brand"
+      >
+        <LocateFixed className="h-[18px] w-[18px]" strokeWidth={1.8} />
+      </button>
+
       {loading ? (
-        <div className="pointer-events-none absolute left-3 top-3 rounded-full border border-line-strong bg-bg/90 px-3 py-1 text-[11px] font-semibold text-text-2">
+        <div className="pointer-events-none absolute left-3 top-16 rounded-full border border-line-strong bg-bg/90 px-3 py-1 text-[11px] font-semibold text-text-2">
           …
         </div>
       ) : null}

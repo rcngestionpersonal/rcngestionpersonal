@@ -35,22 +35,20 @@ const closedDealSchema = z
     bedrooms: z.number().int().nonnegative().optional(),
     bathrooms: z.number().int().nonnegative().optional(),
     parkingSpaces: z.number().int().nonnegative().optional(),
-    timeOnMarket: z.enum(['MENOS_1', 'UNO_A_TRES', 'TRES_A_SEIS', 'SEIS_A_DOCE', 'MAS_DOCE']),
-    paymentMethod: z.enum(['CONTADO', 'CREDITO', 'MIXTO', 'OTRO']),
+    timeOnMarket: z.enum(['MENOS_1', 'UNO_A_TRES', 'TRES_A_SEIS', 'SEIS_A_DOCE', 'MAS_DOCE']).optional(),
+    paymentMethod: z.enum(['CONTADO', 'CREDITO', 'MIXTO', 'OTRO']).optional(),
     financialEntity: z.string().trim().optional(),
     approvalDelayed: z.boolean().optional(),
     closedAt: z.string(),
     declaredAccurate: z.literal(true, { errorMap: () => ({ message: 'Debes declarar que el cierre es real.' }) }),
   })
   .superRefine((data, ctx) => {
-    // Terreno no requiere antiguedad ni estado del inmueble (no aplica el concepto de
-    // "construccion" a un lote).
+    // Terreno no requiere antiguedad (no aplica el concepto de "construccion" a un
+    // lote). El formulario simplificado (Fase 5) movio "estado del inmueble" a la
+    // seccion opcional de enriquecimiento, asi que ya no bloquea el envio para nadie.
     if (!requiresAntiguedadYEstado(data.propertyType)) return;
     if (!data.antiguedad) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['antiguedad'], message: 'La antigüedad es obligatoria.' });
-    }
-    if (!data.estadoInmueble) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['estadoInmueble'], message: 'El estado del inmueble es obligatorio.' });
     }
   });
 

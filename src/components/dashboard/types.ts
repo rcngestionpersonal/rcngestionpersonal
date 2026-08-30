@@ -324,4 +324,4 @@ export type AuthUser = {
   email?: string;
 };
 
-export type DashboardTab = 'resumen' | 'ranking' | 'suscripcion' | 'inmuebles' | 'pedidos' | 'matches' | 'registrocierre' | 'cierres' | 'invitar' | 'metricas';
+export type DashboardTab = 'resumen' | 'ranking' | 'suscripcion' | 'inmuebles' | 'pedidos' | 'matches' | 'cierres' | 'invitar' | 'metricas';
