@@ -530,7 +530,7 @@ export default function PedidosTab({
                 ) : null}
 
                 {/* Fila 5 */}
-                <div className="mt-3.5 flex items-end justify-between gap-3 border-t border-[rgba(255,255,255,0.07)] pt-3">
+                <div className="mt-3.5 flex items-end justify-between gap-3 border-t border-line pt-3">
                   {canEdit ? (
                     <p className="min-w-0 text-xs leading-relaxed text-text-3">
                       {withinEditWindow

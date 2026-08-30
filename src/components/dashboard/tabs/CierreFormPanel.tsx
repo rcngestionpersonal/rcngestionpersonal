@@ -2,9 +2,10 @@
 
 import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Trophy } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import { PriceInput } from '../PriceInput';
+import { POINT_ACTIONS } from '@/lib/real-estate/points';
 import {
   ANTIGUEDAD_OPTIONS,
   CLOSED_DEAL_PROPERTY_TYPES,
@@ -261,15 +262,30 @@ export default function CierreFormPanel({
   }, [successInsight, lang, t]);
 
   if (successInsight) {
+    // Momento de celebracion (Fase 3, seccion 2): antes era un aviso verde
+    // chico, facil de perder. Ahora es un panel destacado con los puntos en
+    // grande y la devolucion de valor bien jerarquizada, con contraste AA
+    // garantizado via los tokens de acento (accent-dim/accent-line/accent)
+    // en vez de colores emerald hardcodeados que no seguian el tema. Se
+    // queda en pantalla hasta que el agente toca el CTA - nunca se autocierra.
     return (
       <div className="space-y-5 fade-up">
-        <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-4">
-          <p className="text-sm font-semibold leading-relaxed text-emerald-200">🏆 {insightMessage}</p>
+        <div className="relative overflow-hidden rounded-[1.8rem] border border-accent-line bg-accent-dim p-6 text-center sm:p-8">
+          <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[var(--glow-accent)] blur-2xl" />
+          <div className="relative z-10 flex flex-col items-center gap-3">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full border border-accent-line bg-surface text-accent shadow-sm">
+              <Trophy className="h-6 w-6" strokeWidth={2} />
+            </span>
+            <p className="flex items-baseline gap-1.5">
+              <span className="text-[34px] font-extrabold leading-none text-accent">+{POINT_ACTIONS.CLOSING_REGISTERED.points}</span>
+              <span className="text-sm font-bold uppercase tracking-[0.08em] text-accent">{lang === 'es' ? 'puntos' : 'points'}</span>
+            </p>
+            <p className="max-w-sm text-[15px] font-semibold leading-relaxed text-text">{insightMessage}</p>
+          </div>
         </div>
-        <p className="text-sm font-bold text-accent">{t('cierres.chip.puntos')}</p>
         <button
           onClick={() => onSaved(successInsight)}
-          className="gradient-btn w-full rounded-full px-4 py-3 text-sm font-semibold text-grad-contrast transition-transform duration-200 hover:scale-[1.01]"
+          className="gradient-btn w-full rounded-full px-4 py-3.5 text-sm font-semibold text-grad-contrast transition-transform duration-200 hover:scale-[1.01]"
         >
           {t('cierres.insight.verMapa')}
         </button>

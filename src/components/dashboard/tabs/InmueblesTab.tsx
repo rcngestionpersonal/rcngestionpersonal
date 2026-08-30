@@ -6,9 +6,11 @@ import { Building2, Download, Home, Lock, Pencil, Trash2, Upload, Warehouse } fr
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import { PointsBanner } from '../PointsWidgets';
 import { PriceInput } from '../PriceInput';
-import { Card, Chip, DataBlock, IconActionButton, MatchLink, ModuleHeader, RegisterAccordion, abbreviatedTitle, navigateWithFade, relativeLabel, zonaLine } from '../CardKit';
+import { Card, Chip, IconActionButton, MatchLink, ModuleHeader, RegisterAccordion, abbreviatedTitle, navigateWithFade, relativeLabel, zonaLine } from '../CardKit';
 import FichaDownloadModal from '../FichaDownloadModal';
 import type { AccesoInput } from '@/lib/real-estate/access';
+import { FICHA_ICONS } from '@/lib/real-estate/ficha/icons';
+import { fichaPrimaryRows } from '@/lib/real-estate/ficha/fields';
 import { POINT_ACTIONS } from '@/lib/real-estate/points';
 import { compressImage } from '@/lib/real-estate/image-compress';
 import {
@@ -871,7 +873,7 @@ export default function InmueblesTab({
 
                 {/* Fila 2 */}
                 <div className="mt-3 flex min-w-0 items-start gap-[13px]">
-                  <label className="group relative flex h-[52px] w-[52px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-[11px] border border-line bg-surface-2 text-[#2dd4bf]">
+                  <label className="group relative flex h-[52px] w-[52px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-[11px] border border-line bg-surface-2 text-accent">
                     {listing.coverPhotoUrl ? (
                       <Image src={listing.coverPhotoUrl} alt={listing.title} fill sizes="52px" className="object-cover" />
                     ) : (
@@ -910,33 +912,34 @@ export default function InmueblesTab({
                       {abbreviatedTitle(listing.propertyType, listing.zone || listing.city, tProperty, lang)}
                     </h3>
                     <p className="mt-0.5 truncate text-[12.5px] text-text-2">{zonaLine(listing)}</p>
-                    <p className="mt-1 text-[17px] font-extrabold text-[#2dd4bf]">${listing.price.toLocaleString('en-US')}</p>
+                    <p className="mt-1 text-[17px] font-extrabold text-accent">${listing.price.toLocaleString('en-US')}</p>
                   </div>
                 </div>
 
-                {/* Fila 3 */}
-                <div className="mt-3.5 min-w-0">
-                  <DataBlock
-                    rows={[
-                      {
-                        label: t('inmuebles.comisionSufijo'),
-                        value: <span className="font-bold text-[#2dd4bf]">{listing.commissionSharePercent}% {t('inmuebles.comisionAlColega')}</span>,
-                      },
-                      listing.ownerName || listing.ownerPhone
-                        ? {
-                            label: t('inmuebles.propietarioLabel'),
-                            value: (
-                              <span className="inline-flex items-center gap-1.5" title={t('common.visibleSoloParaTi')}>
-                                <Lock className="h-[11px] w-[11px] shrink-0 text-text-3" strokeWidth={2.2} />
-                                {listing.ownerName ?? t('pedidos.sinNombre')}
-                              </span>
-                            ),
-                          }
-                        : null,
-                      { label: t('inmuebles.gestionaLabel'), value: agentName(listing.managingAgentId, agents) ?? '—' },
-                    ]}
-                  />
+                {/* Fila 3 - resumen: solo lo esencial para identificar y decidir (seccion
+                    3.3): hasta 3 datos clave segun el tipo (misma fuente que la franja de
+                    la ficha, ver ficha/fields.ts) + comision al colega. El detalle completo
+                    (campos especificos, descripcion, propietario) vive en la ficha, no aqui. */}
+                <div className="mt-3.5 flex min-w-0 flex-wrap items-center gap-1.5">
+                  {fichaPrimaryRows(listing, lang).slice(0, 3).map((row, i) => {
+                    const RowIcon = FICHA_ICONS[row.icon];
+                    return (
+                      <span
+                        key={i}
+                        className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs font-semibold text-text"
+                      >
+                        <RowIcon size={13} color="var(--accent)" strokeWidth={2} />
+                        <span className="truncate">{row.value}</span>
+                      </span>
+                    );
+                  })}
+                  <Chip tone="teal" uppercase={false}>{listing.commissionSharePercent}% {t('inmuebles.comisionAlColega')}</Chip>
                 </div>
+                {isAdmin ? (
+                  <p className="mt-2 truncate text-[11.5px] text-text-3">
+                    {t('inmuebles.gestionaLabel')} <span className="font-medium text-text-2">{agentName(listing.managingAgentId, agents) ?? '—'}</span>
+                  </p>
+                ) : null}
 
                 {/* Fila 4 */}
                 <div className="mt-3.5 min-w-0">
@@ -944,7 +947,7 @@ export default function InmueblesTab({
                     <>
                       <div className="mb-2 flex items-center gap-1.5">
                         <span className="text-[10.5px] font-bold uppercase tracking-[0.07em] text-text-3">{t('inmuebles.matchesDeEsteInmueble')}</span>
-                        <span className="rounded-full bg-[rgba(45,212,191,0.12)] px-[7px] py-px text-[10.5px] font-semibold text-[#2dd4bf]">{listing.matches.length}</span>
+                        <span className="rounded-full bg-accent-dim px-[7px] py-px text-[10.5px] font-semibold text-accent">{listing.matches.length}</span>
                       </div>
                       <div className="space-y-2">
                         {/* Orden por compatibilidad descendente (Fase 8, seccion 2.8). */}
@@ -987,7 +990,7 @@ export default function InmueblesTab({
 
                 {/* Fila 5 */}
                 {canEdit ? (
-                  <div className="mt-3.5 flex items-end justify-between gap-3 border-t border-[rgba(255,255,255,0.07)] pt-3">
+                  <div className="mt-3.5 flex items-end justify-between gap-3 border-t border-line pt-3">
                     <p className="min-w-0 text-xs leading-relaxed text-text-3">
                       {withinEditWindow
                         ? `${t('inmuebles.editableHastaPrefix')} ${editDeadline.toLocaleString(lang === 'es' ? 'es-EC' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}.`

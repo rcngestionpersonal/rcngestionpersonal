@@ -111,7 +111,7 @@ export default function SuscripcionTab({
 
             <div className="mt-2 flex flex-wrap items-center gap-2.5">
               <h2 className="text-2xl font-bold text-text sm:text-3xl">
-                {myAgent.plan === 'PRO' ? t('plan.pro.nombre') : t('plan.basico.nombre')}
+                {effectiveStatus === 'TRIAL' ? t('plan.trial.nombre') : myAgent.plan === 'PRO' ? t('plan.pro.nombre') : t('plan.basico.nombre')}
               </h2>
               <span className="rounded-full border border-line-strong bg-surface-2 px-2.5 py-1 text-xs font-semibold text-text">
                 {/* CANCELED sigue dando acceso mientras dure el periodo pagado (ver

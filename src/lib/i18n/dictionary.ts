@@ -245,13 +245,19 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'suscripcion.historial.vacio': 'Todavía no tienes pagos registrados.',
     'suscripcion.historial.mas': 'Ver más',
 
-    'trial.banner.diasRestantes': 'Prueba gratuita · te quedan {dias} días',
-    'trial.banner.diaFinal': 'Prueba gratuita · último día',
+    'trial.banner.diasRestantes': 'Prueba gratuita · tienes acceso Pro completo · te quedan {dias} días',
+    'trial.banner.diaFinal': 'Prueba gratuita · tienes acceso Pro completo · último día',
     'trial.banner.vencida': 'Tu prueba gratuita terminó · activa tu suscripción',
     'trial.banner.cta': 'Suscribirme',
 
     'plan.basico.nombre': 'Básico',
     'plan.pro.nombre': 'Pro',
+    // Encabezado de Suscripcion durante el trial (Fase 3, seccion 1.4): antes
+    // mostraba el plan de FACTURACION (Basico, por defecto) como si fuera el
+    // plan vigente, contradiciendo el aviso de "acceso Pro completo" de mas
+    // abajo - durante el trial el titular siempre debe leer "Pro", nunca
+    // "Basico", sin importar que plan eligio el agente para cuando termine.
+    'plan.trial.nombre': 'Pro · Prueba gratuita',
 
     'planes.eyebrow': 'Elige tu plan',
     'planes.titulo': 'El plan correcto para tu forma de trabajar',
@@ -1068,13 +1074,14 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'suscripcion.historial.vacio': "You don't have any payments yet.",
     'suscripcion.historial.mas': 'See more',
 
-    'trial.banner.diasRestantes': 'Free trial · {dias} days left',
-    'trial.banner.diaFinal': 'Free trial · last day',
+    'trial.banner.diasRestantes': 'Free trial · full Pro access · {dias} days left',
+    'trial.banner.diaFinal': 'Free trial · full Pro access · last day',
     'trial.banner.vencida': 'Your free trial ended · activate your subscription',
     'trial.banner.cta': 'Subscribe',
 
     'plan.basico.nombre': 'Basic',
     'plan.pro.nombre': 'Pro',
+    'plan.trial.nombre': 'Pro · Free trial',
 
     'planes.eyebrow': 'Choose your plan',
     'planes.titulo': 'The right plan for how you work',

@@ -19,7 +19,10 @@ const EXAMPLE_CARNET_DATA: BrokerCardData = {
   listingsActive: 24,
   joinYear: 2022,
   specializationZones: ['CENTRO_NORTE', 'VALLE_CHILLOS'],
-  phone: '+593999999999',
+  // Fase 3, seccion 5.1: numero de ejemplo verosimil con formato ecuatoriano
+  // completo (+593 XX XXX XXXX) - BrokerCard pinta data.phone tal cual, sin
+  // formatear, asi que el espaciado va directo en el string.
+  phone: '+593 98 765 4321',
   subscriptionActive: true,
   carnetSlug: 'roberto-tapia',
   yearsExperience: 6,

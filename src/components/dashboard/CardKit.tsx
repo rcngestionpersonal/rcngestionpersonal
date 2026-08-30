@@ -39,7 +39,7 @@ export function truncateText(text: string, max = 42): string {
 
 export function Card({ children }: { children: ReactNode }) {
   return (
-    <article className="min-w-0 rounded-2xl border border-[rgba(255,255,255,0.07)] border-t-[rgba(255,255,255,0.13)] bg-bg-alt px-[18px] pb-1.5 pt-[18px]">
+    <article className="min-w-0 rounded-2xl border border-line bg-bg-alt px-[18px] pb-1.5 pt-[18px] shadow-sm">
       {children}
     </article>
   );
@@ -66,11 +66,11 @@ export function Chip({
 }) {
   let toneClasses: string;
   if (tone === 'teal') {
-    toneClasses = 'bg-[rgba(45,212,191,0.12)] border-[rgba(45,212,191,0.35)] text-[#2dd4bf]';
+    toneClasses = 'bg-accent-dim border-accent-line text-accent';
   } else if (tone === 'violet') {
     toneClasses = 'bg-brand-dim border-brand-line text-brand';
   } else {
-    toneClasses = 'bg-transparent border-[rgba(255,255,255,0.07)] text-text-3';
+    toneClasses = 'bg-transparent border-line text-text-3';
   }
   return (
     <span
@@ -85,11 +85,11 @@ export function DataBlock({ rows }: { rows: Array<{ label: string; value: ReactN
   const visible = rows.filter((r): r is { label: string; value: ReactNode } => r !== null);
   if (visible.length === 0) return null;
   return (
-    <div className="min-w-0 rounded-[11px] border border-[rgba(255,255,255,0.07)] bg-[#1c1930] px-[13px] py-[11px]">
+    <div className="min-w-0 rounded-[11px] border border-line bg-surface-2 px-[13px] py-[11px]">
       {visible.map((row, idx) => (
         <div
           key={row.label}
-          className={`flex min-w-0 items-start justify-between gap-3 py-1 ${idx > 0 ? 'border-t border-dashed border-[rgba(255,255,255,0.07)]' : ''}`}
+          className={`flex min-w-0 items-start justify-between gap-3 py-1 ${idx > 0 ? 'border-t border-dashed border-line' : ''}`}
         >
           <span className="min-w-[82px] shrink-0 pt-0.5 text-[10.5px] font-bold uppercase tracking-[0.07em] text-text-3">{row.label}</span>
           <span className="min-w-0 flex-1 break-words text-right text-sm font-medium text-text">{row.value}</span>
@@ -147,7 +147,7 @@ export function IconActionButton({
 }) {
   const hoverClass =
     tone === 'delete'
-      ? 'hover:border-[#e5484d] hover:text-[#e5484d]'
+      ? 'hover:border-danger hover:text-danger'
       : tone === 'download'
         ? 'hover:border-accent hover:text-accent'
         : 'hover:border-brand hover:text-brand';
@@ -157,7 +157,7 @@ export function IconActionButton({
       disabled={disabled}
       aria-label={ariaLabel}
       title={title ?? ariaLabel}
-      className={`flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[9px] border border-[rgba(255,255,255,0.07)] bg-transparent text-text-3 transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 ${hoverClass}`}
+      className={`flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[9px] border border-line bg-transparent text-text-3 transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 ${hoverClass}`}
     >
       {icon}
     </button>
@@ -192,7 +192,7 @@ export function RegisterAccordion({
   const open = controlledOpen ?? internalOpen;
   const toggle = () => (onToggle ? onToggle() : setInternalOpen((v) => !v));
   return (
-    <section className="rounded-2xl border border-[rgba(255,255,255,0.07)] border-t-[rgba(255,255,255,0.13)] bg-bg-alt p-[18px] fade-up">
+    <section className="rounded-2xl border border-line bg-bg-alt p-[18px] shadow-sm fade-up">
       <button
         onClick={toggle}
         aria-expanded={open}

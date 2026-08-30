@@ -7,7 +7,6 @@ import { compressImage } from '@/lib/real-estate/image-compress';
 import { buildPhoneE164 } from '@/lib/real-estate/phone';
 import { ECUADOR_PROVINCES } from '@/lib/real-estate/ecuador-provinces';
 import { TRIAL_DAYS } from '@/lib/real-estate/subscription-config';
-import CarnetPreview from './_components/CarnetPreview';
 
 const PROPERTY_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'HOUSE', label: 'Casas' },
@@ -203,21 +202,7 @@ function AgentRegisterForm() {
 
   return (
     <main className="violet-ambient-bg min-h-screen px-4 py-8 text-text sm:py-10">
-      <div className="mx-auto flex max-w-5xl flex-col lg:grid lg:grid-cols-[1fr_320px] lg:items-start lg:gap-6">
-        <div className="order-first lg:order-2 lg:sticky lg:top-6">
-          <p className="mb-2 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-text-3 lg:text-left">Vista previa de tu carnet</p>
-          <CarnetPreview
-            fullName={fullName}
-            photoPreview={photoPreview}
-            zonesText={zonesText}
-            company={company}
-            licenseNumber={licenseNumber}
-            specialty={specialty}
-            propertyTypesInterest={propertyTypesInterest}
-          />
-        </div>
-
-        <div className="order-2 mt-6 lg:order-1 lg:mt-0">
+      <div className="mx-auto max-w-xl">
           <section className="grain-overlay relative mb-6 overflow-hidden rounded-3xl border border-line bg-surface p-6 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl">
             <div className="absolute -right-10 top-0 h-40 w-40 rounded-full bg-violet-600/25 blur-2xl" />
             <div className="relative z-10 space-y-3">
@@ -504,6 +489,11 @@ function AgentRegisterForm() {
               >
                 {loading ? 'Registrando...' : `Crear cuenta, prueba gratuita por ${TRIAL_DAYS} días`}
               </button>
+              {/* Fase 3, seccion 4.2: el trial es Pro completo, no Basico - debe
+                  quedar explicito aqui mismo, antes de que el agente se registre. */}
+              <p className="text-center text-xs font-semibold text-accent">
+                Empiezas con {TRIAL_DAYS} días de acceso Pro completo, gratis. Sin tarjeta.
+              </p>
               <p className="text-center text-xs text-text-3">Luego de tu prueba gratuita: $8,99/mes + IVA. Cancela cuando quieras.</p>
 
               <a href="/login" className="block text-center text-xs font-semibold text-text-2 underline-offset-4 hover:underline">
@@ -517,7 +507,6 @@ function AgentRegisterForm() {
               {error}
             </div>
           ) : null}
-        </div>
       </div>
     </main>
   );

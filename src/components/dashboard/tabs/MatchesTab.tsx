@@ -379,7 +379,7 @@ export default function MatchesTab({
 function TimelineDisclosure({ t, children }: { t: (k: string) => string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="mt-1 border-t border-[rgba(255,255,255,0.07)]">
+    <div className="mt-1 border-t border-line">
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between py-[13px] text-left text-[14.5px] font-semibold text-text"
