@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <style>
+    .theme-dark { display: none; }
+    @media (prefers-color-scheme: dark) {
+      .theme-light { display: none; }
+      .theme-dark { display: inline; }
+    }
+  </style>
+  <defs>
+    <linearGradient id="tileLight" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7c5cff" />
+      <stop offset="1" stop-color="#4a2fd6" />
+    </linearGradient>
+    <linearGradient id="tileDark" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1c1636" />
+      <stop offset="1" stop-color="#12102a" />
+    </linearGradient>
+    <linearGradient id="starGrad" x1="0" y1="0.45" x2="1" y2="0.55">
+      <stop offset="0" stop-color="#c3aeff" />
+      <stop offset="1" stop-color="#6ee3d2" />
+    </linearGradient>
+  </defs>
+  <g class="theme-light">
+    <rect x="0" y="0" width="100" height="100" rx="22" ry="22" fill="url(#tileLight)" />
+    <path d="M12 2.5c.6 3.6 2 6.4 4.5 7.7 1 .5 2 .9 3 1.1-1 .2-2 .6-3 1.1-2.5 1.3-3.9 4.1-4.5 7.7-.6-3.6-2-6.4-4.5-7.7-1-.5-2-.9-3-1.1 1-.2 2-.6 3-1.1 2.5-1.3 3.9-4.1 4.5-7.7Z" transform="translate(50 50) scale(3.05) translate(-12 -12)" fill="#ffffff" />
+    <g opacity="0.85"><path d="M12 2.5c.6 3.6 2 6.4 4.5 7.7 1 .5 2 .9 3 1.1-1 .2-2 .6-3 1.1-2.5 1.3-3.9 4.1-4.5 7.7-.6-3.6-2-6.4-4.5-7.7-1-.5-2-.9-3-1.1 1-.2 2-.6 3-1.1 2.5-1.3 3.9-4.1 4.5-7.7Z" transform="translate(78 78) scale(0.9) translate(-12 -12)" fill="#ffffff" /></g>
+  </g>
+  <g class="theme-dark">
+    <rect x="0" y="0" width="100" height="100" rx="22" ry="22" fill="url(#tileDark)" />
+    <path d="M12 2.5c.6 3.6 2 6.4 4.5 7.7 1 .5 2 .9 3 1.1-1 .2-2 .6-3 1.1-2.5 1.3-3.9 4.1-4.5 7.7-.6-3.6-2-6.4-4.5-7.7-1-.5-2-.9-3-1.1 1-.2 2-.6 3-1.1 2.5-1.3 3.9-4.1 4.5-7.7Z" transform="translate(50 50) scale(3.05) translate(-12 -12)" fill="url(#starGrad)" />
+    <g opacity="0.9"><path d="M12 2.5c.6 3.6 2 6.4 4.5 7.7 1 .5 2 .9 3 1.1-1 .2-2 .6-3 1.1-2.5 1.3-3.9 4.1-4.5 7.7-.6-3.6-2-6.4-4.5-7.7-1-.5-2-.9-3-1.1 1-.2 2-.6 3-1.1 2.5-1.3 3.9-4.1 4.5-7.7Z" transform="translate(78 78) scale(0.9) translate(-12 -12)" fill="url(#starGrad)" /></g>
+  </g>
+</svg>
