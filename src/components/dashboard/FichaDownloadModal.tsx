@@ -47,7 +47,12 @@ export default function FichaDownloadModal({
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setError(body?.code === 'feature_locked' ? t('ficha.errorBloqueada') : t('ficha.error'));
+        const messageByCode: Record<string, string> = {
+          feature_locked: t('ficha.errorBloqueada'),
+          data_fetch_failed: t('ficha.errorDatos'),
+          render_failed: t('ficha.errorGenerando'),
+        };
+        setError(messageByCode[body?.code] ?? t('ficha.error'));
         return;
       }
       const blob = await res.blob();

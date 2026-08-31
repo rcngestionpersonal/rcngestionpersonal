@@ -115,8 +115,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       listingRaw = l as unknown as Record<string, unknown> | null;
       agentRaw = a as unknown as Record<string, unknown> | null;
       photoUrls = [...photos].sort((x, y) => Number(y.esPortada) - Number(x.esPortada)).map((p) => p.url);
-    } catch {
-      return NextResponse.json({ error: 'No se pudo generar la ficha.' }, { status: 500 });
+    } catch (err) {
+      console.error('[ficha] data fetch error', { listingId: id, agentId: session.agentId, version, palette, lang, err });
+      return NextResponse.json({ error: 'No se pudieron cargar los datos del inmueble. Intenta de nuevo.', code: 'data_fetch_failed' }, { status: 500 });
     }
   }
 
@@ -210,7 +211,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       },
     });
   } catch (err) {
-    console.error('[ficha] render error', err);
-    return NextResponse.json({ error: 'No se pudo generar la ficha. Intenta de nuevo.' }, { status: 500 });
+    console.error('[ficha] render error', {
+      listingId: id,
+      agentId: session.agentId,
+      version,
+      palette,
+      lang,
+      message: err instanceof Error ? err.message : err,
+      stack: err instanceof Error ? err.stack : undefined,
+    });
+    return NextResponse.json(
+      { error: 'No se pudo generar el PDF de la ficha. Ya quedó registrado; si se repite, contáctanos.', code: 'render_failed' },
+      { status: 500 },
+    );
   }
 }

@@ -320,6 +320,8 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'ficha.generando': 'Generando ficha...',
     'ficha.listo': 'Ficha lista.',
     'ficha.error': 'No se pudo generar la ficha. Intenta de nuevo.',
+    'ficha.errorDatos': 'No se pudieron cargar los datos del inmueble. Intenta de nuevo.',
+    'ficha.errorGenerando': 'No se pudo generar el PDF de la ficha. Ya quedó registrado; si se repite, contáctanos.',
     'ficha.errorBloqueada': 'Esta función requiere el plan Pro.',
 
     'inmuebles.form.title': 'Registrar un Inmueble',
@@ -1153,6 +1155,8 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'ficha.generando': 'Generating sheet...',
     'ficha.listo': 'Sheet ready.',
     'ficha.error': "Couldn't generate the sheet. Please try again.",
+    'ficha.errorDatos': "Couldn't load the listing's data. Please try again.",
+    'ficha.errorGenerando': "Couldn't generate the sheet's PDF. We've logged it; contact us if it keeps happening.",
     'ficha.errorBloqueada': 'This feature requires the Pro plan.',
 
     'inmuebles.form.title': 'Register a Listing',
