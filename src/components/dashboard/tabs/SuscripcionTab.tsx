@@ -12,9 +12,19 @@ function fmtFecha(iso?: string | null): string {
   return new Date(iso).toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-type TransaccionItem = { id: string; plan: PlanTipo; totalCents: number; createdAt: string };
+type ChargeStatus = 'APPROVED' | 'DECLINED' | 'ERROR' | 'PENDING' | 'REVERSED';
+type TransaccionItem = { id: string; plan: PlanTipo; totalCents: number; createdAt: string; status?: ChargeStatus; authorizationCode?: string | null };
+type SavedPaymentMethod = { brand: string; lastDigits: string } | null;
 
 const HISTORY_PAGE_SIZE = 3;
+
+const HISTORY_STATUS_STYLE: Record<ChargeStatus, string> = {
+  APPROVED: 'text-text',
+  DECLINED: 'text-danger',
+  ERROR: 'text-danger',
+  PENDING: 'text-text-2',
+  REVERSED: 'text-text-2',
+};
 
 export default function SuscripcionTab({
   isAdmin,
@@ -38,6 +48,15 @@ export default function SuscripcionTab({
   const [canceled, setCanceled] = useState(false);
   const [transacciones, setTransacciones] = useState<TransaccionItem[]>([]);
   const [showAllHistory, setShowAllHistory] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<SavedPaymentMethod>(null);
+
+  useEffect(() => {
+    if (isAdmin || !myAgentId) return;
+    fetch('/api/real-estate/agents/me', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setPaymentMethod(data?.paymentMethod ?? null))
+      .catch(() => {});
+  }, [isAdmin, myAgentId]);
 
   useEffect(() => {
     if (isAdmin || !myAgentId) return;
@@ -170,15 +189,30 @@ export default function SuscripcionTab({
         <section className="glass-card rounded-[1.8rem] p-4 fade-up sm:p-6">
           <p className="text-sm font-semibold text-text-2">{myAgent.company ?? t('suscripcion.sinEmpresa')} · {myAgent.phone}</p>
 
-          {isActive && !isDbCanceled ? (
+          {paymentMethod ? (
+            <p className="mt-2 flex items-center gap-2 text-xs text-text-2">
+              <span className="rounded-md border border-line-strong bg-surface-2 px-2 py-1 font-semibold text-text">{paymentMethod.brand}</span>
+              <span>···· {paymentMethod.lastDigits}</span>
+            </p>
+          ) : null}
+
+          {(isActive || effectiveStatus === 'PAST_DUE') && !isDbCanceled ? (
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              {isActive ? (
+                <Link
+                  href="/agentes/suscripcion/planes"
+                  className="rounded-full border border-line-strong bg-surface-2 px-3 py-2 text-center text-xs font-semibold text-text-2 transition hover:bg-surface sm:w-auto"
+                >
+                  {t('suscripcion.cambiarPlan')}
+                </Link>
+              ) : null}
               <Link
-                href="/agentes/suscripcion/planes"
+                href="/agentes/suscripcion/cambiar-tarjeta"
                 className="rounded-full border border-line-strong bg-surface-2 px-3 py-2 text-center text-xs font-semibold text-text-2 transition hover:bg-surface sm:w-auto"
               >
-                {t('suscripcion.cambiarPlan')}
+                {t('cambiarTarjeta.titulo')}
               </Link>
-              {!confirmCancel && !canceled ? (
+              {isActive && !confirmCancel && !canceled ? (
                 <button
                   onClick={() => setConfirmCancel(true)}
                   className="rounded-full border border-line px-3 py-2 text-center text-xs font-semibold text-text-2 transition hover:text-danger sm:w-auto"
@@ -224,14 +258,18 @@ export default function SuscripcionTab({
             ) : (
               <>
                 <ul className="mt-2 space-y-1.5">
-                  {historyToShow.map((txn) => (
-                    <li key={txn.id} className="flex items-center justify-between rounded-lg bg-surface-2 px-3 py-2 text-xs">
-                      <span className="text-text-2">
-                        {fmtFecha(txn.createdAt)} · {txn.plan === 'PRO' ? t('plan.pro.nombre') : t('plan.basico.nombre')}
-                      </span>
-                      <span className="font-semibold text-text">${formatUsd(txn.totalCents)}</span>
-                    </li>
-                  ))}
+                  {historyToShow.map((txn) => {
+                    const status = txn.status ?? 'APPROVED';
+                    return (
+                      <li key={txn.id} className="flex items-center justify-between rounded-lg bg-surface-2 px-3 py-2 text-xs">
+                        <span className="text-text-2">
+                          {fmtFecha(txn.createdAt)} · {txn.plan === 'PRO' ? t('plan.pro.nombre') : t('plan.basico.nombre')}
+                          {status !== 'APPROVED' ? <span className={`ml-1.5 font-semibold ${HISTORY_STATUS_STYLE[status]}`}>· {tSubscriptionStatus(status)}</span> : null}
+                        </span>
+                        <span className={`font-semibold ${HISTORY_STATUS_STYLE[status]}`}>${formatUsd(txn.totalCents)}</span>
+                      </li>
+                    );
+                  })}
                 </ul>
                 {!showAllHistory && transacciones.length > HISTORY_PAGE_SIZE ? (
                   <button

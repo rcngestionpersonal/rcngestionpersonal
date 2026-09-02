@@ -39,7 +39,12 @@ export function resolveEffectiveSubscriptionStatus(agent: SubscriptionLike): Sub
   return agent.subscriptionStatus;
 }
 
+// PAST_DUE cuenta como usable (pedido de recurrencias, seccion 5: "durante
+// PAST_DUE el agente conserva el servicio completo" mientras el motor de
+// cobro reintenta - cortar el acceso antes de agotar los reintentos solo
+// logra que el agente no tenga motivo para pagar). Solo se pierde el acceso
+// al llegar a EXPIRED (INACTIVE), tras el tercer intento fallido.
 export function isSubscriptionUsable(agent: SubscriptionLike): boolean {
   const status = resolveEffectiveSubscriptionStatus(agent);
-  return status === 'TRIAL' || status === 'ACTIVE';
+  return status === 'TRIAL' || status === 'ACTIVE' || status === 'PAST_DUE';
 }

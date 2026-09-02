@@ -28,6 +28,7 @@ export default function PayphoneCheckoutBox({
   idNumber,
   founderTotalCents,
   lang,
+  clientTransactionId: clientTransactionIdProp,
 }: {
   agentId: string;
   plan: PlanTipo;
@@ -40,6 +41,12 @@ export default function PayphoneCheckoutBox({
   // servidor validara al confirmar.
   founderTotalCents?: number | null;
   lang: 'es' | 'en';
+  // Si se pasa (Flujo A de recurrencias, seccion 3.1 del pedido), este es el
+  // clientTransactionId que ya genero /api/subscription/checkout junto con
+  // el Charge PENDING y el registro de consentimiento - se usa tal cual en
+  // vez de generar uno nuevo aca, para que el que vuelve en la URL de retorno
+  // coincida con el que el servidor ya esta esperando.
+  clientTransactionId?: string;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const initedRef = useRef(false);
@@ -57,7 +64,7 @@ export default function PayphoneCheckoutBox({
       // server-side en un componente de cliente). Es la unica forma de saber
       // que plan se cobro al volver de Payphone: la URL de retorno se
       // configura una vez en su dashboard y no conserva nuestro ?plan=.
-      const clientTransactionId = `${agentId}::${plan}::${Date.now()}`;
+      const clientTransactionId = clientTransactionIdProp ?? `${agentId}::${plan}::${Date.now()}`;
       const storeId = process.env.NEXT_PUBLIC_PAYPHONE_STORE_ID;
       const amounts = getCheckoutAmountsInCents(plan, founderTotalCents);
 
@@ -84,7 +91,7 @@ export default function PayphoneCheckoutBox({
     } catch {
       setError(lang === 'es' ? 'No se pudo cargar el formulario de pago. Recarga la página.' : 'Could not load the payment form. Reload the page.');
     }
-  }, [sdkReady, agentId, plan, email, phone, idNumber, founderTotalCents, lang]);
+  }, [sdkReady, agentId, plan, email, phone, idNumber, founderTotalCents, lang, clientTransactionIdProp]);
 
   return (
     <div>
@@ -97,6 +104,11 @@ export default function PayphoneCheckoutBox({
       />
       <div id="pp-checkout-box" ref={containerRef} className="min-h-[220px]" />
       {error ? <p className="mt-2 text-center text-xs text-danger">{error}</p> : null}
+      <p className="mt-2 text-center text-[11.5px] text-text-3">
+        {lang === 'es'
+          ? 'Solo las tarjetas Visa y Mastercard permiten guardar el pago para renovar automáticamente cada 30 días.'
+          : 'Only Visa and Mastercard cards support saving the payment to auto-renew every 30 days.'}
+      </p>
     </div>
   );
 }

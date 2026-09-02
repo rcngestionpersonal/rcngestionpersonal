@@ -218,6 +218,118 @@ export function buildPriceChangeNoticeEmail(input: {
   return { subject: `Aviso de cambio de precio · plan ${input.planNombre}`, text, html };
 }
 
+// Notificaciones del motor de cobro recurrente (pedido de recurrencias,
+// seccion 6). El aviso previo NO es opcional (seccion 6: "es lo que
+// declaraste ante Payphone al pedir la tokenizacion y lo que evita los
+// reclamos al banco") - nunca se debe omitir su llamada aunque parezca
+// redundante con el resto.
+export function buildPaymentReminderEmail(input: {
+  agentName: string;
+  planNombre: string;
+  totalUsd: string;
+  chargeDateStr: string;
+  lastDigits: string;
+  appUrl: string;
+}): { subject: string; text: string; html: string } {
+  const lead = `En 3 días, el ${input.chargeDateStr}, se cobrará $${input.totalUsd} por tu plan ${input.planNombre} a la tarjeta terminada en ${input.lastDigits}.`;
+  const detail = 'Si algo no coincide o quieres cambiar de tarjeta antes de esa fecha, puedes hacerlo desde tu cuenta.';
+  const url = `${input.appUrl}/agentes/suscripcion`;
+  const text = wrap(`Hola ${input.agentName},`, [lead, '', detail].join('\n'), { label: 'Ver mi suscripción', url });
+  const html = wrapHtml(
+    lead,
+    `<p style="margin:0 0 8px;">Hola ${input.agentName},</p>
+     <p style="margin:0;">${detail}</p>`,
+    { label: 'Ver mi suscripción', url },
+  );
+  return { subject: `Recordatorio: cobro de $${input.totalUsd} el ${input.chargeDateStr}`, text, html };
+}
+
+export function buildPaymentApprovedEmail(input: {
+  agentName: string;
+  planNombre: string;
+  totalUsd: string;
+  periodEndStr: string;
+  authorizationCode: string | null;
+  appUrl: string;
+}): { subject: string; text: string; html: string } {
+  const lead = `Cobramos $${input.totalUsd} de tu plan ${input.planNombre}. Tu acceso queda cubierto hasta el ${input.periodEndStr}.`;
+  const detail = input.authorizationCode
+    ? `Código de autorización: ${input.authorizationCode}. Guarda este correo como comprobante.`
+    : 'Guarda este correo como comprobante.';
+  const url = `${input.appUrl}/agentes/suscripcion`;
+  const text = wrap(`Hola ${input.agentName},`, [lead, '', detail].join('\n'), { label: 'Ver mi suscripción', url });
+  const html = wrapHtml(
+    lead,
+    `<p style="margin:0 0 8px;">Hola ${input.agentName},</p>
+     <p style="margin:0;">${detail}</p>`,
+    { label: 'Ver mi suscripción', url },
+  );
+  return { subject: `Pago confirmado — $${input.totalUsd}`, text, html };
+}
+
+// Motivo GENERICO a proposito (seccion 6 del pedido): nunca se expone el
+// codigo/mensaje crudo del banco en el correo, solo internamente en
+// Charge.responseMessage - un mensaje tecnico ("CVV invalido", "fondos
+// insuficientes") frente al agente puede sonar a que Redinmo esta
+// culpandolo, cuando la accion que necesita tomar es la misma en todos los
+// casos: actualizar su tarjeta.
+export function buildPaymentDeclinedEmail(input: {
+  agentName: string;
+  planNombre: string;
+  appUrl: string;
+}): { subject: string; text: string; html: string } {
+  const lead = `No pudimos cobrar tu plan ${input.planNombre}. Tu servicio sigue activo mientras lo intentamos de nuevo.`;
+  const detail = 'El motivo más común es una tarjeta vencida o sin fondos disponibles. Actualiza tu método de pago para evitar interrupciones.';
+  const url = `${input.appUrl}/agentes/suscripcion`;
+  const text = wrap(`Hola ${input.agentName},`, [lead, '', detail].join('\n'), { label: 'Actualizar mi tarjeta', url });
+  const html = wrapHtml(
+    lead,
+    `<p style="margin:0 0 8px;">Hola ${input.agentName},</p>
+     <p style="margin:0;">${detail}</p>`,
+    { label: 'Actualizar mi tarjeta', url },
+  );
+  return { subject: 'No pudimos procesar tu cobro', text, html };
+}
+
+// "Ultimo aviso" (seccion 6 del pedido): se dispara al programar el TERCER y
+// ultimo reintento (dia 7), no en cada rechazo - es la unica notificacion
+// que dice explicitamente "esta es tu ultima oportunidad".
+export function buildPastDueFinalNoticeEmail(input: {
+  agentName: string;
+  planNombre: string;
+  finalRetryDateStr: string;
+  appUrl: string;
+}): { subject: string; text: string; html: string } {
+  const lead = `Último aviso: el ${input.finalRetryDateStr} haremos el último intento de cobro de tu plan ${input.planNombre}.`;
+  const detail = 'Si ese intento también falla, tu cuenta pasará a modo lectura: podrás seguir viendo tus inmuebles y pedidos, pero no aparecerás en nuevos matches ni recibirás avisos. Actualiza tu tarjeta antes de esa fecha para evitarlo.';
+  const url = `${input.appUrl}/agentes/suscripcion`;
+  const text = wrap(`Hola ${input.agentName},`, [lead, '', detail].join('\n'), { label: 'Actualizar mi tarjeta', url });
+  const html = wrapHtml(
+    lead,
+    `<p style="margin:0 0 8px;">Hola ${input.agentName},</p>
+     <p style="margin:0;">${detail}</p>`,
+    { label: 'Actualizar mi tarjeta', url },
+  );
+  return { subject: `Último aviso antes del ${input.finalRetryDateStr}`, text, html };
+}
+
+export function buildSubscriptionExpiredEmail(input: {
+  agentName: string;
+  appUrl: string;
+}): { subject: string; text: string; html: string } {
+  const lead = 'Tu suscripción a Redinmo pasó a modo lectura tras no poder cobrar tu tarjeta.';
+  const detail = 'Tus inmuebles, pedidos y datos siguen intactos - nunca se elimina información por falta de pago. Reactiva tu suscripción cuando quieras para volver a generar matches y recibir avisos.';
+  const url = `${input.appUrl}/agentes/suscripcion`;
+  const text = wrap(`Hola ${input.agentName},`, [lead, '', detail].join('\n'), { label: 'Reactivar mi suscripción', url });
+  const html = wrapHtml(
+    lead,
+    `<p style="margin:0 0 8px;">Hola ${input.agentName},</p>
+     <p style="margin:0;">${detail}</p>`,
+    { label: 'Reactivar mi suscripción', url },
+  );
+  return { subject: 'Tu cuenta pasó a modo lectura', text, html };
+}
+
 export function buildMilestoneEmail(input: {
   recipientName: string;
   actorName: string;

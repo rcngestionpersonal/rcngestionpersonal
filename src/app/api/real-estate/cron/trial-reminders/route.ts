@@ -80,8 +80,21 @@ export async function GET(request: NextRequest) {
       data: { subscriptionStatus: 'INACTIVE' },
     });
 
+    // Un agente con el motor de cobro recurrente activo (Subscription con
+    // tarjeta guardada - ver /api/real-estate/cron/billing) NO se corta aca
+    // de golpe: su propio cron lo pasa a PAST_DUE con periodo de gracia y
+    // reintentos (seccion 5 del pedido de recurrencias) antes de degradarlo,
+    // en vez de este corte inmediato pensado para el modelo viejo de pago
+    // manual (Cajita de una sola vez, sin tarjeta guardada). Sin este filtro,
+    // este cron (corre a las 13:00 UTC) desactivaria a esos agentes una hora
+    // antes de que el cron de cobro (14:00 UTC) llegue siquiera a intentar
+    // cobrarles.
     const dueForRenewal = await prisma.agent.findMany({
-      where: { subscriptionStatus: 'ACTIVE', subscriptionPaidUntil: { lte: new Date(now) } },
+      where: {
+        subscriptionStatus: 'ACTIVE',
+        subscriptionPaidUntil: { lte: new Date(now) },
+        OR: [{ subscription: null }, { subscription: { paymentMethodId: null } }],
+      },
       select: { id: true, planSiguiente: true },
     });
     for (const due of dueForRenewal) {

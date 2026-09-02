@@ -174,6 +174,8 @@ model Agent {
   interactions          InteractionLog[]
   passwordResetTokens   PasswordResetToken[]
   emailChangeTokens     EmailChangeToken[]
+  subscription          Subscription?
+  paymentMethods        PaymentMethod[]
 }
 
 model Listing {
@@ -531,5 +533,130 @@ model ClosedDeal {
 
   @@index([city, propertyType, operationType])
   @@index([zone])
+}
+
+enum ChargeStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  ERROR
+  REVERSED
+}
+
+// Motor de cobro recurrente por token de Payphone (Cajita + /transaction/web).
+// Subscription.status REUSA el enum SubscriptionStatus que ya lee
+// tieneAcceso()/tieneAccesoPorAgenteId() desde Agent.subscriptionStatus a
+// proposito: esta tabla es el detalle mecanico del cobro (periodos,
+// reintentos, tarjeta), pero Agent.subscriptionStatus/plan/
+// subscriptionPaidUntil siguen siendo la fuente que consulta el resto de la
+// app para gatear features - toda transicion de estado de esta tabla debe
+// escribir tambien esos campos en Agent, nunca reemplazarlos.
+model Subscription {
+  id                String              @id @default(cuid())
+  agent             Agent               @relation(fields: [agentId], references: [id])
+  agentId           String              @unique
+  plan              PlanTipo
+  status            SubscriptionStatus  @default(TRIAL)
+  amountCents       Int
+  taxCents          Int
+  trialEndsAt       DateTime?
+  currentPeriodEnd  DateTime?
+  nextChargeAt      DateTime?
+  graceEndsAt       DateTime?
+  canceledAt        DateTime?
+  cancelAtPeriodEnd Boolean             @default(false)
+  // Precio fundador (ver Agent.precioFundadorBasico, el dato ya vive ahi) -
+  // esta bandera solo indica si ESTA suscripcion lo tiene vigente, para que
+  // el cron sepa si debe cobrar el precio congelado en vez del de planes.ts.
+  priceLocked       Boolean             @default(false)
+  // Reclamo de fila del cron de cobro (paso 5, seccion 4 punto 2): se marca
+  // con el momento en que un cron EN CURSO empezo a procesar esta
+  // suscripcion, via UPDATE condicionado (compare-and-swap contra
+  // claimedAt=null) - asi dos ejecuciones simultaneas no pueden cobrar la
+  // misma fila, sin depender de un advisory lock de Postgres que Prisma no
+  // expone directo. Se limpia (vuelve a null) al terminar de procesar la
+  // fila, sea cual sea el resultado.
+  claimedAt         DateTime?
+  paymentMethodId   String?
+  paymentMethod     PaymentMethod?      @relation(fields: [paymentMethodId], references: [id])
+  charges           Charge[]
+  events            SubscriptionEvent[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([status, nextChargeAt])
+}
+
+// ctoken de Payphone (nace de una transaccion aprobada, seccion 1 del pedido
+// de recurrencias) - cardTokenEnc esta cifrado EN REPOSO con ENCRYPTION_KEY
+// propia (AES-256-GCM, ver encryption.ts, paso 2). cardHolderEnc en cambio
+// es el resultado de encryptCardHolder() (AES-256-CBC con la coding password
+// de Payphone, IV en cero): como esa funcion es determinista, el mismo
+// ciphertext se reenvia tal cual en cada cobro futuro - no hace falta volver
+// a cifrar el nombre en cada intento, ni guardar el nombre en claro.
+model PaymentMethod {
+  id            String         @id @default(cuid())
+  agent         Agent          @relation(fields: [agentId], references: [id])
+  agentId       String
+  cardTokenEnc  String
+  cardHolderEnc String
+  brand         String
+  lastDigits    String
+  bin           String?
+  email         String
+  phoneNumber   String
+  documentId    String
+  consentAt     DateTime
+  consentIp     String
+  consentText   String
+  active        Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  subscriptions Subscription[]
+
+  @@index([agentId])
+}
+
+// Un intento de cobro contra /transaction/web. El indice unico
+// [subscriptionId, periodKey, attempt] es lo que hace idempotente al cron
+// (seccion 4, punto 2): si dos ejecuciones intentan crear el mismo intento
+// del mismo periodo, la segunda choca contra la restriccion en vez de cobrar
+// dos veces. clientTransactionId es ademas unico globalmente porque asi lo
+// exige Payphone (maximo 50 caracteres, se arma determinista a partir de
+// subscriptionId/periodKey/attempt - ver billing.ts, paso 5).
+model Charge {
+  id                  String       @id @default(cuid())
+  subscription        Subscription @relation(fields: [subscriptionId], references: [id])
+  subscriptionId      String
+  periodKey           String
+  attempt             Int
+  clientTransactionId String       @unique
+  amountCents         Int
+  status              ChargeStatus @default(PENDING)
+  payphoneTxId        String?
+  authorizationCode   String?
+  responseCode        String?
+  responseMessage     String?
+  rawResponse         Json?
+  createdAt           DateTime     @default(now())
+  resolvedAt          DateTime?
+
+  @@unique([subscriptionId, periodKey, attempt])
+  @@index([status])
+}
+
+// Bitacora de la suscripcion (seccion 2 del pedido: "innegociable" para
+// disputas de cobro) - nunca se edita ni se borra, solo se agrega. type usa
+// string libre (trial_started, card_saved, charge_approved,
+// charge_declined, downgraded, etc.) en vez de un enum para no requerir
+// migracion cada vez que el motor aprenda un evento nuevo.
+model SubscriptionEvent {
+  id             String       @id @default(cuid())
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+  subscriptionId String
+  type           String
+  payload        Json?
+  createdAt      DateTime     @default(now())
+
+  @@index([subscriptionId, createdAt])
 }
 

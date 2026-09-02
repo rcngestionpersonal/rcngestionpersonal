@@ -14,17 +14,23 @@ export type { Feature } from '@/config/planes';
 
 export type AccesoInput = SubscriptionLike & { plan: PlanTipo };
 
-// Reglas (seccion 4.1 del pedido de arquitectura de planes):
+// Reglas (seccion 4.1 del pedido de arquitectura de planes, mas la seccion 5
+// del pedido de recurrencias):
 // - TRIAL -> acceso a TODAS las features, incluidas las Pro (reverse trial).
-// - ACTIVE -> acceso segun el plan contratado. Una suscripcion CANCELADA pero
-//   todavia dentro del periodo pagado cuenta como ACTIVE aqui (ver
+// - ACTIVE o PAST_DUE -> acceso segun el plan contratado. PAST_DUE es a
+//   proposito identico a ACTIVE aca: el motor de cobro recurrente todavia
+//   esta reintentando (dia 0/3/7 antes de EXPIRED, ver cron/billing), asi
+//   que el agente conserva exactamente lo que ya tenia mientras eso pasa -
+//   ni mas (no se vuelve Pro gratis) ni menos (no se le corta el servicio
+//   antes de agotar los reintentos). Una suscripcion CANCELADA pero todavia
+//   dentro del periodo pagado tambien cuenta como ACTIVE aqui (ver
 //   resolveEffectiveSubscriptionStatus) - recien pierde acceso cuando ese
 //   periodo vence.
-// - Cualquier otro estado (vencida/INACTIVE, PAST_DUE, o CANCELADA ya fuera de
-//   periodo) -> sin acceso a ninguna feature de pago.
+// - Cualquier otro estado (vencida/INACTIVE = EXPIRED, o CANCELADA ya fuera
+//   de periodo) -> sin acceso a ninguna feature de pago.
 export function tieneAcceso(suscripcion: AccesoInput, feature: Feature): boolean {
   const status = resolveEffectiveSubscriptionStatus(suscripcion);
   if (status === 'TRIAL') return true;
-  if (status !== 'ACTIVE') return false;
+  if (status !== 'ACTIVE' && status !== 'PAST_DUE') return false;
   return planIncluyeFeature(suscripcion.plan, feature);
 }

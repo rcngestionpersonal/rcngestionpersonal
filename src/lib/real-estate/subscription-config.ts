@@ -23,6 +23,16 @@ export function getAppUrl(): string {
   return process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 }
 
+// Monto minimo para re-tokenizar una tarjeta sin que el agente este al dia
+// de pago (pedido de recurrencias, seccion 7: "Cambiar tarjeta ... si esta
+// al dia, usa el monto minimo que Payphone permita para generar el token
+// nuevo"). Payphone no publica un minimo exacto en su documentacion - $1.00
+// es un valor nominal conservador (claramente no es el precio del plan, asi
+// el agente entiende que es solo para validar la tarjeta) elegido a falta de
+// ese dato; ajustar aca si Payphone confirma un minimo distinto o rechaza
+// este monto en la practica.
+export const CARD_UPDATE_MIN_CENTS = 100;
+
 export type PaymentProvider = 'PAYPHONE' | 'PAYPAL';
 
 // Selector de proveedor de pago activo. Hoy siempre Payphone (unico mercado:

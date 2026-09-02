@@ -446,12 +446,15 @@ export function shouldUseMockStore(): boolean {
 
 // "Activo" para poder usar los modulos operativos (inmuebles, pedidos, matches, cierres):
 // requiere telefono verificado por WhatsApp/SMS ademas de trial vigente o suscripcion paga.
+// PAST_DUE cuenta como activo a proposito (pedido de recurrencias, seccion 5:
+// "durante PAST_DUE el agente conserva el servicio completo" mientras el
+// cron de cobro reintenta) - ver la misma nota en access.ts/tieneAcceso().
 export function isAgentActive(
   agent: Pick<AgentRecord, 'isActive' | 'subscriptionStatus' | 'phoneVerifiedAt'>,
 ): boolean {
   return (
     agent.isActive &&
-    (agent.subscriptionStatus === 'TRIAL' || agent.subscriptionStatus === 'ACTIVE') &&
+    (agent.subscriptionStatus === 'TRIAL' || agent.subscriptionStatus === 'ACTIVE' || agent.subscriptionStatus === 'PAST_DUE') &&
     Boolean(agent.phoneVerifiedAt)
   );
 }

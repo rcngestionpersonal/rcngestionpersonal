@@ -5,13 +5,78 @@ import { prisma } from '@/lib/prisma';
 import { logSubscriptionActivation } from '@/lib/real-estate/churn';
 import { createMockTransaccion, findAgentById, shouldUseMockStore, updateAgent } from '@/lib/real-estate/mock-store';
 import {
+  buildPaymentMethodDataFromConfirm,
   confirmPayphoneTransaction,
+  isCardChangeClientTransactionId,
   isExpectedCheckoutAmount,
   parseAgentIdFromClientTransactionId,
   parsePlanFromClientTransactionId,
 } from '@/lib/real-estate/payments/payphone';
-import { getBillingCycleMs } from '@/lib/real-estate/subscription-config';
+import { encryptAtRest } from '@/lib/real-estate/payments/encryption';
+import { CARD_UPDATE_MIN_CENTS, getBillingCycleMs } from '@/lib/real-estate/subscription-config';
 import { getCheckoutAmountsInCents, PLANES } from '@/config/planes';
+
+// "Cambiar tarjeta" estando al dia (seccion 7 del pedido de recurrencias):
+// el monto cobrado ($1 nominal, ver CARD_UPDATE_MIN_CENTS) nunca es un pago
+// de plan, asi que esta rama NUNCA toca Agent.subscriptionStatus/
+// subscriptionPaidUntil ni crea una Transaccion (seria enganoso mostrar
+// "pagaste tu plan" por $1 en el historial) - solo reemplaza el
+// PaymentMethod de la Subscription. Se sale ANTES de la validacion de monto
+// contra el precio del plan (isExpectedCheckoutAmount), que rechazaria un
+// cobro de $1 por no coincidir con ningun plan.
+async function handleCardChangeConfirm(agentId: string, body: { id: number; clientTransactionId: string; ctoken?: string }) {
+  const result = await confirmPayphoneTransaction({ id: body.id, clientTransactionId: body.clientTransactionId });
+  if (result.transactionStatus !== 'Approved') {
+    return NextResponse.json({ error: 'El pago no fue aprobado por Payphone.', status: result.transactionStatus }, { status: 402 });
+  }
+  if (result.amount !== CARD_UPDATE_MIN_CENTS) {
+    return NextResponse.json({ error: 'El monto confirmado no coincide con el cargo esperado para actualizar la tarjeta.' }, { status: 400 });
+  }
+  if (!body.ctoken) {
+    return NextResponse.json({ error: 'Esta tarjeta no se puede guardar automáticamente (no es Visa o Mastercard, o Payphone no autorizó la tokenización).' }, { status: 400 });
+  }
+
+  const sub = await prisma.subscription.findUnique({ where: { agentId } });
+  const agent = await prisma.agent.findUnique({ where: { id: agentId } });
+  if (!sub || !agent) {
+    return NextResponse.json({ error: 'No se encontró tu suscripción.' }, { status: 404 });
+  }
+
+  const codingPassword = process.env.PAYPHONE_CODING_PASSWORD;
+  const paymentMethodData = codingPassword ? buildPaymentMethodDataFromConfirm({ ctoken: body.ctoken, confirmResult: result, codingPassword }) : null;
+  if (!paymentMethodData) {
+    return NextResponse.json({ error: 'No se pudo procesar los datos de la tarjeta.' }, { status: 500 });
+  }
+
+  const oldPaymentMethodId = sub.paymentMethodId;
+  const newPaymentMethod = await prisma.paymentMethod.create({
+    data: {
+      agentId,
+      cardTokenEnc: encryptAtRest(body.ctoken),
+      cardHolderEnc: paymentMethodData.cardHolderEnc,
+      brand: paymentMethodData.brand,
+      lastDigits: paymentMethodData.lastDigits,
+      bin: paymentMethodData.bin,
+      email: paymentMethodData.email,
+      phoneNumber: paymentMethodData.phoneNumber,
+      documentId: paymentMethodData.documentId,
+      consentAt: new Date(),
+      consentIp: 'ver SubscriptionEvent consent_recorded',
+      consentText: 'ver SubscriptionEvent consent_recorded',
+    },
+  });
+  await prisma.subscription.update({ where: { id: sub.id }, data: { paymentMethodId: newPaymentMethod.id } });
+  if (oldPaymentMethodId) {
+    // La tarjeta vieja queda desactivada, no borrada (seccion 8 del pedido:
+    // trazabilidad de consentimiento/cobros pasados sigue siendo valida).
+    await prisma.paymentMethod.update({ where: { id: oldPaymentMethodId }, data: { active: false } });
+  }
+  await prisma.subscriptionEvent.create({
+    data: { subscriptionId: sub.id, type: 'card_saved', payload: { brand: paymentMethodData.brand, lastDigits: paymentMethodData.lastDigits, reason: 'card_change' } },
+  });
+
+  return NextResponse.json({ success: true, cardChanged: true });
+}
 
 // Precio fundador (Fase 7, seccion 9.4): decide si esta activacion de Basico
 // debe cobrar el precio vigente (y fijarlo como nuevo precio fundador) o el
@@ -38,7 +103,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Solo agentes autenticados pueden confirmar su pago.' }, { status: 403 });
     }
 
-    const body = (await request.json().catch(() => null)) as { id?: number; clientTransactionId?: string } | null;
+    const body = (await request.json().catch(() => null)) as { id?: number; clientTransactionId?: string; ctoken?: string } | null;
     if (!body?.id || !body.clientTransactionId) {
       return NextResponse.json({ error: 'id y clientTransactionId son obligatorios.' }, { status: 400 });
     }
@@ -49,6 +114,11 @@ export async function POST(request: NextRequest) {
     if (ownerAgentId !== authSession.agentId) {
       return NextResponse.json({ error: 'Esta transacción no corresponde a tu cuenta.' }, { status: 403 });
     }
+
+    if (isCardChangeClientTransactionId(body.clientTransactionId)) {
+      return handleCardChangeConfirm(authSession.agentId, { id: body.id, clientTransactionId: body.clientTransactionId, ctoken: body.ctoken });
+    }
+
     const plan = parsePlanFromClientTransactionId(body.clientTransactionId);
     if (!plan) {
       return NextResponse.json({ error: 'No se pudo determinar el plan de esta transacción.' }, { status: 400 });
@@ -167,6 +237,105 @@ export async function POST(request: NextRequest) {
         planDesde: new Date().toISOString(),
         planSiguiente: undefined,
         ...(nuevaOReiniciada ? { precioFundadorBasico: PLANES.BASICO.total } : {}),
+      });
+    }
+
+    // Motor de recurrencias (Subscription/Charge/PaymentMethod) - en un
+    // bloque aparte del $transaction de arriba, a proposito: el cobro YA esta
+    // confirmado y el agente YA tiene acceso en este punto (Agent.
+    // subscriptionStatus/subscriptionPaidUntil ya se actualizaron), asi que
+    // un fallo aca (ENCRYPTION_KEY o PAYPHONE_CODING_PASSWORD mal
+    // configuradas, por ejemplo) nunca debe revertir el cobro ni bloquear al
+    // agente - seccion 3.8 del pedido: "el sistema debe funcionar sin
+    // tokenizacion". El Charge de este intento (creado por
+    // /api/subscription/checkout con status PENDING) se actualiza por su
+    // clientTransactionId, que es unico - si no existe (el agente pago sin
+    // pasar por ese endpoint, p.ej. una activacion vieja) updateMany
+    // simplemente no toca nada, no revienta.
+    try {
+      const subscription = await prisma.subscription.upsert({
+        where: { agentId: authSession.agentId },
+        create: {
+          agentId: authSession.agentId,
+          plan,
+          status: 'ACTIVE',
+          amountCents: amounts.amountWithTax,
+          taxCents: amounts.tax,
+          currentPeriodEnd: paidUntil,
+          nextChargeAt: paidUntil,
+          priceLocked: Boolean(nuevaOReiniciada || founderTotalCents),
+        },
+        update: {
+          plan,
+          status: 'ACTIVE',
+          amountCents: amounts.amountWithTax,
+          taxCents: amounts.tax,
+          currentPeriodEnd: paidUntil,
+          nextChargeAt: paidUntil,
+          canceledAt: null,
+          cancelAtPeriodEnd: false,
+        },
+      });
+
+      if (body.clientTransactionId) {
+        await prisma.charge.updateMany({
+          where: { clientTransactionId: body.clientTransactionId },
+          data: {
+            status: 'APPROVED',
+            payphoneTxId: String(result.transactionId),
+            authorizationCode: result.authorizationCode ?? null,
+            responseCode: String(result.statusCode),
+            responseMessage: result.transactionStatus,
+            rawResponse: result as unknown as Prisma.InputJsonValue,
+            resolvedAt: new Date(),
+          },
+        });
+      }
+
+      await prisma.subscriptionEvent.create({
+        data: {
+          subscriptionId: subscription.id,
+          type: 'charge_approved',
+          payload: { transactionId: result.transactionId, amount: result.amount, plan },
+        },
+      });
+
+      const codingPassword = process.env.PAYPHONE_CODING_PASSWORD;
+      const paymentMethodData = codingPassword
+        ? buildPaymentMethodDataFromConfirm({ ctoken: body.ctoken ?? null, confirmResult: result, codingPassword })
+        : null;
+      if (paymentMethodData && body.ctoken) {
+        const consentEvent = await prisma.subscriptionEvent.findFirst({
+          where: { subscriptionId: subscription.id, type: 'consent_recorded' },
+          orderBy: { createdAt: 'desc' },
+        });
+        const consentPayload = consentEvent?.payload as { text?: string; ip?: string; acceptedAt?: string } | null;
+        const paymentMethod = await prisma.paymentMethod.create({
+          data: {
+            agentId: authSession.agentId,
+            cardTokenEnc: encryptAtRest(body.ctoken),
+            cardHolderEnc: paymentMethodData.cardHolderEnc,
+            brand: paymentMethodData.brand,
+            lastDigits: paymentMethodData.lastDigits,
+            bin: paymentMethodData.bin,
+            email: paymentMethodData.email,
+            phoneNumber: paymentMethodData.phoneNumber,
+            documentId: paymentMethodData.documentId,
+            consentAt: consentPayload?.acceptedAt ? new Date(consentPayload.acceptedAt) : new Date(),
+            consentIp: consentPayload?.ip ?? 'unknown',
+            consentText: consentPayload?.text ?? '',
+          },
+        });
+        await prisma.subscription.update({ where: { id: subscription.id }, data: { paymentMethodId: paymentMethod.id } });
+        await prisma.subscriptionEvent.create({
+          data: { subscriptionId: subscription.id, type: 'card_saved', payload: { brand: paymentMethodData.brand, lastDigits: paymentMethodData.lastDigits } },
+        });
+      }
+    } catch (engineError) {
+      console.error('[subscription] no se pudo actualizar el motor de recurrencias tras un pago confirmado', {
+        agentId: authSession.agentId,
+        transactionId: result.transactionId,
+        engineError,
       });
     }
 

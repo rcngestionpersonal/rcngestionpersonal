@@ -38,11 +38,24 @@ function PagarSuscripcionContent() {
   const [confirmError, setConfirmError] = useState('');
   const [confirmed, setConfirmed] = useState(false);
   const confirmAttempted = useRef(false);
+  // Consentimiento de guardado de tarjeta (seccion 8 del pedido de
+  // recurrencias): checkbox NO premarcado - hasta que el agente lo marque y
+  // pulse "Continuar", no se llama a /api/subscription/checkout ni se
+  // renderiza la Cajita. serverClientTransactionId llega de esa llamada.
+  const [consentAccepted, setConsentAccepted] = useState(false);
+  const [startingCheckout, setStartingCheckout] = useState(false);
+  const [checkoutError, setCheckoutError] = useState('');
+  const [serverClientTransactionId, setServerClientTransactionId] = useState<string | null>(null);
 
   // Checkout dual (seccion 6): el plan viene por query param (?plan=basico|pro).
   const plan = planParamToTipo(searchParams.get('plan'));
   const confirmId = searchParams.get('id');
   const confirmTxId = searchParams.get('clientTransactionId');
+  // El ctoken (si Payphone ya nos autorizo la tokenizacion para esta tarjeta)
+  // llega como query param en la URL de retorno, NO en la respuesta de
+  // /api/confirm (seccion 3.3 del pedido de recurrencias) - se reenvia tal
+  // cual al servidor, nunca se usa del lado del cliente.
+  const ctoken = searchParams.get('ctoken');
   // Payphone redirige de vuelta a una URL fija configurada una vez en su
   // dashboard - no conserva nuestro ?plan=. Por eso, si venimos de un pago
   // (hay id+clientTransactionId), NO redirigimos a /planes aunque no haya
@@ -86,7 +99,7 @@ function PagarSuscripcionContent() {
     fetch('/api/real-estate/billing/payphone/confirm', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: Number(confirmId), clientTransactionId: confirmTxId }),
+      body: JSON.stringify({ id: Number(confirmId), clientTransactionId: confirmTxId, ctoken: ctoken || undefined }),
     })
       .then(async (res) => {
         const data = await res.json().catch(() => ({}));
@@ -103,10 +116,33 @@ function PagarSuscripcionContent() {
       .catch(() => setConfirmError(t('suscripcion.pagar.errorConfirmacion')))
       .finally(() => setConfirming(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [volviendoDePago, confirmId, confirmTxId]);
+  }, [volviendoDePago, confirmId, confirmTxId, ctoken]);
 
   if (loading || !agent || (!plan && !volviendoDePago)) {
     return <main className="min-h-screen bg-bg" />;
+  }
+
+  async function startCheckout() {
+    if (!plan || !consentAccepted) return;
+    setStartingCheckout(true);
+    setCheckoutError('');
+    try {
+      const res = await fetch('/api/subscription/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan, consentAccepted: true }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setCheckoutError(data.error ?? t('suscripcion.pagar.errorConfirmacion'));
+        return;
+      }
+      setServerClientTransactionId(data.clientTransactionId as string);
+    } catch {
+      setCheckoutError(t('suscripcion.pagar.errorConfirmacion'));
+    } finally {
+      setStartingCheckout(false);
+    }
   }
 
   // Precio fundador (Fase 7, seccion 9.4): solo aplica a Basico, y solo si el
@@ -166,15 +202,43 @@ function PagarSuscripcionContent() {
 
                 {plan ? (
                   isPayphoneCheckoutConfigured() ? (
-                    <PayphoneCheckoutBox
-                      agentId={agent.id}
-                      plan={plan}
-                      email={agent.email}
-                      phone={agent.phone}
-                      idNumber={agent.idNumber}
-                      founderTotalCents={founderTotalCents}
-                      lang={lang}
-                    />
+                    serverClientTransactionId ? (
+                      <PayphoneCheckoutBox
+                        agentId={agent.id}
+                        plan={plan}
+                        email={agent.email}
+                        phone={agent.phone}
+                        idNumber={agent.idNumber}
+                        founderTotalCents={founderTotalCents}
+                        lang={lang}
+                        clientTransactionId={serverClientTransactionId}
+                      />
+                    ) : (
+                      <div className="space-y-3">
+                        <label className="flex items-start gap-2.5 rounded-xl border border-line bg-surface-2 p-3.5 text-[12.5px] leading-snug text-text-2">
+                          <input
+                            type="checkbox"
+                            checked={consentAccepted}
+                            onChange={(e) => setConsentAccepted(e.target.checked)}
+                            className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]"
+                          />
+                          <span>
+                            {lang === 'es'
+                              ? 'Acepto que Redinmo guarde un identificador de mi tarjeta y me cobre automáticamente el monto de mi plan cada 30 días. Puedo cancelar cuando quiera desde mi cuenta.'
+                              : 'I agree that Redinmo saves a token for my card and automatically charges my plan every 30 days. I can cancel anytime from my account.'}
+                          </span>
+                        </label>
+                        {checkoutError ? <p className="text-center text-xs text-danger">{checkoutError}</p> : null}
+                        <button
+                          type="button"
+                          disabled={!consentAccepted || startingCheckout}
+                          onClick={() => void startCheckout()}
+                          className="w-full rounded-xl bg-accent px-4 py-3 text-sm font-bold text-accent-contrast transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {startingCheckout ? t('suscripcion.pagar.iniciandoPago') : (lang === 'es' ? 'Continuar al pago' : 'Continue to payment')}
+                        </button>
+                      </div>
+                    )
                   ) : (
                     <p className="rounded-xl border border-line bg-surface-2 px-4 py-3 text-center text-sm text-text-2">{t('suscripcion.pagar.noDisponible')}</p>
                   )

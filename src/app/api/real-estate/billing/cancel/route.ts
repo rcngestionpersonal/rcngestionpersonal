@@ -33,6 +33,16 @@ export async function POST(request: NextRequest) {
       where: { id: authSession.agentId },
       data: { subscriptionStatus: 'CANCELED', planSiguiente: null },
     });
+    // Motor de cobro recurrente (pedido de recurrencias, seccion 5: "siempre
+    // al final del periodo pagado, nunca inmediata"): si este agente tiene
+    // tarjeta guardada, NO se toca Subscription.status aca - se deja la
+    // bandera cancelAtPeriodEnd para que el cron (subscription-engine.ts)
+    // cierre la suscripcion justo en su proxima fecha de cobro programada,
+    // en vez de cobrarle una vez mas.
+    await prisma.subscription.updateMany({
+      where: { agentId: authSession.agentId },
+      data: { cancelAtPeriodEnd: true },
+    });
     await logSubscriptionCancellation(authSession.agentId, 'VOLUNTARY');
     return NextResponse.json({ success: true, agent: sanitizeAgent(updated) });
   } catch (error) {
