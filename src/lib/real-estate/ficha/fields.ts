@@ -220,3 +220,39 @@ export function fichaExtraChips(listing: FichaListingFields, lang: Language): Fi
 
   return chips;
 }
+
+export type FichaMapRow = { label: string; value: string };
+
+// Filas etiqueta/valor junto al mini-mapa (rediseno seccion 2.3.f): a
+// diferencia de fichaExtraChips (chips sin etiqueta, pensados para una lista
+// que se lee de corrido), aca cada dato necesita una etiqueta corta propia -
+// se arma con una lista fija de candidatos, del mas al menos universal entre
+// tipos de inmueble, y se omite en silencio el que no aplique. Sector nunca
+// falta (siempre viene de listing.sectorLine, fuera de esta funcion).
+export function fichaMapDataRows(listing: FichaListingFields, lang: Language): FichaMapRow[] {
+  const flags = listingFieldsFor(listing.propertyType, listing.operationType);
+  const rows: FichaMapRow[] = [];
+
+  if (flags.showAlicuota && listing.alicuotaMensual) {
+    rows.push({ label: label('inmuebles.form.alicuota', lang), value: `${money(listing.alicuotaMensual)}/${lang === 'es' ? 'mes' : 'mo'}` });
+  }
+  if (flags.showAntiguedad && listing.antiguedad) {
+    const opt = optionLabel([...ANTIGUEDAD_OPTIONS], listing.antiguedad, lang);
+    if (opt) rows.push({ label: label('inmuebles.form.antiguedad', lang), value: opt });
+  }
+  if (flags.showEstadoOcupacion && listing.estadoOcupacion) {
+    const opt = optionLabel([...ESTADO_OCUPACION_OPTIONS], listing.estadoOcupacion, lang);
+    if (opt) rows.push({ label: lang === 'es' ? 'Disponible' : 'Available', value: opt });
+  }
+  if (flags.showPiso && listing.piso) {
+    rows.push({ label: label('inmuebles.form.piso', lang), value: String(listing.piso) });
+  }
+  if (flags.showFrenteM && listing.frenteM) {
+    rows.push({ label: lang === 'es' ? 'Frente' : 'Frontage', value: `${listing.frenteM} m` });
+  }
+  if (listing.canonMensualActual) {
+    rows.push({ label: lang === 'es' ? 'Canon actual' : 'Current rent', value: money(listing.canonMensualActual)! });
+  }
+
+  return rows.slice(0, 3);
+}

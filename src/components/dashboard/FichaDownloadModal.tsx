@@ -1,17 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import RequiereFeature from './RequiereFeature';
 import type { AccesoInput } from '@/lib/real-estate/access';
 
-type UiVersion = 'cliente' | 'sin_marca' | 'redes';
+type UiVersion = 'cliente' | 'colega' | 'sin_marca' | 'redes';
+type Formato = 'pdf' | 'png';
 type RedesFormato = 'redes_post' | 'redes_story';
 type Paleta = 'oscura' | 'clara';
 
-// Selector de version + paleta antes de descargar la ficha (Fase 2, seccion
-// 2). El bloqueo Pro (seccion 5.2) se resuelve envolviendo el selector en
-// RequiereFeature: el boton "Descargar ficha" SIEMPRE se ve y SIEMPRE abre
-// este modal, pero en plan Basico lo que se ve adentro es el candado
+const PREFS_KEY = 'redinmo:ficha-prefs';
+
+type StoredPrefs = { version: UiVersion; formato: Formato; redesFormato: RedesFormato; paleta: Paleta };
+
+// Recuerda la ultima combinacion elegida (seccion 6.4 del rediseno) para
+// reducir friccion en el uso diario - solo en este navegador (localStorage),
+// no hay necesidad de que sobreviva entre dispositivos para este atajo.
+function loadPrefs(): Partial<StoredPrefs> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem(PREFS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePrefs(prefs: StoredPrefs) {
+  try {
+    window.localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+  } catch {
+    // localStorage puede estar deshabilitado (modo privado) - no es critico.
+  }
+}
+
+// Selector de version + formato + paleta antes de descargar la ficha
+// (rediseno, seccion 6). El bloqueo Pro se resuelve envolviendo el selector
+// en RequiereFeature: el boton "Descargar ficha" SIEMPRE se ve y SIEMPRE
+// abre este modal, pero en plan Basico lo que se ve adentro es el candado
 // elegante en vez del selector - nunca se oculta el boton.
 export default function FichaDownloadModal({
   listingId,
@@ -29,11 +55,20 @@ export default function FichaDownloadModal({
   onClose: () => void;
 }) {
   const [version, setVersion] = useState<UiVersion>('cliente');
+  const [formato, setFormato] = useState<Formato>('png');
   const [redesFormato, setRedesFormato] = useState<RedesFormato>('redes_post');
   const [paleta, setPaleta] = useState<Paleta>('oscura');
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState('');
   const [toast, setToast] = useState('');
+
+  useEffect(() => {
+    const prefs = loadPrefs();
+    if (prefs.version) setVersion(prefs.version);
+    if (prefs.formato) setFormato(prefs.formato);
+    if (prefs.redesFormato) setRedesFormato(prefs.redesFormato);
+    if (prefs.paleta) setPaleta(prefs.paleta);
+  }, []);
 
   async function handleDownload() {
     setDownloading(true);
@@ -41,7 +76,8 @@ export default function FichaDownloadModal({
     setToast('');
     try {
       const apiVersion = version === 'redes' ? redesFormato : version;
-      const params = new URLSearchParams({ version: apiVersion, palette: paleta, lang });
+      const apiFormat = version === 'redes' ? 'png' : formato;
+      const params = new URLSearchParams({ version: apiVersion, format: apiFormat, palette: paleta, lang });
       const res = await fetch(`/api/real-estate/listings/${listingId}/ficha?${params.toString()}`, {
         credentials: 'same-origin',
       });
@@ -58,13 +94,14 @@ export default function FichaDownloadModal({
       const blob = await res.blob();
       const disposition = res.headers.get('Content-Disposition') ?? '';
       const match = /filename="([^"]+)"/.exec(disposition);
-      const filename = match?.[1] ?? (apiVersion.startsWith('redes') ? 'ficha-redinmo.png' : 'ficha-redinmo.pdf');
+      const filename = match?.[1] ?? `ficha-redinmo.${apiFormat}`;
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
+      savePrefs({ version, formato, redesFormato, paleta });
       setToast(t('ficha.listo'));
       setTimeout(() => setToast(''), 3000);
     } catch {
@@ -73,6 +110,9 @@ export default function FichaDownloadModal({
       setDownloading(false);
     }
   }
+
+  const showFormatoYPaleta = version !== 'redes';
+  const botonFormatoLabel = version === 'redes' ? 'PNG' : formato.toUpperCase();
 
   return (
     <div
@@ -116,6 +156,12 @@ export default function FichaDownloadModal({
                   detail={t('ficha.version.cliente.detalle')}
                 />
                 <VersionOption
+                  active={version === 'colega'}
+                  onClick={() => setVersion('colega')}
+                  title={t('ficha.version.colega')}
+                  detail={t('ficha.version.colega.detalle')}
+                />
+                <VersionOption
                   active={version === 'sin_marca'}
                   onClick={() => setVersion('sin_marca')}
                   title={t('ficha.version.sinMarca')}
@@ -130,7 +176,26 @@ export default function FichaDownloadModal({
               </div>
             </div>
 
-            {version === 'redes' ? (
+            {showFormatoYPaleta ? (
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.1em] text-text-2">{t('ficha.formato.titulo')}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <FormatoOption
+                    active={formato === 'png'}
+                    onClick={() => setFormato('png')}
+                    label={t('ficha.formato.png')}
+                    micro={t('ficha.formato.png.detalle')}
+                    recomendado
+                  />
+                  <FormatoOption
+                    active={formato === 'pdf'}
+                    onClick={() => setFormato('pdf')}
+                    label={t('ficha.formato.pdf')}
+                    micro={t('ficha.formato.pdf.detalle')}
+                  />
+                </div>
+              </div>
+            ) : (
               <div>
                 <p className="mb-2 text-xs font-bold uppercase tracking-[0.1em] text-text-2">{t('ficha.redesFormato.titulo')}</p>
                 <div className="grid grid-cols-2 gap-1.5 rounded-full border border-line bg-surface p-1">
@@ -147,31 +212,33 @@ export default function FichaDownloadModal({
                   ))}
                 </div>
               </div>
-            ) : null}
+            )}
 
-            <div>
-              <p className="mb-2 text-xs font-bold uppercase tracking-[0.1em] text-text-2">{t('ficha.paleta.titulo')}</p>
-              <div className="grid grid-cols-2 gap-1.5 rounded-full border border-line bg-surface p-1">
-                {(['oscura', 'clara'] as const).map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => setPaleta(opt)}
-                    className={`rounded-full py-2 text-[12.5px] font-bold transition-colors ${
-                      paleta === opt ? 'bg-accent-dim text-accent' : 'text-text-2 hover:text-text'
-                    }`}
-                  >
-                    {opt === 'oscura' ? t('ficha.paleta.oscura') : t('ficha.paleta.clara')}
-                  </button>
-                ))}
+            {showFormatoYPaleta ? (
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.1em] text-text-2">{t('ficha.paleta.titulo')}</p>
+                <div className="grid grid-cols-2 gap-1.5 rounded-full border border-line bg-surface p-1">
+                  {(['oscura', 'clara'] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => setPaleta(opt)}
+                      className={`rounded-full py-2 text-[12.5px] font-bold transition-colors ${
+                        paleta === opt ? 'bg-accent-dim text-accent' : 'text-text-2 hover:text-text'
+                      }`}
+                    >
+                      {opt === 'oscura' ? t('ficha.paleta.oscura') : t('ficha.paleta.clara')}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : null}
 
             <button
               onClick={handleDownload}
               disabled={downloading}
               className="flex w-full items-center justify-center gap-2 rounded-[12px] bg-accent px-4 py-3 text-sm font-bold text-accent-contrast transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              ⬇ {downloading ? t('ficha.generando') : t('ficha.descargarBoton')}
+              ⬇ {downloading ? t('ficha.generando') : `${t('ficha.descargarBoton')} ${botonFormatoLabel}`}
             </button>
 
             {error ? <p className="text-center text-xs text-danger">{error}</p> : null}
@@ -203,6 +270,38 @@ function VersionOption({ active, onClick, title, detail }: { active: boolean; on
         <span className="block text-[13.5px] font-bold text-text">{title}</span>
         <span className="mt-0.5 block text-[12px] text-text-2">{detail}</span>
       </span>
+    </button>
+  );
+}
+
+function FormatoOption({
+  active,
+  onClick,
+  label,
+  micro,
+  recomendado,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  micro: string;
+  recomendado?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`relative flex flex-col items-start gap-0.5 rounded-xl border px-3 py-2.5 text-left transition-colors duration-150 ${
+        active ? 'border-accent bg-accent-dim' : 'border-line-strong hover:bg-surface-2'
+      }`}
+    >
+      {recomendado ? (
+        <span className="absolute -top-2 right-2 rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-accent-contrast">
+          ★
+        </span>
+      ) : null}
+      <span className="text-[13.5px] font-bold text-text">{label}</span>
+      <span className="text-[11px] text-text-2">{micro}</span>
     </button>
   );
 }
