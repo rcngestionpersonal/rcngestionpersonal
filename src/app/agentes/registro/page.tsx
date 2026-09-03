@@ -172,6 +172,7 @@ function AgentRegisterForm() {
           propertyTypesInterest,
           specialty,
           referralCode,
+          acceptedTerms,
         }),
       });
       const data = await res.json();
@@ -469,11 +470,11 @@ function AgentRegisterForm() {
                   />
                   <span className="text-xs text-text">
                     Acepto los{' '}
-                    <a href="/soporte" target="_blank" rel="noreferrer" className="font-semibold text-violet-300 underline underline-offset-2">
+                    <a href="/legal/terminos" target="_blank" rel="noreferrer" className="font-semibold text-violet-300 underline underline-offset-2">
                       Términos
                     </a>{' '}
                     y la{' '}
-                    <a href="/soporte" target="_blank" rel="noreferrer" className="font-semibold text-violet-300 underline underline-offset-2">
+                    <a href="/legal/privacidad" target="_blank" rel="noreferrer" className="font-semibold text-violet-300 underline underline-offset-2">
                       Política de Privacidad
                     </a>{' '}
                     de Redinmo.io.

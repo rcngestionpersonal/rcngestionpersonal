@@ -9,6 +9,13 @@ import { createAgent, findAgentById, findAgentByPhone, shouldUseMockStore } from
 import { isValidPhone, repairPhone } from '@/lib/real-estate/phone';
 import { getAppUrl, TRIAL_DAYS } from '@/lib/real-estate/subscription-config';
 import { awardReferralSignup } from '@/lib/real-estate/points-log';
+import { TERMS_VERSION } from '@/lib/real-estate/legal';
+
+function getRequestIp(request: NextRequest): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) return forwarded.split(',')[0]?.trim() || 'unknown';
+  return request.headers.get('x-real-ip') ?? 'unknown';
+}
 
 const registerSchema = z.object({
   fullName: z.string().trim().min(2, 'El nombre es obligatorio.'),
@@ -30,6 +37,9 @@ const registerSchema = z.object({
   propertyTypesInterest: z.array(z.enum(['HOUSE', 'APARTMENT', 'SUITE', 'OFFICE', 'LAND', 'COMMERCIAL', 'WAREHOUSE', 'FARM', 'OTHER'])).optional(),
   specialty: z.enum(['SALE', 'RENT', 'BOTH']).optional(),
   referralCode: z.string().trim().optional(),
+  // Fase de cierre, punto 2.3.2: casilla de aceptacion de Terminos/Privacidad
+  // en el registro - obligatoria server-side, no solo validada en el cliente.
+  acceptedTerms: z.boolean().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -44,6 +54,9 @@ export async function POST(request: NextRequest) {
   }
 
   const input = parsed.data;
+  if (input.acceptedTerms !== true) {
+    return NextResponse.json({ error: 'Debes aceptar los Términos y la Política de Privacidad para continuar.' }, { status: 400 });
+  }
   // Red de seguridad server-side: el cliente ya normaliza (buildPhoneE164),
   // pero nunca confiamos solo en eso - repara aqui tambien por si el numero
   // llega con el prefijo de pais duplicado o un 0 de marcado local.
@@ -116,6 +129,9 @@ export async function POST(request: NextRequest) {
           trialEndsAt,
           subscriptionStatus: SubscriptionStatus.TRIAL,
           referredByAgentId: referrer?.id,
+          termsAcceptedAt: new Date(),
+          termsAcceptedVersion: TERMS_VERSION,
+          termsAcceptedIp: getRequestIp(request),
         },
       });
       agentId = agent.id;

@@ -282,6 +282,18 @@ export default function SuscripcionTab({
               </>
             )}
           </div>
+
+          <div className="mt-4 flex flex-wrap gap-x-3 gap-y-1 border-t border-line pt-3 text-[11px] text-text-3">
+            <Link href="/legal/suscripcion" className="hover:text-text-2 hover:underline">
+              Política de suscripción
+            </Link>
+            <Link href="/legal/terminos" className="hover:text-text-2 hover:underline">
+              Términos
+            </Link>
+            <Link href="/legal/privacidad" className="hover:text-text-2 hover:underline">
+              Privacidad
+            </Link>
+          </div>
         </section>
       </div>
     );

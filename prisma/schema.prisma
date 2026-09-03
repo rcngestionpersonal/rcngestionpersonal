@@ -162,6 +162,16 @@ model Agent {
   // Preferencia de tema claro/oscuro/automatico - localStorage es el respaldo
   // inmediato (evita parpadeo), esto es la fuente de verdad multi-dispositivo.
   themePreference       ThemePreference    @default(LIGHT)
+  // Aceptacion de Terminos y Privacidad al registrarse (fase de cierre,
+  // punto 2.3.2) - termsAcceptedVersion guarda el numero de version vigente
+  // al momento (ver TERMS_VERSION en legal.ts), no el texto completo: a
+  // diferencia del consentimiento de tokenizacion (que sí versiona por texto
+  // literal en SubscriptionEvent porque cada aceptacion es plata en juego),
+  // esto es una aceptacion de una sola vez por cuenta. Null en cuentas
+  // creadas antes de este campo (no se puede reconstruir retroactivamente).
+  termsAcceptedAt       DateTime?
+  termsAcceptedVersion  String?
+  termsAcceptedIp       String?
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
   matches               AgentMatch[]

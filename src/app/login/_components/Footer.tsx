@@ -6,8 +6,10 @@ export default function Footer() {
       <div className={`${styles.wrap} ${styles.footerInner}`}>
         <p className={styles.footerCopy}>© 2026 | Redinmo.io</p>
         <div className={styles.footerLinks}>
-          <a href="/soporte">Términos</a>
-          <a href="/soporte">Privacidad</a>
+          <a href="/legal/terminos">Términos</a>
+          <a href="/legal/privacidad">Privacidad</a>
+          <a href="/legal/suscripcion">Suscripción</a>
+          <a href="/legal/cookies">Cookies</a>
           <a href="/contacto">Contacto</a>
           <a href="#login">Admin</a>
         </div>

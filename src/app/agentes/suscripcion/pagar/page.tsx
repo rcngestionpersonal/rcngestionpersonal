@@ -246,7 +246,7 @@ function PagarSuscripcionContent() {
 
                 <p className="text-center text-[11.5px] text-text-3">{t('suscripcion.pagar.notaSeguridad')}</p>
                 <p className="text-center text-[11.5px] text-text-3">
-                  <Link href="/politica-cancelacion" className="underline decoration-dotted underline-offset-2 hover:text-text-2">
+                  <Link href="/legal/suscripcion" className="underline decoration-dotted underline-offset-2 hover:text-text-2">
                     {t('suscripcion.pagar.politicaCancelacion')}
                   </Link>
                 </p>

@@ -10,6 +10,7 @@ function isPublicPath(pathname: string): boolean {
   if (pathname === '/restablecer') return true;
   if (pathname === '/soporte') return true;
   if (pathname === '/politica-cancelacion') return true;
+  if (pathname.startsWith('/legal/')) return true;
   if (pathname.startsWith('/v/')) return true;
   if (pathname.startsWith('/api/auth/')) return true;
   if (pathname === '/api/health') return true;
