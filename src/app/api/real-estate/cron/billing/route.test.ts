@@ -35,6 +35,11 @@ describe('GET /api/real-estate/cron/billing — concurrent-run idempotency', () 
     process.env.PAYPHONE_TOKEN = 'test-token';
     process.env.ENCRYPTION_KEY = 'test-key-for-cron-idempotency-test';
     process.env.PAYPHONE_CODING_PASSWORD = 'test-coding-password';
+    // Este test ejercita el cobro real (mockeando fetch) - hay que apagar
+    // explicitamente los dos interruptores de seguridad de la fase de cierre
+    // (1.1 y 1.2), que por defecto dejarian esto en {skipped:true} o en dry run.
+    process.env.BILLING_ENABLED = 'true';
+    process.env.BILLING_DRY_RUN = 'false';
 
     const agent = await prisma.agent.create({
       data: { fullName: 'TEST cron-idempotency (borrar)', phone: '+593900007777', isTestUser: true, trialEndsAt: new Date(Date.now() + 30 * 86400000) },
@@ -96,5 +101,41 @@ describe('GET /api/real-estate/cron/billing — concurrent-run idempotency', () 
     const sub = await prisma.subscription.findUniqueOrThrow({ where: { id: subscriptionId } });
     expect(sub.status).toBe('ACTIVE');
     expect(sub.claimedAt).toBeNull(); // el reclamo se libera al terminar, en cualquiera de los dos resultados
+  });
+
+  // Fase de cierre, puntos 1.1 y 1.2: los dos interruptores de seguridad
+  // recien agregados. Si estos tests fallaran, el interruptor no interrumpe
+  // nada - hay que probarlos, no solo confiar en la lectura del codigo.
+  it('touches nothing and never calls Payphone when BILLING_ENABLED is not "true"', async () => {
+    process.env.BILLING_ENABLED = 'false';
+    const res = await GET(new NextRequest('http://localhost/api/real-estate/cron/billing'));
+    expect(await res.json()).toEqual({ skipped: true, reason: 'disabled' });
+
+    const charges = await prisma.charge.findMany({ where: { subscriptionId } });
+    expect(charges).toHaveLength(0);
+    expect(chargeCallUrls.filter((u) => u.includes('/api/transaction/web'))).toHaveLength(0);
+  });
+
+  it('previews the would-be charge without contacting Payphone or creating a real Charge when BILLING_DRY_RUN is left at its default', async () => {
+    process.env.BILLING_DRY_RUN = 'true';
+    const res = await GET(new NextRequest('http://localhost/api/real-estate/cron/billing'));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.dryRun).toBe(true);
+    expect(json.outcomes.would_charge).toBe(1);
+
+    expect(await prisma.charge.findMany({ where: { subscriptionId } })).toHaveLength(0);
+    expect(chargeCallUrls.filter((u) => u.includes('/api/transaction/web'))).toHaveLength(0);
+
+    const events = await prisma.subscriptionEvent.findMany({ where: { subscriptionId, type: 'dry_run_charge' } });
+    expect(events).toHaveLength(1);
+    const payload = events[0].payload as { wouldSend?: Record<string, unknown> };
+    expect(payload.wouldSend).toBeDefined();
+    expect(payload.wouldSend).not.toHaveProperty('cardToken');
+    expect(payload.wouldSend).not.toHaveProperty('cardHolder');
+
+    const sub = await prisma.subscription.findUniqueOrThrow({ where: { id: subscriptionId } });
+    expect(sub.status).toBe('ACTIVE'); // dry run no cambia el estado real
+    expect(sub.claimedAt).toBeNull();
   });
 });

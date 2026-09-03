@@ -629,6 +629,13 @@ model Charge {
   subscriptionId      String
   periodKey           String
   attempt             Int
+  // Reintentos TECNICOS de este mismo intento (timeout / red caida / HTTP
+  // 5xx de Payphone), contados aparte de `attempt` a proposito: `attempt`
+  // cuenta rechazos REALES del banco y es lo que consume la ventana 0/3/7,
+  // mientras que un timeout no dice nada sobre la tarjeta y no deberia
+  // gastar uno de los tres intentos del agente. Ver
+  // MAX_UNKNOWN_ERROR_RETRIES en subscription-engine.ts.
+  unknownErrorCount   Int          @default(0)
   clientTransactionId String       @unique
   amountCents         Int
   status              ChargeStatus @default(PENDING)

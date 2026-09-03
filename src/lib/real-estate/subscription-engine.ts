@@ -33,6 +33,28 @@ function formatDateEs(date: Date): string {
 export const RETRY_OFFSETS_DAYS = [0, 3, 7] as const;
 export const MAX_ATTEMPTS = RETRY_OFFSETS_DAYS.length;
 
+// Tope de reintentos TECNICOS consecutivos (timeout, red caida, HTTP 5xx de
+// Payphone) sobre un mismo Charge, contados en Charge.unknownErrorCount.
+//
+// Por que existe: un ChargeUnknownError deja el Charge en PENDING y NO toca
+// nextChargeAt, asi que la suscripcion sigue siendo candidata en cada
+// corrida del cron. Sin tope, una caida permanente de Payphone reintenta el
+// mismo id todos los dias para siempre: la suscripcion nunca cobra, nunca
+// vence, y nadie se entera. Con el tope, tras 10 corridas se cierra este
+// intento como ERROR, se emite charge_unknown_exhausted y la suscripcion
+// entra al flujo normal 0/3/7 (PAST_DUE -> reintento dia 3/7 -> EXPIRED).
+//
+// El riesgo que se acepta a cambio: al cerrar el intento se libera un
+// clientTransactionId nuevo para el siguiente, asi que si alguno de los 10
+// intentos SI habia llegado a Payphone y fue aprobado, el siguiente cobro
+// no lo detectaria por error 23 y podria cobrar dos veces. Es un riesgo
+// chico y acotado: si un intento hubiera llegado, el reintento siguiente
+// con el MISMO id habria vuelto con errorCode 23 (-> rama `duplicate`, que
+// frena todo y pide revision manual) en vez de otro unknown error. Diez
+// unknown errors seguidos implican que Payphone no esta respondiendo en
+// absoluto, no que nuestro cobro se perdio despues de entrar.
+export const MAX_UNKNOWN_ERROR_RETRIES = 10;
+
 export type ProcessOutcome =
   | 'approved'
   | 'declined'
@@ -40,6 +62,7 @@ export type ProcessOutcome =
   | 'canceled'
   | 'duplicate'
   | 'unknown_error'
+  | 'unknown_exhausted'
   | 'no_payment_method'
   | 'skipped_already_resolved';
 
@@ -69,6 +92,18 @@ export async function findOrCreateChargeForPeriod(subscriptionId: string, period
     return { charge, isNewAttempt: true };
   }
   if (ultimoIntento.status === 'PENDING') {
+    // isNewAttempt:false = este reintento NO consume uno de los 3 intentos
+    // del periodo, y es a proposito. Un Charge queda PENDING solo cuando no
+    // hubo respuesta de Payphone (timeout / red caida): eso no dice nada
+    // sobre la tarjeta del agente, asi que gastar por eso uno de sus tres
+    // intentos le acortaria la ventana de gracia de 7 dias por un problema
+    // que no es suyo. La ventana 0/3/7 mide rechazos REALES del banco; los
+    // fallos tecnicos se cuentan aparte, en Charge.unknownErrorCount, con
+    // su propio tope (MAX_UNKNOWN_ERROR_RETRIES).
+    //
+    // Ademas se devuelve el MISMO Charge, con el mismo clientTransactionId:
+    // si el intento anterior si habia llegado a Payphone, el reintento
+    // choca con su errorCode 23 en vez de cobrar dos veces.
     return { charge: ultimoIntento, isNewAttempt: false };
   }
   if (ultimoIntento.status === 'APPROVED') {
@@ -187,6 +222,65 @@ export async function sendUpcomingChargeReminders(now: Date): Promise<{ sent: nu
   return { sent, skipped };
 }
 
+export type DryRunOutcome = 'would_charge' | 'would_cancel' | 'skipped_no_payment_method' | 'skipped_already_resolved';
+
+// Modo simulacion (fase de cierre, punto 1.2): la misma lectura que hace
+// processSubscriptionCharge (candidatos, tarjeta, montos) pero SIN llamar a
+// Payphone ni escribir nada mas alla de un SubscriptionEvent de auditoria -
+// a proposito no reutiliza findOrCreateChargeForPeriod/
+// scheduleNextAttemptOrExpire porque esas SI mutan Charge/Subscription/Agent
+// de verdad, y el objetivo aca es "ver a quien le tocaria cobro manana sin
+// arriesgar un centavo", no dejar rastros que la corrida real de manana tenga
+// que deshacer o interpretar.
+export async function simulateSubscriptionCharge(sub: Subscription, now: Date): Promise<DryRunOutcome> {
+  if (sub.cancelAtPeriodEnd) {
+    return 'would_cancel';
+  }
+
+  const periodKey = now.toISOString().slice(0, 7);
+  const ultimoIntento = await prisma.charge.findFirst({
+    where: { subscriptionId: sub.id, periodKey },
+    orderBy: { attempt: 'desc' },
+  });
+  if (ultimoIntento?.status === 'APPROVED') {
+    return 'skipped_already_resolved';
+  }
+
+  const [agent, paymentMethod] = await Promise.all([
+    prisma.agent.findUnique({ where: { id: sub.agentId } }),
+    sub.paymentMethodId ? prisma.paymentMethod.findUnique({ where: { id: sub.paymentMethodId } }) : Promise.resolve(null),
+  ]);
+  if (!agent || !paymentMethod || !paymentMethod.active) {
+    return 'skipped_no_payment_method';
+  }
+
+  const founderTotalCents = sub.priceLocked ? sub.amountCents + sub.taxCents : null;
+  const amounts = getCheckoutAmountsInCents(sub.plan, founderTotalCents);
+  const monthLabel = new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString('es-EC', { month: 'long', year: 'numeric' });
+  const reference = `${getCheckoutReference(sub.plan, 'es')} — ${monthLabel}`;
+  const nextAttempt = !ultimoIntento ? 1 : ultimoIntento.status === 'PENDING' ? ultimoIntento.attempt : ultimoIntento.attempt + 1;
+  const clientTransactionId = buildRecurringClientTransactionId(sub.id, periodKey, nextAttempt);
+
+  // El body "que se habria enviado" a Payphone, sin cardToken ni cardHolder
+  // (punto 1.2 del pedido de cierre) - el resto (documentId/telefono/email/
+  // billTo) no es un secreto de pago, ya vive sin cifrar en Agent/PaymentMethod.
+  const wouldSend = {
+    documentId: paymentMethod.documentId,
+    phoneNumber: paymentMethod.phoneNumber,
+    email: paymentMethod.email,
+    amounts,
+    clientTransactionId,
+    reference,
+    billTo: buildBillToFromAgent(agent, paymentMethod.consentIp),
+  };
+
+  await prisma.subscriptionEvent.create({
+    data: { subscriptionId: sub.id, type: 'dry_run_charge', payload: { periodKey, attempt: nextAttempt, wouldSend } },
+  });
+
+  return 'would_charge';
+}
+
 export async function processSubscriptionCharge(sub: Subscription, gateway: PaymentGateway, now: Date): Promise<ProcessOutcome> {
   // Cancelacion (seccion 5 del pedido: "siempre al final del periodo pagado,
   // nunca inmediata") - si el agente ya pidio cancelar y llegamos a la fecha
@@ -267,9 +361,44 @@ export async function processSubscriptionCharge(sub: Subscription, gateway: Paym
       // Payphone no expone un endpoint de consulta por clientTransactionId
       // (ver nota en gateway.ts), pero SI rechaza un id repetido con
       // errorCode 23, que es la señal que se necesita.
+      const unknownErrorCount = charge.unknownErrorCount + 1;
+      await prisma.charge.update({ where: { id: charge.id }, data: { unknownErrorCount } });
       await prisma.subscriptionEvent.create({
-        data: { subscriptionId: sub.id, type: 'charge_unknown_error', payload: { periodKey, message: err.message } },
+        data: {
+          subscriptionId: sub.id,
+          type: 'charge_unknown_error',
+          payload: { periodKey, attempt: charge.attempt, unknownErrorCount, message: err.message },
+        },
       });
+
+      // Tope alcanzado (ver MAX_UNKNOWN_ERROR_RETRIES): se cierra este
+      // intento como ERROR - no PENDING, para que el proximo intento use un
+      // clientTransactionId nuevo en vez de reintentar el mismo para
+      // siempre - y la suscripcion entra al flujo normal de rechazos
+      // (PAST_DUE con reintento al dia 3/7, o EXPIRED si este ya era el
+      // tercer intento).
+      if (unknownErrorCount >= MAX_UNKNOWN_ERROR_RETRIES) {
+        await prisma.$transaction([
+          prisma.charge.update({
+            where: { id: charge.id },
+            data: {
+              status: 'ERROR',
+              responseMessage: `Sin respuesta de Payphone tras ${unknownErrorCount} reintentos técnicos`,
+              resolvedAt: now,
+            },
+          }),
+          prisma.subscriptionEvent.create({
+            data: {
+              subscriptionId: sub.id,
+              type: 'charge_unknown_exhausted',
+              payload: { periodKey, attempt: charge.attempt, unknownErrorCount },
+            },
+          }),
+        ]);
+        const next = await scheduleNextAttemptOrExpire(sub, charge.attempt, periodKey, now);
+        return next === 'expired' ? 'expired' : 'unknown_exhausted';
+      }
+
       return 'unknown_error';
     }
     throw err;

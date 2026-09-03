@@ -14,7 +14,7 @@ import crypto from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import { ChargeUnknownError, FakeGateway, FakeGatewayResults } from './payments/gateway';
-import { processSubscriptionCharge } from './subscription-engine';
+import { MAX_UNKNOWN_ERROR_RETRIES, processSubscriptionCharge } from './subscription-engine';
 
 const prisma = new PrismaClient();
 
@@ -196,6 +196,41 @@ describe('processSubscriptionCharge (subscription-engine)', () => {
 
     const agent = await prisma.agent.findUniqueOrThrow({ where: { id: agentId } });
     expect(agent.subscriptionStatus).toBe('CANCELED');
+  });
+
+  // Tope de reintentos tecnicos: sin el, un Payphone permanentemente caido
+  // deja la suscripcion reintentando el mismo id todos los dias para
+  // siempre, sin cobrar y sin vencer nunca.
+  it('caps consecutive technical failures at MAX_UNKNOWN_ERROR_RETRIES and then enters the normal 0/3/7 flow', async () => {
+    const sub = await attachPaymentMethod();
+    const gateway = new FakeGateway(() => {
+      throw new ChargeUnknownError('Payphone caido');
+    });
+
+    let current = sub;
+    const outcomes: string[] = [];
+    for (let i = 0; i < MAX_UNKNOWN_ERROR_RETRIES; i++) {
+      outcomes.push(await processSubscriptionCharge(current, gateway, new Date()));
+      current = await prisma.subscription.findUniqueOrThrow({ where: { id: subscriptionId } });
+    }
+
+    // Los primeros 9 no consumen intento ni mueven el estado; el 10mo agota.
+    expect(outcomes.slice(0, MAX_UNKNOWN_ERROR_RETRIES - 1).every((o) => o === 'unknown_error')).toBe(true);
+    expect(outcomes[MAX_UNKNOWN_ERROR_RETRIES - 1]).toBe('unknown_exhausted');
+
+    // Un solo Charge: los reintentos tecnicos nunca crearon intentos nuevos.
+    const charges = await prisma.charge.findMany({ where: { subscriptionId } });
+    expect(charges).toHaveLength(1);
+    expect(charges[0].attempt).toBe(1); // el timeout no consumio intentos de la ventana 0/3/7
+    expect(charges[0].unknownErrorCount).toBe(MAX_UNKNOWN_ERROR_RETRIES);
+    expect(charges[0].status).toBe('ERROR'); // ya no PENDING: libera un id nuevo para el proximo intento
+
+    // Entro al flujo normal: PAST_DUE con el reintento agendado al dia 3.
+    expect(current.status).toBe('PAST_DUE');
+    expect(current.nextChargeAt!.getTime()).toBeGreaterThan(Date.now() + 2 * 86400000);
+
+    const exhausted = await prisma.subscriptionEvent.findMany({ where: { subscriptionId, type: 'charge_unknown_exhausted' } });
+    expect(exhausted).toHaveLength(1);
   });
 
   it('a duplicate (Payphone error 23) never advances the subscription state and stops the same-id retry loop', async () => {
