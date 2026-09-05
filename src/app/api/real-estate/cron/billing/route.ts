@@ -87,6 +87,12 @@ export async function GET(request: NextRequest) {
       status: { in: ['ACTIVE', 'PAST_DUE'] },
       nextChargeAt: { lte: now },
       OR: [{ claimedAt: null }, { claimedAt: { lt: staleClaimBefore } }],
+      // Las cuentas de prueba nunca se cobran, pase lo que pase con su
+      // suscripcion. Se excluyen aca, en la seleccion de candidatos, y no mas
+      // abajo en el bucle: asi ni siquiera llegan a reclamarse ni a generar un
+      // Charge. Ver la nota de isTestAccount en schema.prisma sobre por que es
+      // un campo distinto de isTestUser.
+      agent: { isTestAccount: false },
     },
     take: MAX_SUBSCRIPTIONS_PER_RUN,
     orderBy: { nextChargeAt: 'asc' },

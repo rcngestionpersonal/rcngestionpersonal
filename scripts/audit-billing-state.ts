@@ -71,9 +71,22 @@ async function main() {
     );
   }
 
-  const totalTestAgents = await prisma.agent.count({ where: { isTestUser: true } });
+  // Los dos flags se cuentan por separado a proposito (ver la nota de
+  // isTestAccount en schema.prisma): isTestUser esconde la cuenta del ranking,
+  // isTestAccount le impide ser cobrada. Que los numeros no coincidan no es un
+  // error, pero conviene mirarlo antes de encender la facturacion.
+  const totalTestUsers = await prisma.agent.count({ where: { isTestUser: true } });
+  const totalTestAccounts = await prisma.agent.count({ where: { isTestAccount: true } });
+  const cobrablesMarcadasPrueba = await prisma.agent.count({ where: { isTestUser: true, isTestAccount: false } });
+
+  console.log(`\n=== Cuentas de prueba ===`);
+  console.log(`  isTestAccount=true (excluidas del cobro): ${totalTestAccounts}`);
+  console.log(`  isTestUser=true (ocultas del ranking):    ${totalTestUsers}`);
+  if (cobrablesMarcadasPrueba > 0) {
+    console.log(`  OJO: ${cobrablesMarcadasPrueba} cuenta(s) marcadas isTestUser pero SI cobrables (isTestAccount=false)`);
+  }
+
   console.log(`\n=== Resumen ===`);
-  console.log(`  Agentes de prueba (isTestUser=true): ${totalTestAgents}`);
   console.log(`  Suscripciones totales: ${subs.length}`);
   console.log(`  Con nextChargeAt sembrado: ${conProximoCobro.length}`);
   console.log(`  Con tarjeta guardada: ${conTarjeta.length}`);

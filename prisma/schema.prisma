@@ -93,6 +93,17 @@ model Agent {
   // Cuentas de prueba (QA) creadas durante desarrollo: se excluyen del ranking publico
   // y de los contadores, pero no se borran (conservan el historial de pruebas).
   isTestUser            Boolean            @default(false)
+  // Excluye la cuenta del cron de cobro (ver cron/billing/route.ts): una
+  // cuenta marcada asi NUNCA se cobra, pase lo que pase con su suscripcion.
+  //
+  // Se solapa a proposito con isTestUser pero NO es lo mismo y por eso son dos
+  // campos: isTestUser es un filtro de PRESENTACION (ranking, contadores
+  // publicos) que ya existia, isTestAccount es un freno de DINERO. Separarlos
+  // permite, por ejemplo, una cuenta de demo visible en el ranking a la que
+  // igual no se le cobra. Si en el futuro se decide que siempre van juntos,
+  // consolidarlos es seguro - pero hay que hacerlo a proposito, no por
+  // asumir que uno implica el otro.
+  isTestAccount         Boolean            @default(false)
   photoUrl              String?
   company               String?
   idNumber              String?

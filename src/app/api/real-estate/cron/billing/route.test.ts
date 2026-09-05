@@ -116,6 +116,27 @@ describe('GET /api/real-estate/cron/billing — concurrent-run idempotency', () 
     expect(chargeCallUrls.filter((u) => u.includes('/api/transaction/web'))).toHaveLength(0);
   });
 
+  // Cuentas de prueba: nunca se cobran. El agente de este archivo esta al dia
+  // y vencido (el primer test demuestra que SI se cobraria), asi que lo unico
+  // que cambia aca es la bandera - si el cron igual lo cobrara, la exclusion
+  // no esta funcionando.
+  it('never charges an account flagged as isTestAccount, even when its subscription is due', async () => {
+    await prisma.agent.update({ where: { id: agentId }, data: { isTestAccount: true } });
+
+    const res = await GET(new NextRequest('http://localhost/api/real-estate/cron/billing'));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.candidates).toBe(0); // ni siquiera se considero candidata
+
+    expect(await prisma.charge.findMany({ where: { subscriptionId } })).toHaveLength(0);
+    expect(chargeCallUrls.filter((u) => u.includes('/api/transaction/web'))).toHaveLength(0);
+
+    // La suscripcion queda intacta: excluir no es cancelar ni vencer.
+    const sub = await prisma.subscription.findUniqueOrThrow({ where: { id: subscriptionId } });
+    expect(sub.status).toBe('ACTIVE');
+    expect(sub.nextChargeAt).not.toBeNull();
+  });
+
   it('previews the would-be charge without contacting Payphone or creating a real Charge when BILLING_DRY_RUN is left at its default', async () => {
     process.env.BILLING_DRY_RUN = 'true';
     const res = await GET(new NextRequest('http://localhost/api/real-estate/cron/billing'));
