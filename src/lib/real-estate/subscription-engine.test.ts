@@ -12,11 +12,11 @@
 // seguros de correr en cualquier momento.
 import crypto from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { PrismaClient } from '@prisma/client';
+import { createPrismaClient } from '@/lib/prisma-standalone';
 import { ChargeUnknownError, FakeGateway, FakeGatewayResults } from './payments/gateway';
 import { MAX_UNKNOWN_ERROR_RETRIES, processSubscriptionCharge } from './subscription-engine';
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 function encryptAtRestForTest(plaintext: string): string {
   const key = crypto.createHash('sha256').update(process.env.ENCRYPTION_KEY!).digest();

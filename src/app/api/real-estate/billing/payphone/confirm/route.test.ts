@@ -7,12 +7,12 @@
 // respuesta tardia, sin depender de esperar 5 minutos reales contra Payphone.
 import { NextRequest } from 'next/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { PrismaClient } from '@prisma/client';
+import { createPrismaClient } from '@/lib/prisma-standalone';
 import { signSession, SESSION_COOKIE_NAME } from '@/lib/auth';
 import { buildClientTransactionId } from '@/lib/real-estate/payments/payphone';
 import { POST } from './route';
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 describe('POST /api/real-estate/billing/payphone/confirm — late confirmation (auto-reversal)', () => {
   let agentId: string;

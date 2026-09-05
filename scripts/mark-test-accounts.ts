@@ -10,9 +10,9 @@
 // NO borra nada: las cuentas se conservan porque se necesitan para probar.
 //
 // Correr con: npx tsx --env-file=.env scripts/mark-test-accounts.ts
-import { PrismaClient } from '@prisma/client';
+import { createPrismaClient } from '../src/lib/prisma-standalone';
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 async function main() {
   const porFlagQa = await prisma.agent.updateMany({

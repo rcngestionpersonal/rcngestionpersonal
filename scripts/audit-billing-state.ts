@@ -4,9 +4,9 @@
 // las variables de entorno de produccion cargadas (DATABASE_URL, etc.).
 //
 // Correr con: npx tsx scripts/audit-billing-state.ts
-import { PrismaClient } from '@prisma/client';
+import { createPrismaClient } from '../src/lib/prisma-standalone';
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 function fmtDate(d: Date | null): string {
   return d ? d.toISOString() : '(sin fecha)';

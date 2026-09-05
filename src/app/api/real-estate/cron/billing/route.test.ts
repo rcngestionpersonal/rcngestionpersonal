@@ -13,10 +13,10 @@
 // Subscription real contra la base de Neon (no hay base de test separada).
 import { NextRequest } from 'next/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { PrismaClient } from '@prisma/client';
+import { createPrismaClient } from '@/lib/prisma-standalone';
 import { GET } from './route';
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 function fakePayphoneApprovedResponse() {
   return new Response(
