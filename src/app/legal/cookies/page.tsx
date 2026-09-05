@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { LEGAL_ENTITY, LEGAL_VERSIONS } from '@/lib/real-estate/legal';
 import LegalCrossLinks from '../_components/LegalCrossLinks';
+import LegalEntityBlock from '../_components/LegalEntityBlock';
 
 export const metadata: Metadata = {
   title: 'Aviso de Cookies | Redinmo',
@@ -17,6 +18,8 @@ export default function CookiesPage() {
         </p>
 
         <div className="mt-8 space-y-7 text-sm leading-relaxed text-text-2">
+          <LegalEntityBlock />
+
           <section>
             <p>
               Redinmo usa la mínima cantidad de cookies necesaria para funcionar. No usamos cookies de publicidad ni de

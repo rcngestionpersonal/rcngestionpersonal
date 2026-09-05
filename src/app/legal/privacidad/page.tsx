@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { LEGAL_ENTITY, LEGAL_VERSIONS } from '@/lib/real-estate/legal';
 import LegalCrossLinks from '../_components/LegalCrossLinks';
+import LegalEntityBlock from '../_components/LegalEntityBlock';
 
 export const metadata: Metadata = {
   title: 'Política de Privacidad | Redinmo',
@@ -23,11 +24,10 @@ export default function PrivacidadPage() {
         <div className="mt-8 space-y-7 text-sm leading-relaxed text-text-2">
           <section>
             <h2 className="mb-1.5 text-base font-bold text-text">1. Responsable del tratamiento</h2>
-            <p>
-              El responsable del tratamiento de los datos personales recogidos a través de Redinmo.io es{' '}
-              <strong className="text-text">{LEGAL_ENTITY.razonSocial}</strong> (RUC {LEGAL_ENTITY.ruc}), con domicilio en{' '}
-              {LEGAL_ENTITY.domicilio}, Ecuador. Para cualquier consulta sobre esta política o para ejercer tus derechos,
-              escríbenos a{' '}
+            <LegalEntityBlock />
+            <p className="mt-3">
+              Esa persona natural es el responsable del tratamiento de los datos personales recogidos a través de la
+              plataforma. Para cualquier consulta sobre esta política o para ejercer tus derechos, escríbenos a{' '}
               <a href={`mailto:${LEGAL_ENTITY.correoContacto}`} className="font-semibold text-accent hover:underline">
                 {LEGAL_ENTITY.correoContacto}
               </a>

@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { LEGAL_ENTITY } from '@/lib/real-estate/legal';
 
 type SendEmailInput = {
   to: string;
@@ -24,12 +25,17 @@ export async function sendEmailNotification(input: SendEmailInput): Promise<Send
     return { attempted: false, delivered: false };
   }
 
+  // notificaciones@ solo ENVIA los correos automaticos del sistema; nadie lee
+  // esa bandeja. Por eso el Reply-To apunta al buzon de contacto real
+  // (privacidad@, el mismo que publican las paginas legales): si un agente
+  // responde a un aviso de cobro, su respuesta llega a alguien.
   const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'notificaciones@redinmo.io';
 
   try {
     const resend = new Resend(apiKey);
     const { error } = await resend.emails.send({
-      from: `Redinmo <${fromEmail}>`,
+      from: `${LEGAL_ENTITY.nombreComercial} <${fromEmail}>`,
+      replyTo: LEGAL_ENTITY.correoContacto,
       to: input.to,
       subject: input.subject,
       text: input.text,

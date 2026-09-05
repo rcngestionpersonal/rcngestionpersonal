@@ -3,6 +3,7 @@ import { TRIAL_DAYS } from '@/lib/real-estate/subscription-config';
 import { PLANES, formatUsd } from '@/config/planes';
 import { LEGAL_ENTITY, LEGAL_VERSIONS } from '@/lib/real-estate/legal';
 import LegalCrossLinks from '../_components/LegalCrossLinks';
+import LegalEntityBlock from '../_components/LegalEntityBlock';
 
 export const metadata: Metadata = {
   title: 'Política de Suscripción y Cobros | Redinmo',
@@ -22,6 +23,8 @@ export default function SuscripcionPage() {
         </p>
 
         <div className="mt-8 space-y-7 text-sm leading-relaxed text-text-2">
+          <LegalEntityBlock />
+
           <section>
             <h2 className="mb-1.5 text-base font-bold text-text">1. Planes y precios</h2>
             <p>

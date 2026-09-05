@@ -148,7 +148,7 @@ export function buildPasswordChangedEmail(firstName: string, dateStr: string): {
     [
       `Tu contraseña fue actualizada el ${dateStr}.`,
       '',
-      'Si no fuiste tú, escríbenos de inmediato por WhatsApp o a notificaciones@redinmo.io.',
+      'Si no fuiste tú, escríbenos de inmediato por WhatsApp o a privacidad@redinmo.io.',
     ].join('\n'),
   );
   const html = wrapHtml(

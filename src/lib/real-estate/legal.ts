@@ -7,19 +7,19 @@
 // en su formulario de tokenizacion (seccion 2.5 del pedido de cierre), asi
 // que tienen que coincidir con lo que se declare ahi.
 //
-// OJO con razonSocial: el RUC 1710804954001 es una cedula (1710804954) + 001,
-// es decir formato de PERSONA NATURAL, no de sociedad. Para una persona
-// natural la razon social ante el SRI es el nombre de la persona
-// (representanteLegal), y "Redinmo.io" es el nombre comercial. Se deja tal
-// como lo indico el dueño, pero conviene que el abogado confirme cual de los
-// dos debe figurar en los Terminos antes de publicarlos, porque hoy los
-// Terminos declaran a razonSocial como el operador del servicio.
+// El operador del servicio es una PERSONA NATURAL: el RUC 1710804954001 es
+// una cedula (1710804954) + 001, formato de persona natural, no de sociedad.
+// Por eso razonSocial es el nombre de la persona - que es la razon social
+// ante el SRI y el unico sujeto de derecho que contrae las obligaciones de
+// los Terminos. "Redinmo" es solo el nombre comercial bajo el cual se presta
+// el servicio: NO debe aparecer nunca como la entidad que se obliga.
 export const LEGAL_ENTITY = {
-  razonSocial: 'Redinmo.io',
+  razonSocial: 'Rigoberto Carrera Negrete',
   ruc: '1710804954001',
   nombreComercial: 'Redinmo',
-  domicilio: 'Av. República del Salvador N36-109 y Suecia, Edf. Terrasol, Quito',
+  domicilio: 'Av. República del Salvador N36-109 y Suecia, Edificio Terrasol, Quito',
   representanteLegal: 'Rigoberto Carrera Negrete',
+  telefonoContacto: '+593 96 870 7200',
   // Buzon dedicado de privacidad, distinto del remitente transaccional
   // (notificaciones@, que se usa para ENVIAR y cuyas respuestas nadie lee).
   // Es la direccion que /legal/privacidad publica para ejercer derechos

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { LEGAL_ENTITY, LEGAL_VERSIONS } from '@/lib/real-estate/legal';
 import LegalCrossLinks from '../_components/LegalCrossLinks';
+import LegalEntityBlock from '../_components/LegalEntityBlock';
 
 export const metadata: Metadata = {
   title: 'Términos y Condiciones | Redinmo',
@@ -23,17 +24,10 @@ export default function TerminosPage() {
         <div className="mt-8 space-y-7 text-sm leading-relaxed text-text-2">
           <section>
             <h2 className="mb-1.5 text-base font-bold text-text">1. Quién presta el servicio</h2>
-            <p>
-              Este sitio y el servicio asociado son operados por{' '}
-              <strong className="text-text">{LEGAL_ENTITY.razonSocial}</strong>, con RUC{' '}
-              <strong className="text-text">{LEGAL_ENTITY.ruc}</strong>, representada por{' '}
-              <strong className="text-text">{LEGAL_ENTITY.representanteLegal}</strong>, con domicilio en{' '}
-              <strong className="text-text">{LEGAL_ENTITY.domicilio}</strong>, Ecuador (en adelante, &quot;Redinmo&quot;, &quot;la
-              plataforma&quot; o &quot;nosotros&quot;). Puedes contactarnos en{' '}
-              <a href={`mailto:${LEGAL_ENTITY.correoContacto}`} className="font-semibold text-accent hover:underline">
-                {LEGAL_ENTITY.correoContacto}
-              </a>
-              . Al crear una cuenta o usar la plataforma, aceptas estos Términos y nuestra{' '}
+            <LegalEntityBlock />
+            <p className="mt-3">
+              En adelante nos referimos al operador como &quot;Redinmo&quot;, &quot;la plataforma&quot; o
+              &quot;nosotros&quot;. Al crear una cuenta o usar la plataforma, aceptas estos Términos y nuestra{' '}
               <a href="/legal/privacidad" className="font-semibold text-accent hover:underline">
                 Política de Privacidad
               </a>
@@ -97,7 +91,8 @@ export default function TerminosPage() {
           <section>
             <h2 className="mb-1.5 text-base font-bold text-text">6. Propiedad intelectual</h2>
             <p>
-              El software, diseño, marca, logotipos y demás elementos de Redinmo.io son propiedad de {LEGAL_ENTITY.razonSocial}{' '}
+              El software, diseño, marca, logotipos y demás elementos de la plataforma son propiedad de{' '}
+              {LEGAL_ENTITY.razonSocial}{' '}
               o de sus licenciantes. Se te concede una licencia limitada, no exclusiva e intransferible para usar la plataforma
               conforme a estos Términos, mientras tu cuenta esté activa. El contenido que tú cargas (inmuebles, fotos, pedidos)
               sigue siendo tuyo o de quien corresponda; al publicarlo, nos concedes una licencia para almacenarlo, mostrarlo y

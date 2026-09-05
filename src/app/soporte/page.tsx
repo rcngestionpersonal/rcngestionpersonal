@@ -12,8 +12,8 @@ export default function SoportePage() {
         <h1 className="mt-3 text-2xl font-extrabold">En construcción</h1>
         <p className="mt-2 text-sm text-text-2">
           El canal de soporte directo todavía está en construcción. Mientras tanto, escríbenos a{' '}
-          <a href="mailto:notificaciones@redinmo.io" className="font-bold text-accent hover:underline">
-            notificaciones@redinmo.io
+          <a href="mailto:privacidad@redinmo.io" className="font-bold text-accent hover:underline">
+            privacidad@redinmo.io
           </a>{' '}
           y te respondemos lo antes posible.
         </p>
