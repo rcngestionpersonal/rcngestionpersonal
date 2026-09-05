@@ -15,7 +15,11 @@ export const LEGAL_ENTITY = {
   nombreComercial: 'Redinmo',
   domicilio: '[DOMICILIO FISCAL — COMPLETAR]',
   representanteLegal: '[REPRESENTANTE LEGAL — COMPLETAR]',
-  correoContacto: 'notificaciones@redinmo.io',
+  // Buzon dedicado de privacidad, distinto del remitente transaccional
+  // (notificaciones@, que se usa para ENVIAR y cuyas respuestas nadie lee).
+  // Es la direccion que /legal/privacidad publica para ejercer derechos
+  // ARCO, asi que tiene que existir y estar atendida de verdad.
+  correoContacto: 'privacidad@redinmo.io',
   sitioWeb: 'https://redinmo.io',
 };
 
