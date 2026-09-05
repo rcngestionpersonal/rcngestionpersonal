@@ -1,20 +1,20 @@
-# Procedimiento de brechas de seguridad — Redinmo
+# Procedimiento de brechas de seguridad — Redinmo.io
 
 > Documento interno, no público (fase de cierre, punto 2.4). Qué hacer, a
 > quién notificar y en qué plazo si se filtran o comprometen datos
-> personales tratados por Redinmo. Un abogado debe confirmar los plazos
+> personales tratados por Redinmo.io. Un abogado debe confirmar los plazos
 > exactos que exige la LOPDP y su reglamento antes de que este documento se
 > use como referencia operativa real ante un incidente.
 
 ## Qué cuenta como brecha
 
-Cualquier evento que exponga, altere sin autorización, destruya o vuelva inaccesible un dato personal tratado por Redinmo. Ejemplos concretos dado el sistema actual:
+Cualquier evento que exponga, altere sin autorización, destruya o vuelva inaccesible un dato personal tratado por Redinmo.io. Ejemplos concretos dado el sistema actual:
 
 - Acceso no autorizado a la base de datos (Neon) o a las variables de entorno de producción (Vercel).
 - Filtración del valor de `ENCRYPTION_KEY` (compromete todos los tokens de tarjeta cifrados en reposo — ver `src/lib/real-estate/payments/encryption.ts`) o de `PAYPHONE_CODING_PASSWORD`.
 - Un endpoint que exponga datos de un agente a otro por error (por ejemplo, un fallo de autorización en una API).
 - Pérdida o robo de un dispositivo con acceso a credenciales de producción.
-- Un tercero (Payphone, Neon, Vercel, Resend) reporta su propia brecha que involucra datos de Redinmo.
+- Un tercero (Payphone, Neon, Vercel, Resend) reporta su propia brecha que involucra datos de Redinmo.io.
 
 ## Pasos inmediatos (primeras horas)
 

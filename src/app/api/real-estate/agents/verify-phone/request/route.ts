@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     if (agent.email) {
       const result = await sendEmailNotification({
         to: agent.email,
-        subject: 'Tu código de verificación - Redinmo',
+        subject: 'Tu código de verificación - Redinmo.io',
         text: `Hola ${agent.fullName}, tu código de verificación de teléfono es: ${code}. Vence en 10 minutos.`,
       });
       emailed = result.delivered;

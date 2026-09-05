@@ -7,9 +7,9 @@ import { levelColorFor } from '@/lib/real-estate/points';
 import { zoneLabel } from '@/lib/real-estate/quito-zones';
 
 export const DEFAULT_CARNET_MESSAGE_ES =
-  'Hola {nombre} 👋 Encontré tu Carnet de Agente en Redinmo ✦ Me gustaría conversar contigo sobre un tema inmobiliario 🏡 ¿Cuándo tienes disponibilidad? 📅';
+  'Hola {nombre} 👋 Encontré tu Carnet de Agente en Redinmo.io ✦ Me gustaría conversar contigo sobre un tema inmobiliario 🏡 ¿Cuándo tienes disponibilidad? 📅';
 export const DEFAULT_CARNET_MESSAGE_EN =
-  "Hi {nombre} 👋 I found your Agent Card on Redinmo ✦ I'd like to talk to you about a real estate matter 🏡 When are you available? 📅";
+  "Hi {nombre} 👋 I found your Agent Card on Redinmo.io ✦ I'd like to talk to you about a real estate matter 🏡 When are you available? 📅";
 
 function onlyDigits(phone: string): string {
   return phone.replace(/[^\d]/g, '');
@@ -117,7 +117,7 @@ export function BrokerCard({
       <div className="pointer-events-none absolute -right-6 -top-6 h-36 w-36 rounded-full border border-accent-line" />
 
       <p className="relative text-[10px] font-extrabold uppercase tracking-[0.18em] text-text-3">
-        <span className="text-accent">✦ REDINMO</span> · {t('ranking.carnet.tipo').replace('· ', '')}
+        <span className="text-accent">✦ REDINMO.IO</span> · {t('ranking.carnet.tipo').replace('· ', '')}
       </p>
 
       <div className="relative mt-4 flex justify-center">
@@ -169,7 +169,7 @@ export function BrokerCard({
         ) : (
           <>
             <MiniStat value={String(data.cierres)} label={t('ranking.carnet.cierresLabel')} />
-            <MiniStat value={String(data.joinYear)} label={lang === 'es' ? 'EN REDINMO' : 'ON REDINMO'} />
+            <MiniStat value={String(data.joinYear)} label={lang === 'es' ? 'EN REDINMO.IO' : 'ON REDINMO.IO'} />
             <MiniStat value={String(data.listingsActive)} label={lang === 'es' ? 'INMUEBLES ACTIVOS' : 'ACTIVE LISTINGS'} />
           </>
         )}

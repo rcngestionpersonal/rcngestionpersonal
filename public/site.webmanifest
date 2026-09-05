@@ -1,6 +1,6 @@
 {
-  "name": "Redinmo",
-  "short_name": "Redinmo",
+  "name": "Redinmo.io",
+  "short_name": "Redinmo.io",
   "description": "El hub que conecta inmuebles y pedidos de agentes",
   "icons": [
     { "src": "/favicon-192x192.png", "sizes": "192x192", "type": "image/png" },

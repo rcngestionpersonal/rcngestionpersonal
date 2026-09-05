@@ -6,7 +6,7 @@ import { levelColorFor } from '@/lib/real-estate/points';
 import { zoneLabel } from '@/lib/real-estate/quito-zones';
 
 export const metadata: Metadata = {
-  title: 'Carnet de Agente | Redinmo',
+  title: 'Carnet de Agente | Redinmo.io',
   robots: { index: false, follow: false },
 };
 
@@ -68,7 +68,7 @@ export default async function PublicCarnetPage({ params }: { params: Promise<{ s
     return (
       <main className="flex min-h-screen items-center justify-center bg-bg px-4 text-center text-text">
         <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-accent">✦ Redinmo</p>
+          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-accent">✦ Redinmo.io</p>
           <h1 className="mt-3 text-xl font-bold">Carnet no encontrado</h1>
           <p className="mt-2 text-sm text-text-2">Este enlace de verificación no corresponde a ningún agente activo.</p>
         </div>
@@ -104,7 +104,7 @@ export default async function PublicCarnetPage({ params }: { params: Promise<{ s
         <div className="pointer-events-none absolute -right-4 -top-4 h-28 w-28 rounded-full border border-accent-line" />
 
         <p className="relative text-[10px] font-extrabold uppercase tracking-[0.18em] text-text-3">
-          <span className="text-accent">✦ REDINMO</span> · CARNET DE AGENTE
+          <span className="text-accent">✦ REDINMO.IO</span> · CARNET DE AGENTE
         </p>
 
         <div className="relative mt-5 flex justify-center">
@@ -133,7 +133,7 @@ export default async function PublicCarnetPage({ params }: { params: Promise<{ s
               verified ? 'border-accent-line bg-accent-dim text-accent' : 'border-line bg-surface-2 text-text-3'
             }`}
           >
-            {verified ? '✓ Agente Verificado en Redinmo' : 'No verificado'}
+            {verified ? '✓ Agente Verificado en Redinmo.io' : 'No verificado'}
           </span>
           <span
             className="inline-flex items-center gap-1 rounded-full border border-brand-line bg-brand-dim px-2.5 py-1 text-[10px] font-bold"
@@ -150,7 +150,7 @@ export default async function PublicCarnetPage({ params }: { params: Promise<{ s
         </p>
         {!vigente ? <p className="relative mt-4 text-[11px] font-semibold text-text-3">Este carnet no está vigente actualmente.</p> : null}
 
-        <p className="relative mt-3 text-[10.5px] text-text-3">Agente en Redinmo desde {joinYear}</p>
+        <p className="relative mt-3 text-[10.5px] text-text-3">Agente en Redinmo.io desde {joinYear}</p>
       </div>
 
       <p className="mt-6 text-[10px] text-text-3">

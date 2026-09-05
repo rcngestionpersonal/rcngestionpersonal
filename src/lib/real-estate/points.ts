@@ -42,8 +42,8 @@ export const POINT_ACTIONS: Record<PointActionKey, PointActionDef> = {
     points: 40,
     labelEs: 'Un colega se registra con tu invitación',
     labelEn: 'A colleague signs up with your invitation',
-    pastLabelEs: 'Invitaste a un colega a Redinmo',
-    pastLabelEn: 'You invited a colleague to Redinmo',
+    pastLabelEs: 'Invitaste a un colega a Redinmo.io',
+    pastLabelEn: 'You invited a colleague to Redinmo.io',
     icon: '🎁',
   },
   STREAK_3_MONTHS_BONUS: {

@@ -224,8 +224,8 @@ function PagarSuscripcionContent() {
                           />
                           <span>
                             {lang === 'es'
-                              ? 'Acepto que Redinmo guarde un identificador de mi tarjeta y me cobre automáticamente el monto de mi plan cada 30 días. Puedo cancelar cuando quiera desde mi cuenta.'
-                              : 'I agree that Redinmo saves a token for my card and automatically charges my plan every 30 days. I can cancel anytime from my account.'}
+                              ? 'Acepto que Redinmo.io guarde un identificador de mi tarjeta y me cobre automáticamente el monto de mi plan cada 30 días. Puedo cancelar cuando quiera desde mi cuenta.'
+                              : 'I agree that Redinmo.io saves a token for my card and automatically charges my plan every 30 days. I can cancel anytime from my account.'}
                           </span>
                         </label>
                         {checkoutError ? <p className="text-center text-xs text-danger">{checkoutError}</p> : null}

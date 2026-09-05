@@ -93,7 +93,7 @@ export default function VerificarTelefonoPage() {
             </p>
             <h1 className="gradient-text text-2xl font-bold leading-tight sm:text-3xl">Verifica tu teléfono</h1>
             <p className="max-w-xl text-sm text-text-2">
-              Confirma tu número para activar la insignia de confianza y proteger la comunidad de agentes Redinmo.
+              Confirma tu número para activar la insignia de confianza y proteger la comunidad de agentes Redinmo.io.
             </p>
           </div>
         </section>

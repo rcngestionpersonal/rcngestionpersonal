@@ -70,7 +70,7 @@ export default function CarnetShareModal({
       const file = new File([blob], 'carnet-redinmo.png', { type: 'image/png' });
 
       if (typeof navigator !== 'undefined' && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'Redinmo' });
+        await navigator.share({ files: [file], title: 'Redinmo.io' });
       } else {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

@@ -1,4 +1,4 @@
-const SIGNATURE = '\n\nUn saludo cordial,\nEl equipo de Redinmo | Broker Hub 🏠';
+const SIGNATURE = '\n\nUn saludo cordial,\nEl equipo de Redinmo.io | Broker Hub 🏠';
 
 function wrap(greeting: string, body: string, cta?: { label: string; url: string }): string {
   const ctaBlock = cta ? `\n\n👉 ${cta.label}: ${cta.url}` : '';
@@ -7,11 +7,11 @@ function wrap(greeting: string, body: string, cta?: { label: string; url: string
 
 export function buildWelcomeEmail(agentName: string, appUrl: string): { subject: string; text: string } {
   return {
-    subject: '🏠 ¡Bienvenido/a a Redinmo | Broker Hub!',
+    subject: '🏠 ¡Bienvenido/a a Redinmo.io | Broker Hub!',
     text: wrap(
       `Hola ${agentName},`,
       [
-        'Qué gusto tenerte en Redinmo | Broker Hub. Tu cuenta ya está activa y lista para ayudarte a cerrar más negocios inmobiliarios.',
+        'Qué gusto tenerte en Redinmo.io | Broker Hub. Tu cuenta ya está activa y lista para ayudarte a cerrar más negocios inmobiliarios.',
         '',
         'Para que la plataforma sea cada vez más valiosa para toda la comunidad, te invitamos a seguir alimentándola:',
         '• Carga los inmuebles que tengas disponibles.',
@@ -34,7 +34,7 @@ export function buildMatchCreatedEmail(input: {
   appUrl: string;
 }): { subject: string; text: string } {
   return {
-    subject: `🤝 Tienes un nuevo match (${input.score.toFixed(0)}%) en Redinmo`,
+    subject: `🤝 Tienes un nuevo match (${input.score.toFixed(0)}%) en Redinmo.io`,
     text: wrap(
       `Hola ${input.recipientName},`,
       [
@@ -85,7 +85,7 @@ function wrapHtml(title: string, bodyHtml: string, cta?: { label: string; url: s
   <body style="margin:0;padding:32px 16px;background:#faf9fd;font-family:'Plus Jakarta Sans',Arial,sans-serif;">
     <div style="max-width:480px;margin:0 auto;background:#ffffff;border:1px solid #e6e1f2;border-radius:16px;padding:32px 28px;">
       <p style="margin:0 0 22px;font-size:13px;font-weight:600;letter-spacing:0.04em;">
-        <span style="color:#0d9488;">✦</span> <span style="color:#1a1330;">REDINMO</span>
+        <span style="color:#0d9488;">✦</span> <span style="color:#1a1330;">REDINMO.IO</span>
       </p>
       <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1a1330;">${title}</h1>
       <div style="font-size:14.5px;line-height:1.6;color:#635a80;">${bodyHtml}</div>
@@ -100,11 +100,11 @@ function wrapHtml(title: string, bodyHtml: string, cta?: { label: string; url: s
 }
 
 export function buildPasswordResetEmail(firstName: string, link: string): { subject: string; text: string; html: string } {
-  const subject = 'Restablece tu contraseña de Redinmo';
+  const subject = 'Restablece tu contraseña de Redinmo.io';
   const text = wrap(
     `Hola ${firstName},`,
     [
-      'Recibimos una solicitud para restablecer la contraseña de tu cuenta en Redinmo.',
+      'Recibimos una solicitud para restablecer la contraseña de tu cuenta en Redinmo.io.',
       'Usa el siguiente enlace para crear una nueva. El enlace vence en 30 minutos y solo puede usarse una vez.',
       '',
       'Si no solicitaste este cambio, ignora este correo: tu contraseña actual sigue activa.',
@@ -114,18 +114,18 @@ export function buildPasswordResetEmail(firstName: string, link: string): { subj
   const html = wrapHtml(
     'Restablece tu contraseña',
     `<p style="margin:0 0 8px;">Hola ${firstName},</p>
-     <p style="margin:0;">Recibimos una solicitud para restablecer la contraseña de tu cuenta en Redinmo. Toca el botón para crear una nueva. El enlace vence en 30 minutos y solo puede usarse una vez.</p>`,
+     <p style="margin:0;">Recibimos una solicitud para restablecer la contraseña de tu cuenta en Redinmo.io. Toca el botón para crear una nueva. El enlace vence en 30 minutos y solo puede usarse una vez.</p>`,
     { label: 'Crear nueva contraseña', url: link },
   );
   return { subject, text, html };
 }
 
 export function buildEmailChangeVerificationEmail(firstName: string, link: string): { subject: string; text: string; html: string } {
-  const subject = 'Confirma tu nuevo correo en Redinmo';
+  const subject = 'Confirma tu nuevo correo en Redinmo.io';
   const text = wrap(
     `Hola ${firstName},`,
     [
-      'Pediste cambiar el correo de tu cuenta de Redinmo a esta dirección.',
+      'Pediste cambiar el correo de tu cuenta de Redinmo.io a esta dirección.',
       'Usa el siguiente enlace para confirmarlo. El enlace vence en 30 minutos y solo puede usarse una vez. Tu correo actual sigue funcionando hasta que confirmes el nuevo.',
       '',
       'Si no pediste este cambio, ignora este correo: tu correo actual no se modifica.',
@@ -135,14 +135,14 @@ export function buildEmailChangeVerificationEmail(firstName: string, link: strin
   const html = wrapHtml(
     'Confirma tu nuevo correo',
     `<p style="margin:0 0 8px;">Hola ${firstName},</p>
-     <p style="margin:0;">Pediste cambiar el correo de tu cuenta de Redinmo a esta dirección. Toca el botón para confirmarlo. El enlace vence en 30 minutos y solo puede usarse una vez. Tu correo actual sigue funcionando hasta que confirmes el nuevo.</p>`,
+     <p style="margin:0;">Pediste cambiar el correo de tu cuenta de Redinmo.io a esta dirección. Toca el botón para confirmarlo. El enlace vence en 30 minutos y solo puede usarse una vez. Tu correo actual sigue funcionando hasta que confirmes el nuevo.</p>`,
     { label: 'Confirmar nuevo correo', url: link },
   );
   return { subject, text, html };
 }
 
 export function buildPasswordChangedEmail(firstName: string, dateStr: string): { subject: string; text: string; html: string } {
-  const subject = 'Tu contraseña de Redinmo fue actualizada';
+  const subject = 'Tu contraseña de Redinmo.io fue actualizada';
   const text = wrap(
     `Hola ${firstName},`,
     [
@@ -170,19 +170,19 @@ export function buildTrialReminderEmail(
   const copy =
     daysLeft === 7
       ? {
-          subject: '⏳ Te quedan 7 días de prueba gratuita en Redinmo',
-          lead: 'Tu prueba gratuita de Redinmo termina en 7 días.',
+          subject: '⏳ Te quedan 7 días de prueba gratuita en Redinmo.io',
+          lead: 'Tu prueba gratuita de Redinmo.io termina en 7 días.',
           detail: 'Para no perder acceso a tus inmuebles, pedidos y matches, activa tu suscripción cuando quieras: solo toma un minuto.',
         }
       : daysLeft === 2
         ? {
             subject: '⏳ Tu prueba gratuita termina en 2 días',
-            lead: 'Tu prueba gratuita de Redinmo termina en 2 días.',
+            lead: 'Tu prueba gratuita de Redinmo.io termina en 2 días.',
             detail: 'Activa tu suscripción ahora para seguir recibiendo matches de tus colegas sin interrupciones.',
           }
         : {
             subject: 'Tu prueba gratuita terminó — activa tu suscripción',
-            lead: 'Tu prueba gratuita de Redinmo ya terminó.',
+            lead: 'Tu prueba gratuita de Redinmo.io ya terminó.',
             detail: 'Activa tu suscripción para recuperar el acceso completo a la plataforma: tus inmuebles, pedidos y matches siguen ahí, esperándote.',
           };
 
@@ -206,7 +206,7 @@ export function buildPriceChangeNoticeEmail(input: {
   effectiveDateStr: string;
   appUrl: string;
 }): { subject: string; text: string; html: string } {
-  const lead = `El precio del plan ${input.planNombre} de Redinmo cambiará a $${input.newTotalUsd} a partir del ${input.effectiveDateStr}.`;
+  const lead = `El precio del plan ${input.planNombre} de Redinmo.io cambiará a $${input.newTotalUsd} a partir del ${input.effectiveDateStr}.`;
   const detail = 'Este aviso cumple con el plazo de 30 días establecido en nuestros Términos y Condiciones. El nuevo precio se aplicará recién en esa fecha, nunca antes.';
   const text = wrap(`Hola ${input.agentName},`, [lead, '', detail].join('\n'), { label: 'Ver mi suscripción', url: `${input.appUrl}/agentes/suscripcion/planes` });
   const html = wrapHtml(
@@ -317,7 +317,7 @@ export function buildSubscriptionExpiredEmail(input: {
   agentName: string;
   appUrl: string;
 }): { subject: string; text: string; html: string } {
-  const lead = 'Tu suscripción a Redinmo pasó a modo lectura tras no poder cobrar tu tarjeta.';
+  const lead = 'Tu suscripción a Redinmo.io pasó a modo lectura tras no poder cobrar tu tarjeta.';
   const detail = 'Tus inmuebles, pedidos y datos siguen intactos - nunca se elimina información por falta de pago. Reactiva tu suscripción cuando quieras para volver a generar matches y recibir avisos.';
   const url = `${input.appUrl}/agentes/suscripcion`;
   const text = wrap(`Hola ${input.agentName},`, [lead, '', detail].join('\n'), { label: 'Reactivar mi suscripción', url });

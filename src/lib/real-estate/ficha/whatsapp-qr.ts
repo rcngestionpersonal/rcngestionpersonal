@@ -19,6 +19,6 @@ export async function buildFichaWhatsappQrDataUri(phone: string, message: string
 
 export function fichaWhatsappMessage(input: { agentFirstName: string; propertyTypeLabel: string; sectorLine: string; lang: 'es' | 'en' }): string {
   return input.lang === 'es'
-    ? `Hola ${input.agentFirstName} 👋 Vi tu ficha de "${input.propertyTypeLabel} en ${input.sectorLine}" en Redinmo y me interesa. ¿Me das más información?`
-    : `Hi ${input.agentFirstName} 👋 I saw your listing sheet for "${input.propertyTypeLabel} in ${input.sectorLine}" on Redinmo and I'm interested. Could you share more details?`;
+    ? `Hola ${input.agentFirstName} 👋 Vi tu ficha de "${input.propertyTypeLabel} en ${input.sectorLine}" en Redinmo.io y me interesa. ¿Me das más información?`
+    : `Hi ${input.agentFirstName} 👋 I saw your listing sheet for "${input.propertyTypeLabel} in ${input.sectorLine}" on Redinmo.io and I'm interested. Could you share more details?`;
 }

@@ -565,7 +565,7 @@ export async function requestPhoneOtp(agentId: string): Promise<{ code: string; 
   if (updated.email) {
     await sendEmailNotification({
       to: updated.email,
-      subject: 'Tu codigo de verificacion - Redinmo',
+      subject: 'Tu codigo de verificacion - Redinmo.io',
       text: `Hola ${updated.fullName}, tu codigo de verificacion de telefono es: ${code}. Vence en 10 minutos.`,
     });
   }

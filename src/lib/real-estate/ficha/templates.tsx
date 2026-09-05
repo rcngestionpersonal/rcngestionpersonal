@@ -112,7 +112,7 @@ function BrandMark({ color, size = 14 }: { color: string; size?: number }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: Math.round(size * 0.4) }}>
       <IconSparkleFilled size={size} color={color} />
-      <span style={{ fontSize: size, fontWeight: 800, letterSpacing: 1, color }}>REDINMO</span>
+      <span style={{ fontSize: size, fontWeight: 800, letterSpacing: 1, color }}>REDINMO.IO</span>
     </div>
   );
 }
@@ -711,7 +711,7 @@ export function fichaA4Page({
         <BrandMark color={palette.text3} size={10.5} />
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
           <span style={{ fontSize: 10.5, fontWeight: 500, color: palette.text3, textAlign: 'right' }}>
-            {lang === 'es' ? 'Ficha generada en Redinmo, la red de agentes inmobiliarios verificados.' : 'Sheet generated on Redinmo, the network of verified real estate agents.'}
+            {lang === 'es' ? 'Ficha generada en Redinmo.io, la red de agentes inmobiliarios verificados.' : 'Sheet generated on Redinmo.io, the network of verified real estate agents.'}
           </span>
           {version === 'colega' ? (
             <span style={{ fontSize: 10.5, fontWeight: 700, color: palette.teal, textAlign: 'right' }}>

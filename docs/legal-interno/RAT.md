@@ -1,4 +1,4 @@
-# Registro de Actividades de Tratamiento (RAT) — Redinmo
+# Registro de Actividades de Tratamiento (RAT) — Redinmo.io
 
 > Documento interno, no público (fase de cierre, punto 2.4). Obligación
 > concreta de la Ley Orgánica de Protección de Datos Personales del Ecuador
@@ -8,7 +8,7 @@
 > nuevo). Un abogado debe revisar la base legal asignada a cada actividad
 > antes de considerar este documento definitivo.
 
-**Responsable del tratamiento:** Redinmo.io, RUC 1710804954001, representada por Rigoberto Carrera Negrete, domicilio en Av. República del Salvador N36-109 y Suecia, Edf. Terrasol, Quito, Ecuador. Contacto: privacidad@redinmo.io.
+**Responsable del tratamiento:** Rigoberto Carrera Negrete, persona natural con RUC 1710804954001, domicilio en Av. República del Salvador N36-109 y Suecia, Edificio Terrasol, Quito, Ecuador. Redinmo.io es el nombre comercial bajo el cual se presta el servicio. Contacto: privacidad@redinmo.io · +593 96 870 7200.
 
 **Última actualización:** 2026-09-02 (corresponde a la versión 2026-09-02 de `/legal/privacidad`, ver `src/lib/real-estate/legal.ts`).
 
@@ -34,7 +34,7 @@
 | Campo | Detalle |
 |---|---|
 | Finalidad | Confirmar que el agente es quien dice ser y que su licencia/actividad es real, para mantener la confianza de la comunidad (carnet de agente, verificación pública). |
-| Base legal | Interés legítimo de Redinmo y de los demás agentes/clientes de la plataforma. |
+| Base legal | Interés legítimo de Redinmo.io y de los demás agentes/clientes de la plataforma. |
 | Categorías de datos | Cédula o RUC, número de licencia profesional, años de experiencia (autodeclarados). |
 | Categoría de titulares | Agentes inmobiliarios. |
 | Destinatarios/encargados | Ninguno externo — tratamiento interno. El carnet público (`/v/[slug]`) muestra únicamente nombre, foto y estado de verificación, nunca la cédula completa. |
@@ -49,7 +49,7 @@
 | Finalidad | Permitir que el agente publique y gestione sus inmuebles dentro de la plataforma. |
 | Base legal | Ejecución del contrato de servicio. |
 | Categorías de datos | Dirección, características, fotografías y precio del inmueble. El agente declara en los Términos contar con autorización del propietario para publicarlo. |
-| Categoría de titulares | Propietarios de los inmuebles (terceros respecto de Redinmo — ver actividad 4 sobre el mismo problema con clientes finales). |
+| Categoría de titulares | Propietarios de los inmuebles (terceros respecto de Redinmo.io — ver actividad 4 sobre el mismo problema con clientes finales). |
 | Destinatarios/encargados | Neon (almacenamiento), Vercel Blob (fotografías). |
 | Transferencia internacional | Sí. |
 | Plazo de conservación | Mientras el inmueble o la cuenta del agente estén activos. |
@@ -60,13 +60,13 @@
 | Campo | Detalle |
 |---|---|
 | Finalidad | Registrar la búsqueda de un cliente del agente para poder cruzarla (match) contra inmuebles disponibles. |
-| Base legal | Consentimiento del cliente final, obtenido y declarado por el agente que carga el dato (Términos, sección 4: "el agente declara contar con la autorización de ese cliente"). Redinmo no tiene relación directa con este titular. |
+| Base legal | Consentimiento del cliente final, obtenido y declarado por el agente que carga el dato (Términos, sección 4: "el agente declara contar con la autorización de ese cliente"). Redinmo.io no tiene relación directa con este titular. |
 | Categorías de datos | Nombre, teléfono y preferencias de búsqueda del cliente del agente. |
-| Categoría de titulares | Clientes finales de los agentes — terceros que nunca aceptaron los Términos de Redinmo directamente. |
+| Categoría de titulares | Clientes finales de los agentes — terceros que nunca aceptaron los Términos de Redinmo.io directamente. |
 | Destinatarios/encargados | Neon (almacenamiento), y el/los agente(s) con quienes se genere un match. |
 | Transferencia internacional | Sí. |
 | Plazo de conservación | Mientras el pedido o la cuenta del agente que lo cargó estén activos. |
-| Riesgo específico | Es la actividad de mayor riesgo del RAT: el titular no interactúa con Redinmo. Mitigación actual: obligación contractual al agente (Términos sección 4) de contar con autorización previa. **Pendiente de evaluar con el abogado**: si conviene además una casilla de confirmación explícita en el formulario de carga de pedidos. |
+| Riesgo específico | Es la actividad de mayor riesgo del RAT: el titular no interactúa con Redinmo.io. Mitigación actual: obligación contractual al agente (Términos sección 4) de contar con autorización previa. **Pendiente de evaluar con el abogado**: si conviene además una casilla de confirmación explícita en el formulario de carga de pedidos. |
 | Sistema | Modelo `Opportunity`. |
 
 ## 5. Matching entre agentes
@@ -93,7 +93,7 @@
 | Destinatarios/encargados | **Payphone** (procesador de pago — encargado del tratamiento del dato de tarjeta en sí). Neon (almacenamiento del token cifrado y del historial). |
 | Transferencia internacional | Sí (Payphone opera en Ecuador; Neon/Vercel en EE.UU.). |
 | Plazo de conservación | Historial de cobros conservado indefinidamente por motivos contables/tributarios (Ecuador exige conservar comprobantes; confirmar plazo exacto con el abogado/contador). El token de tarjeta se conserva mientras el método de pago esté activo; se puede desactivar (`PaymentMethod.active=false`) sin borrar el historial de cobros ya realizados. |
-| Medidas de seguridad | Token cifrado en reposo con AES-256-GCM, clave propia (`ENCRYPTION_KEY`) distinta de la que usa Payphone para el campo `cardHolder` — ver `src/lib/real-estate/payments/encryption.ts`. Redinmo nunca ve ni almacena el número completo de tarjeta. |
+| Medidas de seguridad | Token cifrado en reposo con AES-256-GCM, clave propia (`ENCRYPTION_KEY`) distinta de la que usa Payphone para el campo `cardHolder` — ver `src/lib/real-estate/payments/encryption.ts`. Redinmo.io nunca ve ni almacena el número completo de tarjeta. |
 | Sistema | Modelos `Subscription`, `PaymentMethod`, `Charge`, `SubscriptionEvent`. |
 
 ## 7. Notificaciones transaccionales
@@ -141,7 +141,7 @@
 
 | Proveedor | Rol | Datos que procesa |
 |---|---|---|
-| Payphone | Procesador de pago | Datos de tarjeta completos (Redinmo nunca los ve), identidad del pagador |
+| Payphone | Procesador de pago | Datos de tarjeta completos (Redinmo.io nunca los ve), identidad del pagador |
 | Neon | Base de datos | Todos los datos listados arriba |
 | Vercel | Hosting + Blob storage | Todos los datos en tránsito; fotografías de inmuebles |
 | Resend | Envío de correo | Correo electrónico, nombre, contenido del mensaje |

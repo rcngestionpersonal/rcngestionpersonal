@@ -18,7 +18,7 @@ const ENTITY_TYPE = 'password_reset';
 // corresponde a una cuenta real, si tiene correo, o si esta bloqueado por rate
 // limit - toda la logica condicional ocurre puertas adentro.
 const NEUTRAL_MESSAGE =
-  'Si el dato corresponde a una cuenta de Redinmo, te enviamos un enlace para restablecer tu contraseña. Revisa tu correo (y la carpeta de spam).';
+  'Si el dato corresponde a una cuenta de Redinmo.io, te enviamos un enlace para restablecer tu contraseña. Revisa tu correo (y la carpeta de spam).';
 
 function firstNameOf(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] ?? fullName;

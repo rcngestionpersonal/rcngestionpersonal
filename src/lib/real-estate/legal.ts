@@ -16,7 +16,7 @@
 export const LEGAL_ENTITY = {
   razonSocial: 'Rigoberto Carrera Negrete',
   ruc: '1710804954001',
-  nombreComercial: 'Redinmo',
+  nombreComercial: 'Redinmo.io',
   domicilio: 'Av. República del Salvador N36-109 y Suecia, Edificio Terrasol, Quito',
   representanteLegal: 'Rigoberto Carrera Negrete',
   telefonoContacto: '+593 96 870 7200',

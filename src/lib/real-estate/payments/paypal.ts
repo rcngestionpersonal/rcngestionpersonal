@@ -70,7 +70,7 @@ export async function createPaypalSubscription(agent: {
         email_address: agent.email ?? undefined,
       },
       application_context: {
-        brand_name: 'Redinmo | Broker Hub',
+        brand_name: 'Redinmo.io | Broker Hub',
         return_url: `${appUrl}/?billing=success`,
         cancel_url: `${appUrl}/?billing=cancel`,
         user_action: 'SUBSCRIBE_NOW',

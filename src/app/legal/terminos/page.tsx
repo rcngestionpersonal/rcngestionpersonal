@@ -4,14 +4,14 @@ import LegalCrossLinks from '../_components/LegalCrossLinks';
 import LegalEntityBlock from '../_components/LegalEntityBlock';
 
 export const metadata: Metadata = {
-  title: 'Términos y Condiciones | Redinmo',
+  title: 'Términos y Condiciones | Redinmo.io',
 };
 
 export default function TerminosPage() {
   return (
     <main className="min-h-screen bg-bg px-4 py-12 text-text sm:py-16">
       <div className="mx-auto max-w-2xl">
-        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-accent">✦ Redinmo</p>
+        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-accent">✦ Redinmo.io</p>
         <h1 className="mt-3 text-2xl font-extrabold sm:text-3xl">Términos y Condiciones</h1>
         <p className="mt-2 text-sm text-text-2">
           Versión {LEGAL_VERSIONS.terminos} · última actualización el {LEGAL_VERSIONS.terminos}.
@@ -26,7 +26,7 @@ export default function TerminosPage() {
             <h2 className="mb-1.5 text-base font-bold text-text">1. Quién presta el servicio</h2>
             <LegalEntityBlock />
             <p className="mt-3">
-              En adelante nos referimos al operador como &quot;Redinmo&quot;, &quot;la plataforma&quot; o
+              En adelante nos referimos al operador como &quot;Redinmo.io&quot;, &quot;la plataforma&quot; o
               &quot;nosotros&quot;. Al crear una cuenta o usar la plataforma, aceptas estos Términos y nuestra{' '}
               <a href="/legal/privacidad" className="font-semibold text-accent hover:underline">
                 Política de Privacidad
@@ -36,10 +36,10 @@ export default function TerminosPage() {
           </section>
 
           <section>
-            <h2 className="mb-1.5 text-base font-bold text-text">2. Qué es Redinmo y qué no</h2>
+            <h2 className="mb-1.5 text-base font-bold text-text">2. Qué es Redinmo.io y qué no</h2>
             <p>
-              Redinmo es una herramienta de intermediación entre agentes inmobiliarios: permite publicar inmuebles, registrar
-              pedidos de clientes, encontrar coincidencias (matches) entre ambos y coordinar el contacto entre agentes. Redinmo{' '}
+              Redinmo.io es una herramienta de intermediación entre agentes inmobiliarios: permite publicar inmuebles, registrar
+              pedidos de clientes, encontrar coincidencias (matches) entre ambos y coordinar el contacto entre agentes. Redinmo.io{' '}
               <strong className="text-text">no participa</strong> en la negociación, el cierre ni la firma de ninguna operación
               inmobiliaria, y <strong className="text-text">no garantiza</strong> que un match se convierta en un cierre, ni un
               nivel determinado de ingresos, contactos o resultados para ningún agente. El uso de la plataforma es una
@@ -51,7 +51,7 @@ export default function TerminosPage() {
             <h2 className="mb-1.5 text-base font-bold text-text">3. Cuenta de agente verificado</h2>
             <p>
               Para registrarte como agente debes proporcionar información real y verificable: nombre completo, cédula o RUC,
-              teléfono, correo y, si aplica, número de licencia profesional. Redinmo puede solicitar verificación adicional en
+              teléfono, correo y, si aplica, número de licencia profesional. Redinmo.io puede solicitar verificación adicional en
               cualquier momento. Una cuenta puede suspenderse o cancelarse, sin previo aviso en casos graves, cuando: (a) se
               detecte información falsa o suplantación de identidad; (b) se publique contenido fraudulento, engañoso o que
               vulnere derechos de terceros; (c) se incumplan estos Términos de forma reiterada; o (d) exista una orden de
@@ -62,7 +62,7 @@ export default function TerminosPage() {
           <section>
             <h2 className="mb-1.5 text-base font-bold text-text">4. Contenido cargado por el agente</h2>
             <p>
-              Todo contenido que cargues en Redinmo —inmuebles, fotografías, descripciones, precios y pedidos de clientes— es de
+              Todo contenido que cargues en Redinmo.io —inmuebles, fotografías, descripciones, precios y pedidos de clientes— es de
               tu exclusiva responsabilidad. Al publicar un inmueble, declaras que: (a) la información y el precio son veraces al
               momento de publicarlos; (b) cuentas con la autorización del propietario para publicar ese inmueble y sus
               fotografías; y (c), al cargar un pedido de un cliente final, cuentas con la autorización de ese cliente para
@@ -70,7 +70,7 @@ export default function TerminosPage() {
               <a href="/legal/privacidad" className="font-semibold text-accent hover:underline">
                 Política de Privacidad
               </a>
-              . Redinmo puede remover contenido que incumpla esto sin previo aviso.
+              . Redinmo.io puede remover contenido que incumpla esto sin previo aviso.
             </p>
           </section>
 
@@ -79,12 +79,12 @@ export default function TerminosPage() {
             <p>
               Los datos del mapa de precios de cierre (montos, zonas y fechas de operaciones cerradas) son aportados
               voluntariamente por los propios agentes de la comunidad y se muestran únicamente como referencia de mercado.
-              Redinmo no verifica, audita ni garantiza la exactitud, actualidad o representatividad de esos datos.{' '}
+              Redinmo.io no verifica, audita ni garantiza la exactitud, actualidad o representatividad de esos datos.{' '}
               <strong className="text-text">
                 Ninguna decisión económica, de fijación de precio o de inversión debe tomarse basándose exclusivamente en el
                 mapa de precios de cierre
               </strong>
-              ; Redinmo no asume responsabilidad por pérdidas derivadas de su uso como única fuente de análisis.
+              ; Redinmo.io no asume responsabilidad por pérdidas derivadas de su uso como única fuente de análisis.
             </p>
           </section>
 
@@ -103,7 +103,7 @@ export default function TerminosPage() {
           <section>
             <h2 className="mb-1.5 text-base font-bold text-text">7. Suscripción y pagos</h2>
             <p>
-              El uso continuado de Redinmo más allá del período de prueba requiere una suscripción paga. Los detalles de
+              El uso continuado de Redinmo.io más allá del período de prueba requiere una suscripción paga. Los detalles de
               planes, precios, cobro automático, reintentos, cancelación y reembolsos están descritos en la{' '}
               <a href="/legal/suscripcion" className="font-semibold text-accent hover:underline">
                 Política de Suscripción, Cobros y Cancelación

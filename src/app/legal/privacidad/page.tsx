@@ -4,14 +4,14 @@ import LegalCrossLinks from '../_components/LegalCrossLinks';
 import LegalEntityBlock from '../_components/LegalEntityBlock';
 
 export const metadata: Metadata = {
-  title: 'Política de Privacidad | Redinmo',
+  title: 'Política de Privacidad | Redinmo.io',
 };
 
 export default function PrivacidadPage() {
   return (
     <main className="min-h-screen bg-bg px-4 py-12 text-text sm:py-16">
       <div className="mx-auto max-w-2xl">
-        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-accent">✦ Redinmo</p>
+        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-accent">✦ Redinmo.io</p>
         <h1 className="mt-3 text-2xl font-extrabold sm:text-3xl">Política de Privacidad y Tratamiento de Datos</h1>
         <p className="mt-2 text-sm text-text-2">
           Versión {LEGAL_VERSIONS.privacidad} · última actualización el {LEGAL_VERSIONS.privacidad}.
@@ -47,7 +47,7 @@ export default function PrivacidadPage() {
               </li>
               <li>
                 <strong className="text-text">Datos de pago:</strong> un identificador cifrado de tu tarjeta (token) entregado
-                por Payphone, marca y últimos 4 dígitos, historial de cobros. Redinmo nunca almacena el número completo de
+                por Payphone, marca y últimos 4 dígitos, historial de cobros. Redinmo.io nunca almacena el número completo de
                 tarjeta, CVV ni la fecha de expiración: esos datos los procesa Payphone directamente.
               </li>
               <li>
@@ -129,7 +129,7 @@ export default function PrivacidadPage() {
             <p>
               Nuestro proveedor de base de datos y de hosting operan con infraestructura ubicada fuera de Ecuador (Estados
               Unidos). Esto implica que tus datos se almacenan y procesan en servidores fuera del país. Estos proveedores
-              cuentan con medidas de seguridad estándar de la industria; al usar Redinmo, aceptas esta transferencia
+              cuentan con medidas de seguridad estándar de la industria; al usar Redinmo.io, aceptas esta transferencia
               internacional de datos necesaria para operar el servicio.
             </p>
           </section>
@@ -149,11 +149,11 @@ export default function PrivacidadPage() {
             <h2 className="mb-1.5 text-base font-bold text-text">9. Datos de clientes finales cargados por el agente</h2>
             <p>
               Cuando un agente registra un pedido, incluye datos de una persona (su cliente) que no ha interactuado
-              directamente con Redinmo ni aceptado estos documentos. Por eso, nuestros{' '}
+              directamente con Redinmo.io ni aceptado estos documentos. Por eso, nuestros{' '}
               <a href="/legal/terminos" className="font-semibold text-accent hover:underline">
                 Términos y Condiciones
               </a>{' '}
-              exigen que el agente cuente con la autorización de ese cliente antes de cargar sus datos. Redinmo trata esos
+              exigen que el agente cuente con la autorización de ese cliente antes de cargar sus datos. Redinmo.io trata esos
               datos únicamente para el fin de facilitar el match y el contacto entre agentes, con la misma diligencia y
               medidas de seguridad que el resto de la información de la plataforma, y los conserva mientras el pedido o la
               cuenta del agente esté activa.

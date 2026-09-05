@@ -3,7 +3,7 @@ import { validateResetToken } from '@/lib/real-estate/password-reset';
 import ResetPasswordForm from './_components/ResetPasswordForm';
 
 export const metadata: Metadata = {
-  title: 'Restablecer contraseña | Redinmo',
+  title: 'Restablecer contraseña | Redinmo.io',
   robots: { index: false, follow: false },
 };
 
@@ -15,7 +15,7 @@ function Card({ children }: { children: React.ReactNode }) {
           <div className="pointer-events-none absolute -right-10 top-0 h-40 w-40 rounded-full bg-[var(--glow-brand)] blur-2xl" />
           <div className="relative z-10">
             <p className="text-xs font-bold">
-              <span className="text-accent">✦</span> <span className="text-text">REDINMO</span>
+              <span className="text-accent">✦</span> <span className="text-text">REDINMO.IO</span>
             </p>
             {children}
           </div>
@@ -40,7 +40,7 @@ export default async function RestablecerPage({ searchParams }: { searchParams: 
   return (
     <Card>
       <h1 className="gradient-text mt-4 text-xl font-extrabold sm:text-2xl">Crear nueva contraseña</h1>
-      <p className="mb-6 mt-2 text-[13.5px] leading-relaxed text-text-2">Elige una contraseña nueva para tu cuenta de Redinmo.</p>
+      <p className="mb-6 mt-2 text-[13.5px] leading-relaxed text-text-2">Elige una contraseña nueva para tu cuenta de Redinmo.io.</p>
       <ResetPasswordForm token={token} />
     </Card>
   );

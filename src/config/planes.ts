@@ -159,8 +159,8 @@ export function getCheckoutAmountsInCents(
 }
 
 export function getCheckoutReference(tipo: PlanTipo, lang: 'es' | 'en' = 'es'): string {
-  if (lang === 'en') return tipo === 'PRO' ? 'Redinmo Pro subscription' : 'Redinmo Basic subscription';
-  return tipo === 'PRO' ? 'Suscripcion Pro Redinmo' : 'Suscripcion Basico Redinmo';
+  if (lang === 'en') return tipo === 'PRO' ? 'Redinmo.io Pro subscription' : 'Redinmo.io Basic subscription';
+  return tipo === 'PRO' ? 'Suscripcion Pro Redinmo.io' : 'Suscripcion Basico Redinmo.io';
 }
 
 // Features que se pierden al bajar de Pro a Basico - usado en el aviso de

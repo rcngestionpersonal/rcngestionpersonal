@@ -9,7 +9,7 @@ import { getCheckoutAmountsInCents } from '@/config/planes';
 export const runtime = 'nodejs';
 
 const CONSENT_TEXT =
-  'Autorizo a Redinmo a guardar un identificador de mi nueva tarjeta y a cobrarme automáticamente el monto de mi plan cada 30 días mientras la suscripción esté activa. Puedo cancelar cuando quiera desde mi cuenta.';
+  'Autorizo a Redinmo.io a guardar un identificador de mi nueva tarjeta y a cobrarme automáticamente el monto de mi plan cada 30 días mientras la suscripción esté activa. Puedo cancelar cuando quiera desde mi cuenta.';
 
 function getRequestIp(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');

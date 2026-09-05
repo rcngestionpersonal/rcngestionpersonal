@@ -4,14 +4,14 @@ import LegalCrossLinks from '../_components/LegalCrossLinks';
 import LegalEntityBlock from '../_components/LegalEntityBlock';
 
 export const metadata: Metadata = {
-  title: 'Aviso de Cookies | Redinmo',
+  title: 'Aviso de Cookies | Redinmo.io',
 };
 
 export default function CookiesPage() {
   return (
     <main className="min-h-screen bg-bg px-4 py-12 text-text sm:py-16">
       <div className="mx-auto max-w-2xl">
-        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-accent">✦ Redinmo</p>
+        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-accent">✦ Redinmo.io</p>
         <h1 className="mt-3 text-2xl font-extrabold sm:text-3xl">Aviso de Cookies</h1>
         <p className="mt-2 text-sm text-text-2">
           Versión {LEGAL_VERSIONS.cookies} · última actualización el {LEGAL_VERSIONS.cookies}.
@@ -22,7 +22,7 @@ export default function CookiesPage() {
 
           <section>
             <p>
-              Redinmo usa la mínima cantidad de cookies necesaria para funcionar. No usamos cookies de publicidad ni de
+              Redinmo.io usa la mínima cantidad de cookies necesaria para funcionar. No usamos cookies de publicidad ni de
               rastreo de terceros, y no vendemos ni compartimos datos de navegación con nadie.
             </p>
           </section>
@@ -37,7 +37,7 @@ export default function CookiesPage() {
               </li>
               <li>
                 <strong className="text-text">Preferencia de tema</strong> (claro/oscuro) — se guarda en el almacenamiento
-                local de tu navegador, no en una cookie, y no se comparte con Redinmo ni con nadie más. Solo recuerda cómo
+                local de tu navegador, no en una cookie, y no se comparte con Redinmo.io ni con nadie más. Solo recuerda cómo
                 prefieres ver la interfaz.
               </li>
             </ul>

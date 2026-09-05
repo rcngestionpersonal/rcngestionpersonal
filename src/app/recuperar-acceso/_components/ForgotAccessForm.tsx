@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 const SUPPORT_WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP;
-const WHATSAPP_MESSAGE = 'Hola, necesito recuperar el acceso a mi cuenta de Redinmo. Mi teléfono registrado es: ';
+const WHATSAPP_MESSAGE = 'Hola, necesito recuperar el acceso a mi cuenta de Redinmo.io. Mi teléfono registrado es: ';
 
 export default function ForgotAccessForm() {
   const [identifier, setIdentifier] = useState('');
@@ -32,7 +32,7 @@ export default function ForgotAccessForm() {
     return (
       <div>
         <p className="text-[13.5px] leading-relaxed text-text-2">
-          Si el dato corresponde a una cuenta de Redinmo, te enviamos un enlace para restablecer tu contraseña. Revisa tu correo (y la carpeta de spam).
+          Si el dato corresponde a una cuenta de Redinmo.io, te enviamos un enlace para restablecer tu contraseña. Revisa tu correo (y la carpeta de spam).
         </p>
         <WhatsappFallback />
         <a href="/login" className="mt-5 inline-block text-xs font-semibold text-text-3 hover:text-text-2">

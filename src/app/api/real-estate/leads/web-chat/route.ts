@@ -25,7 +25,7 @@ function summaryFor(input: z.infer<typeof leadSchema>): string {
 
 function notificationTextForAgent(opportunitySummary: string, score: number): string {
   return [
-    'Nuevo lead desde el chat web de Redinmo.',
+    'Nuevo lead desde el chat web de Redinmo.io.',
     `Resumen: ${opportunitySummary}`,
     `Score de afinidad: ${score.toFixed(1)}%`,
   ].join('\n');

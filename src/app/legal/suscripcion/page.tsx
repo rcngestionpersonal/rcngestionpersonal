@@ -6,7 +6,7 @@ import LegalCrossLinks from '../_components/LegalCrossLinks';
 import LegalEntityBlock from '../_components/LegalEntityBlock';
 
 export const metadata: Metadata = {
-  title: 'Política de Suscripción y Cobros | Redinmo',
+  title: 'Política de Suscripción y Cobros | Redinmo.io',
 };
 
 export default function SuscripcionPage() {
@@ -16,7 +16,7 @@ export default function SuscripcionPage() {
   return (
     <main className="min-h-screen bg-bg px-4 py-12 text-text sm:py-16">
       <div className="mx-auto max-w-2xl">
-        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-accent">✦ Redinmo</p>
+        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-accent">✦ Redinmo.io</p>
         <h1 className="mt-3 text-2xl font-extrabold sm:text-3xl">Política de Suscripción, Cobros y Cancelación</h1>
         <p className="mt-2 text-sm text-text-2">
           Versión {LEGAL_VERSIONS.suscripcion} · última actualización el {LEGAL_VERSIONS.suscripcion}.
@@ -28,7 +28,7 @@ export default function SuscripcionPage() {
           <section>
             <h2 className="mb-1.5 text-base font-bold text-text">1. Planes y precios</h2>
             <p>
-              Redinmo ofrece dos planes: Básico (${formatUsd(basico.precioBase)} + IVA (${formatUsd(basico.impuesto)}) = $
+              Redinmo.io ofrece dos planes: Básico (${formatUsd(basico.precioBase)} + IVA (${formatUsd(basico.impuesto)}) = $
               {formatUsd(basico.total)} cada 30 días) y Pro (${formatUsd(pro.precioBase)} + IVA (${formatUsd(pro.impuesto)}) = $
               {formatUsd(pro.total)} cada 30 días). Los precios se muestran sin IVA hasta el momento del cobro, cuando se
               calcula sobre la tarifa vigente en Ecuador.
@@ -47,9 +47,9 @@ export default function SuscripcionPage() {
           <section>
             <h2 className="mb-1.5 text-base font-bold text-text">3. Cobro automático recurrente</h2>
             <p>
-              Al guardar una tarjeta para pagar tu plan, autorizas expresamente a Redinmo a cobrar automáticamente, cada 30
+              Al guardar una tarjeta para pagar tu plan, autorizas expresamente a Redinmo.io a cobrar automáticamente, cada 30
               días, el monto correspondiente a tu plan vigente, sin necesidad de una nueva autorización en cada ciclo, hasta
-              que canceles tu suscripción. Redinmo nunca almacena el número completo de tu tarjeta: guarda únicamente un
+              que canceles tu suscripción. Redinmo.io nunca almacena el número completo de tu tarjeta: guarda únicamente un
               identificador cifrado (token) que Payphone entrega tras la primera autorización.
             </p>
           </section>

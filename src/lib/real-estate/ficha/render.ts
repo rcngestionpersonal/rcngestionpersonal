@@ -97,7 +97,7 @@ export async function renderFicha(input: RenderFichaInput): Promise<RenderedFich
   const pdfDoc = await PDFDocument.create();
   pdfDoc.setProducer('Redinmo.io');
   pdfDoc.setCreator('Redinmo.io');
-  pdfDoc.setTitle('Ficha de inmueble - Redinmo');
+  pdfDoc.setTitle('Ficha de inmueble - Redinmo.io');
   const img = await pdfDoc.embedJpg(jpg);
   const page = pdfDoc.addPage(A4_PT);
   page.drawImage(img, { x: 0, y: 0, width: A4_PT[0], height: A4_PT[1] });

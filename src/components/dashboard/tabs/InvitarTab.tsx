@@ -28,8 +28,8 @@ export default function InvitarTab({ myAgentId, agents }: { myAgentId?: string; 
 
   const whatsappMessage =
     lang === 'es'
-      ? `👋 Hola, te invito a unirte a Redinmo, la plataforma de matches entre agentes inmobiliarios de Quito. Regístrate con mi link: ${inviteUrl}`
-      : `👋 Hi, I'm inviting you to join Redinmo, the matching platform for Quito real estate agents. Sign up with my link: ${inviteUrl}`;
+      ? `👋 Hola, te invito a unirte a Redinmo.io, la plataforma de matches entre agentes inmobiliarios de Quito. Regístrate con mi link: ${inviteUrl}`
+      : `👋 Hi, I'm inviting you to join Redinmo.io, the matching platform for Quito real estate agents. Sign up with my link: ${inviteUrl}`;
 
   const invited = agents.filter((a) => a.referredByAgentId === myAgentId);
 

@@ -216,7 +216,7 @@ export async function generateCarnetImage(input: CarnetImageInput): Promise<Blob
 
   // Header
   const headerLabel = input.lang === 'es' ? 'CARNET DE AGENTE' : 'AGENT CARD';
-  const brandText = '✦ REDINMO';
+  const brandText = '✦ REDINMO.IO';
   ctx.font = `800 22px ${FONT}`;
   const brandWidth = ctx.measureText(brandText).width;
   const restWidth = ctx.measureText(` · ${headerLabel}`).width;
@@ -370,7 +370,7 @@ export async function generateCarnetImage(input: CarnetImageInput): Promise<Blob
         ]
       : [
           { value: String(input.cierres), label: input.lang === 'es' ? 'CIERRES' : 'CLOSINGS' },
-          { value: String(input.joinYear), label: input.lang === 'es' ? 'EN REDINMO' : 'ON REDINMO' },
+          { value: String(input.joinYear), label: input.lang === 'es' ? 'EN REDINMO.IO' : 'ON REDINMO.IO' },
           { value: String(input.listingsActive), label: input.lang === 'es' ? 'INMUEBLES ACTIVOS' : 'ACTIVE LISTINGS' },
         ];
 
