@@ -8,7 +8,7 @@
 > nuevo). Un abogado debe revisar la base legal asignada a cada actividad
 > antes de considerar este documento definitivo.
 
-**Responsable del tratamiento:** [RAZÓN SOCIAL — COMPLETAR], RUC [RUC — COMPLETAR], domicilio en [DOMICILIO FISCAL — COMPLETAR], Ecuador. Contacto: privacidad@redinmo.io.
+**Responsable del tratamiento:** Redinmo.io, RUC 1710804954001, representada por Rigoberto Carrera Negrete, domicilio en Av. República del Salvador N36-109 y Suecia, Edf. Terrasol, Quito, Ecuador. Contacto: privacidad@redinmo.io.
 
 **Última actualización:** 2026-09-02 (corresponde a la versión 2026-09-02 de `/legal/privacidad`, ver `src/lib/real-estate/legal.ts`).
 

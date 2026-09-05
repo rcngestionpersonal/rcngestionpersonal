@@ -3,18 +3,23 @@
 // fase de cierre 2.3). Centralizar la identidad legal y las versiones aca
 // evita que un dato quede desactualizado en una pagina y corregido en otra.
 //
-// LEGAL_ENTITY tiene datos placeholder que un abogado/el dueño del negocio
-// debe completar antes de publicar (ver el punto 2.2.a del pedido: razon
-// social, RUC, domicilio y representante legal son obligatorios en los
-// Terminos, y Payphone los pide tal cual en su formulario de tokenizacion,
-// seccion 2.5). Buscar "COMPLETAR" en este archivo para encontrar los
-// pendientes.
+// Datos aportados por el dueño del negocio. Son los mismos que Payphone pide
+// en su formulario de tokenizacion (seccion 2.5 del pedido de cierre), asi
+// que tienen que coincidir con lo que se declare ahi.
+//
+// OJO con razonSocial: el RUC 1710804954001 es una cedula (1710804954) + 001,
+// es decir formato de PERSONA NATURAL, no de sociedad. Para una persona
+// natural la razon social ante el SRI es el nombre de la persona
+// (representanteLegal), y "Redinmo.io" es el nombre comercial. Se deja tal
+// como lo indico el dueño, pero conviene que el abogado confirme cual de los
+// dos debe figurar en los Terminos antes de publicarlos, porque hoy los
+// Terminos declaran a razonSocial como el operador del servicio.
 export const LEGAL_ENTITY = {
-  razonSocial: '[RAZÓN SOCIAL — COMPLETAR]',
-  ruc: '[RUC — COMPLETAR]',
+  razonSocial: 'Redinmo.io',
+  ruc: '1710804954001',
   nombreComercial: 'Redinmo',
-  domicilio: '[DOMICILIO FISCAL — COMPLETAR]',
-  representanteLegal: '[REPRESENTANTE LEGAL — COMPLETAR]',
+  domicilio: 'Av. República del Salvador N36-109 y Suecia, Edf. Terrasol, Quito',
+  representanteLegal: 'Rigoberto Carrera Negrete',
   // Buzon dedicado de privacidad, distinto del remitente transaccional
   // (notificaciones@, que se usa para ENVIAR y cuyas respuestas nadie lee).
   // Es la direccion que /legal/privacidad publica para ejercer derechos

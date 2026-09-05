@@ -24,8 +24,10 @@ export default function TerminosPage() {
           <section>
             <h2 className="mb-1.5 text-base font-bold text-text">1. Quién presta el servicio</h2>
             <p>
-              Redinmo.io es operado por <strong className="text-text">{LEGAL_ENTITY.razonSocial}</strong>, con RUC{' '}
-              <strong className="text-text">{LEGAL_ENTITY.ruc}</strong>, domicilio en{' '}
+              Este sitio y el servicio asociado son operados por{' '}
+              <strong className="text-text">{LEGAL_ENTITY.razonSocial}</strong>, con RUC{' '}
+              <strong className="text-text">{LEGAL_ENTITY.ruc}</strong>, representada por{' '}
+              <strong className="text-text">{LEGAL_ENTITY.representanteLegal}</strong>, con domicilio en{' '}
               <strong className="text-text">{LEGAL_ENTITY.domicilio}</strong>, Ecuador (en adelante, &quot;Redinmo&quot;, &quot;la
               plataforma&quot; o &quot;nosotros&quot;). Puedes contactarnos en{' '}
               <a href={`mailto:${LEGAL_ENTITY.correoContacto}`} className="font-semibold text-accent hover:underline">

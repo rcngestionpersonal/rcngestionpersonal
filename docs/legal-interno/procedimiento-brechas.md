@@ -32,7 +32,7 @@ Cualquier evento que exponga, altere sin autorización, destruya o vuelva inacce
 
 ## Responsable interno
 
-**[REPRESENTANTE LEGAL — COMPLETAR]** es quien decide, en última instancia, si un incidente califica como brecha reportable y coordina la notificación. Mientras esa designación formal no exista por escrito, quien detecte el incidente debe escalarlo de inmediato al dueño del producto en vez de decidir unilateralmente si se notifica o no.
+**Rigoberto Carrera Negrete** es quien decide, en última instancia, si un incidente califica como brecha reportable y coordina la notificación. Quien detecte el incidente debe escalárselo de inmediato en vez de decidir unilateralmente si se notifica o no.
 
 ## Después del incidente
 
