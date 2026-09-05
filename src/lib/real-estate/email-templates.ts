@@ -1,4 +1,4 @@
-const SIGNATURE = '\n\nUn saludo cordial,\nEl equipo de Redinmo.io | Broker Hub 🏠';
+const SIGNATURE = '\n\nUn saludo cordial,\nEl equipo de Redinmo.io 🏠';
 
 function wrap(greeting: string, body: string, cta?: { label: string; url: string }): string {
   const ctaBlock = cta ? `\n\n👉 ${cta.label}: ${cta.url}` : '';
@@ -7,11 +7,11 @@ function wrap(greeting: string, body: string, cta?: { label: string; url: string
 
 export function buildWelcomeEmail(agentName: string, appUrl: string): { subject: string; text: string } {
   return {
-    subject: '🏠 ¡Bienvenido/a a Redinmo.io | Broker Hub!',
+    subject: '🏠 ¡Bienvenido/a a Redinmo.io!',
     text: wrap(
       `Hola ${agentName},`,
       [
-        'Qué gusto tenerte en Redinmo.io | Broker Hub. Tu cuenta ya está activa y lista para ayudarte a cerrar más negocios inmobiliarios.',
+        'Qué gusto tenerte en Redinmo.io. Tu cuenta ya está activa y lista para ayudarte a cerrar más negocios inmobiliarios.',
         '',
         'Para que la plataforma sea cada vez más valiosa para toda la comunidad, te invitamos a seguir alimentándola:',
         '• Carga los inmuebles que tengas disponibles.',
