@@ -197,6 +197,7 @@ model Agent {
   emailChangeTokens     EmailChangeToken[]
   subscription          Subscription?
   paymentMethods        PaymentMethod[]
+  miniSitio             MiniSitio?
 }
 
 model Listing {
@@ -282,6 +283,60 @@ model Listing {
   @@index([status])
 }
 
+// Mini-sitio publico del agente (Fase 3, feature Pro "mini_sitio") -
+// redinmo.io/a/[slug]. Es una fila aparte y no columnas en Agent porque casi
+// todos sus campos solo existen si el agente activo la feature, y porque el
+// slug tiene su propia regla de inmutabilidad.
+//
+// El slug se genera UNA vez al activar y no cambia nunca, ni aunque el agente
+// edite su nombre: los enlaces ya compartidos (WhatsApp, tarjetas impresas,
+// vitrinas) tienen que seguir funcionando. Cambiarlo es tarea de soporte.
+//
+// "activo" es solo la decision del agente. Que el sitio se vea o no depende
+// ADEMAS de que tenga la feature vigente (tieneAcceso), que se evalua en cada
+// request: si el plan baja a Basico o la suscripcion vence, el sitio muestra
+// una pagina neutra pero la fila se conserva intacta para cuando reactive.
+model MiniSitio {
+  id                String            @id @default(cuid())
+  agent             Agent             @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentId           String            @unique
+  slug              String            @unique
+  activo            Boolean           @default(false)
+  // Clave de la paleta acotada (ver MINI_SITIO_COLORES en mini-sitio.ts) - a
+  // proposito NO es un color libre: un agente eligiendo fucsia sobre verde
+  // degrada la percepcion de toda la plataforma.
+  colorAcento       String            @default("violeta")
+  mostrarInventario Boolean           @default(true)
+  mostrarFormulario Boolean           @default(true)
+  // Maximo 160 caracteres, validado en la ruta que la escribe.
+  frasePresentacion String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  visitas           MiniSitioVisita[]
+
+  @@index([activo])
+}
+
+// Una fila por visita (seccion 6: visitas de los ultimos 30 dias, inmueble mas
+// visto, grafico por dia). Se guarda el evento crudo en vez de un contador
+// agregado para poder responder las tres preguntas con la misma tabla; el
+// volumen esperado lo justifica. listingId se llena solo cuando la visita fue
+// al detalle de un inmueble, no a la portada del sitio.
+//
+// No guarda IP ni user-agent a proposito: alcanza para contar y evita
+// convertir una metrica de vanidad en un tratamiento de datos personales que
+// habria que declarar en el RAT.
+model MiniSitioVisita {
+  id          String    @id @default(cuid())
+  miniSitio   MiniSitio @relation(fields: [miniSitioId], references: [id], onDelete: Cascade)
+  miniSitioId String
+  listingId   String?
+  createdAt   DateTime  @default(now())
+
+  @@index([miniSitioId, createdAt])
+  @@index([miniSitioId, listingId])
+}
+
 // Galeria de fotos del inmueble (Fase 4) - el limite por inmueble depende del
 // plan y se valida en la ruta de subida, no aqui. "orden" define la posicion
 // en la grilla/carrusel empezando en 0, y orden 0 ES la portada: no hay
@@ -344,6 +399,12 @@ model Opportunity {
   aceptaEspaciosAdicionales Boolean?
   summary          String
   extractedData    Json?
+  // De donde salio el pedido: "manual" (el agente lo cargo), "mini_sitio" (lo
+  // envio un tercero por el formulario de captacion de /a/[slug], Fase 3) o
+  // "web_chat". El panel los muestra diferenciados: un pedido entrante no es
+  // lo mismo que uno que el agente escribio, ni en confianza del dato ni en
+  // urgencia de respuesta.
+  origen           String          @default("manual")
   stage            LeadStage       @default(NEW)
   claimedByAgent   Agent?          @relation("OpportunityClaimedBy", fields: [claimedByAgentId], references: [id], onDelete: SetNull)
   claimedByAgentId String?

@@ -12,6 +12,8 @@ function isPublicPath(pathname: string): boolean {
   if (pathname === '/politica-cancelacion') return true;
   if (pathname.startsWith('/legal/')) return true;
   if (pathname.startsWith('/v/')) return true;
+  // Mini-sitio publico del agente (Fase 3): sin sesion e indexable.
+  if (pathname.startsWith('/a/')) return true;
   if (pathname.startsWith('/api/auth/')) return true;
   if (pathname === '/api/health') return true;
   if (pathname.startsWith('/_next/')) return true;
