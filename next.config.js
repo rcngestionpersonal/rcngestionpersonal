@@ -29,6 +29,20 @@ const nextConfig = {
       './node_modules/harfbuzzjs/*.wasm',
       './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
     ],
+    // La imagen OG del mini-sitio (Fase 3) y la ficha publica usan la misma
+    // cadena satori->resvg, asi que necesitan exactamente los mismos binarios
+    // en su funcion serverless. Sin esto el build pasa y la ruta revienta en
+    // produccion con "ENOENT hb.wasm" - y el sintoma de la OG seria que los
+    // enlaces compartidos por WhatsApp salen sin imagen, que es justo lo que
+    // esa ruta existe para evitar.
+    '/a/[slug]/og': [
+      './node_modules/harfbuzzjs/*.wasm',
+      './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
+    ],
+    '/a/[slug]/ficha/[listingId]': [
+      './node_modules/harfbuzzjs/*.wasm',
+      './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
+    ],
   },
   images: {
     remotePatterns: [

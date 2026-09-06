@@ -230,17 +230,27 @@ export default function InventarioMiniSitio({
                 {abierto.parqueaderos ? <li>{abierto.parqueaderos} parqueaderos</li> : null}
               </ul>
 
-              {telefono ? (
+              <div className="mt-5 flex flex-col gap-2.5">
+                {telefono ? (
+                  <a
+                    href={whatsappDe(abierto)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl px-6 text-sm font-bold"
+                    style={{ background: 'var(--ms-acento)', color: 'var(--ms-contraste)' }}
+                  >
+                    Consultar por este inmueble
+                  </a>
+                ) : null}
+                {/* La ficha sale con la marca del agente dueño del sitio, no de
+                    quien descarga (ver el comentario de la ruta). */}
                 <a
-                  href={whatsappDe(abierto)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-5 flex min-h-[48px] w-full items-center justify-center rounded-xl px-6 text-sm font-bold"
-                  style={{ background: 'var(--ms-acento)', color: 'var(--ms-contraste)' }}
+                  href={`/a/${slug}/ficha/${abierto.id}?format=pdf`}
+                  className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-line-strong px-6 text-sm font-semibold text-text-2 transition hover:bg-surface-2"
                 >
-                  Consultar por este inmueble
+                  Descargar ficha (PDF)
                 </a>
-              ) : null}
+              </div>
             </div>
           </div>
         </div>

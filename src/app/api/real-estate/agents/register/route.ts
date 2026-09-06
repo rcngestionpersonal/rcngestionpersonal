@@ -104,6 +104,29 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Ya existe un agente con ese teléfono.' }, { status: 409 });
       }
 
+      // La cedula es la identidad REAL del agente; el telefono no. Ya habia
+      // unicidad por telefono (y phone es @unique en el esquema), pero eso no
+      // impide que la misma persona se registre dos veces con dos numeros
+      // distintos - de hecho ya paso: dos cuentas con la cedula 1710804954,
+      // creadas con 4 minutos de diferencia porque el primer intento guardo
+      // un telefono malformado.
+      //
+      // La validacion vive aca y no como @unique en el esquema a proposito:
+      // hoy existen duplicados en produccion, y una restriccion unica no se
+      // puede aplicar sin resolverlos primero. Cuando esos casos esten
+      // consolidados, conviene subirla al esquema para que la base la
+      // garantice y no dependa de que toda ruta futura se acuerde.
+      const mismaCedula = await prisma.agent.findFirst({
+        where: { idNumber: input.idNumber },
+        select: { id: true },
+      });
+      if (mismaCedula) {
+        return NextResponse.json(
+          { error: 'Ya existe una cuenta registrada con esa cédula o RUC. Si perdiste el acceso, recupéralo desde el login.' },
+          { status: 409 },
+        );
+      }
+
       const referrer = input.referralCode
         ? await prisma.agent.findUnique({ where: { id: input.referralCode } })
         : null;
