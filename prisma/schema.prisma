@@ -106,6 +106,16 @@ model Agent {
   isTestAccount         Boolean            @default(false)
   photoUrl              String?
   company               String?
+  // Cedula o RUC: la identidad REAL del agente, y por eso unica a nivel de
+  // base y no solo validada en la ruta de registro. El telefono ya era unico,
+  // pero eso no impedia que la misma persona se registrara dos veces con dos
+  // numeros - paso en produccion (dos cuentas con la cedula 1710804954,
+  // creadas con 4 minutos de diferencia porque el primer intento guardo un
+  // telefono con el codigo de pais duplicado). Nullable: hay cuentas viejas
+  // sin cedula cargada, y Postgres permite multiples NULL en un indice unico.
+  // NO se puede poner @unique todavia: hay cedulas repetidas en produccion
+  // (ver el reporte de la Fase 3). La validacion vive por ahora en la ruta de
+  // registro; subirla aca es el paso siguiente, una vez consolidadas.
   idNumber              String?
   licenseNumber         String?
   // Direccion profesional (Fase 7, seccion 8) - para cartas de presentacion,

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import MiniSitioPanel from '@/components/dashboard/MiniSitioPanel';
 import { useRouter } from 'next/navigation';
 import { Camera } from 'lucide-react';
 import { cropImageToSquare } from '@/lib/real-estate/image-compress';
@@ -445,6 +446,11 @@ export default function EditarPerfilPage() {
           >
             {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
+        </section>
+
+        {/* Mini-sitio publico (Fase 3): personalizacion, compartir y metricas. */}
+        <section className="mt-6">
+          <MiniSitioPanel />
         </section>
       </div>
     </main>

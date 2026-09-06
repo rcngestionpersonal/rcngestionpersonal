@@ -17,7 +17,11 @@ function isPublicPath(pathname: string): boolean {
   // no tiene cuenta: el formulario de captacion y el registro de visitas.
   // Ambos validan por su cuenta que el sitio exista y este visible.
   if (pathname.startsWith('/a/')) return true;
-  if (pathname.startsWith('/api/real-estate/mini-sitio/')) return true;
+  // Solo los dos endpoints que usa un VISITANTE sin cuenta. A proposito no se
+  // abre todo /api/real-estate/mini-sitio/: bajo ese mismo prefijo vive /me,
+  // que devuelve la configuracion y las metricas del agente y debe seguir
+  // exigiendo sesion.
+  if (/^\/api\/real-estate\/mini-sitio\/[^/]+\/(lead|visita)$/.test(pathname)) return true;
   if (pathname.startsWith('/api/auth/')) return true;
   if (pathname === '/api/health') return true;
   if (pathname.startsWith('/_next/')) return true;
