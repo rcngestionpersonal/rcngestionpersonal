@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { deleteListingPhoto, findListingById, listListingPhotos, setListingPhotoCover, shouldUseMockStore } from '@/lib/real-estate/mock-store';
-import { deleteListingPhotoPrisma, setListingPhotoCoverPrisma } from '@/lib/real-estate/listing-photos-prisma';
+import { deleteListingPhotoPrisma, hacerPortadaPrisma } from '@/lib/real-estate/listing-photos-prisma';
 
 async function assertOwnership(listingId: string, agentId: string): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
   if (shouldUseMockStore()) {
@@ -54,8 +54,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: 'No autenticado.' }, { status: 401 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as { esPortada?: boolean };
-  if (body.esPortada !== true) {
+  // "hacerPortada" es una ACCION (mover la foto a orden 0), no una bandera que
+  // se guarde: la columna esPortada ya no existe.
+  const body = (await request.json().catch(() => ({}))) as { hacerPortada?: boolean };
+  if (body.hacerPortada !== true) {
     return NextResponse.json({ error: 'Nada que actualizar.' }, { status: 400 });
   }
 
@@ -69,7 +71,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   try {
-    const ok = await setListingPhotoCoverPrisma(id, photoId);
+    const ok = await hacerPortadaPrisma(id, photoId);
     if (!ok) return NextResponse.json({ error: 'Foto no encontrada.' }, { status: 404 });
     const photos = await prisma.listingPhoto.findMany({ where: { listingId: id }, orderBy: { orden: 'asc' } });
     return NextResponse.json({ success: true, photos });

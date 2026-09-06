@@ -10,6 +10,7 @@ import {
   shouldUseMockStore,
 } from '@/lib/real-estate/mock-store';
 import { MAX_LISTING_PHOTOS } from '@/lib/real-estate/listing-photos-shared';
+import { borrarBlobSinFallar, crearFotoPrisma } from '@/lib/real-estate/listing-photos-prisma';
 import { awardListingPhotoAdded } from '@/lib/real-estate/points-log';
 
 // Limite de seguridad pre-compresion: el cliente ya redimensiona/comprime a
@@ -96,12 +97,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   let blobUrl: string;
+  let blobRuta: string;
   try {
     const blob = await put(`listings/${id}-${Date.now()}-${Math.floor(Math.random() * 10000)}.${extensionFor(file.type)}`, file, {
       access: 'public',
       contentType: file.type,
     });
     blobUrl = blob.url;
+    // El pathname es lo unico con lo que se puede borrar despues (punto 5.3).
+    // Se guarda el que devuelve Blob, no el que pedimos: si algun dia se activa
+    // addRandomSuffix, el real es este.
+    blobRuta = blob.pathname;
   } catch {
     return NextResponse.json({ error: 'No se pudo subir la foto. Intenta de nuevo.' }, { status: 500 });
   }
@@ -113,22 +119,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   try {
-    const currentMax = await prisma.listingPhoto.aggregate({ where: { listingId: id }, _max: { orden: true } });
-    const photo = await prisma.listingPhoto.create({
-      data: {
-        listingId: id,
-        url: blobUrl,
-        orden: (currentMax._max.orden ?? -1) + 1,
-        esPortada: !hadAnyPhoto,
-      },
-    });
+    // crearFotoPrisma reserva el "orden" dentro de una transaccion: leerlo y
+    // escribirlo por separado dejaba que dos subidas simultaneas del mismo
+    // inmueble se asignaran el mismo numero (punto 5.4).
+    const photo = await crearFotoPrisma({ listingId: id, url: blobUrl, ruta: blobRuta });
     if (!hadAnyPhoto) {
-      await prisma.listing.update({ where: { id }, data: { coverPhotoUrl: blobUrl } });
       await awardListingPhotoAdded(session.agentId, id);
     }
     const photos = await prisma.listingPhoto.findMany({ where: { listingId: id }, orderBy: { orden: 'asc' } });
     return NextResponse.json({ photo, photos }, { status: 201 });
   } catch {
+    // La fila no se creo, pero el archivo ya esta en Blob: se borra para no
+    // dejar un huerfano que nadie referencia.
+    await borrarBlobSinFallar(blobRuta);
     return NextResponse.json({ error: 'No se pudo guardar la foto.' }, { status: 500 });
   }
 }

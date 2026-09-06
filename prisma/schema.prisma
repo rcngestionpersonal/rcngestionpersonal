@@ -260,10 +260,12 @@ model Listing {
   ownerPhone             String?
   // URL en Vercel Blob (nunca la imagen en si) de la foto de portada del
   // inmueble - CAMPO DERIVADO desde Fase 4 (galeria de fotos): se mantiene en
-  // sincronia con la ListingPhoto que tenga esPortada=true (ver
-  // src/lib/real-estate/listing-photos.ts) exclusivamente para no romper a
-  // los consumidores que ya leian este campo directo (tarjeta del listado,
-  // ficha PDF). Ninguna ruta debe escribirlo a mano fuera de ese helper.
+  // sincronia con la ListingPhoto de orden 0 (ver
+  // src/lib/real-estate/listing-photos-prisma.ts) exclusivamente para no
+  // romper a los consumidores que ya leian este campo directo (tarjeta del
+  // listado, ficha PDF). Ninguna ruta debe escribirlo a mano fuera de ese
+  // helper, y NUNCA debe leerse como fuente de verdad de cual es la portada:
+  // eso lo decide orden 0.
   coverPhotoUrl          String?
   commissionSharePercent Float         @default(0)
   status                 ListingStatus @default(ACTIVE)
@@ -280,19 +282,32 @@ model Listing {
   @@index([status])
 }
 
-// Galeria de fotos del inmueble (Fase 4) - hasta 8 por inmueble (validado en
-// la ruta de subida, no aqui). Una sola foto por listing tiene esPortada=true
-// a la vez (invariante mantenido por listing-photos.ts, nunca por SQL); esa
-// es la que se refleja en Listing.coverPhotoUrl. "orden" define la posicion
-// en la grilla/carrusel, empezando en 0.
+// Galeria de fotos del inmueble (Fase 4) - el limite por inmueble depende del
+// plan y se valida en la ruta de subida, no aqui. "orden" define la posicion
+// en la grilla/carrusel empezando en 0, y orden 0 ES la portada: no hay
+// bandera aparte. El invariante (orden contiguo desde 0, sin huecos ni
+// duplicados) lo mantiene listing-photos-prisma.ts, nunca SQL.
 model ListingPhoto {
-  id        String   @id @default(cuid())
-  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  listingId String
-  url       String
-  orden     Int      @default(0)
-  esPortada Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  listing      Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId    String
+  url          String
+  // Ruta interna en Vercel Blob (el pathname, no la URL publica) - es lo unico
+  // con lo que se puede BORRAR el archivo. Sin esto, cada foto eliminada
+  // quedaba pagandose para siempre en Blob (ver el bug 5.3 del pedido de
+  // galeria). Nullable solo por las filas anteriores a este campo: las nuevas
+  // siempre la traen, y el backfill la derivo de la URL.
+  ruta         String?
+  miniaturaUrl String?
+  ancho        Int?
+  alto         Int?
+  tamanoBytes  Int?
+  // orden = 0 es LA portada. Unica fuente de verdad: antes convivian tres
+  // (esPortada, orden y Listing.coverPhotoUrl) y se desincronizaban.
+  // Listing.coverPhotoUrl queda como campo derivado de la foto con orden 0,
+  // nunca como fuente.
+  orden        Int      @default(0)
+  createdAt    DateTime @default(now())
 
   @@index([listingId, orden])
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { findListingById, listListingPhotos, reorderListingPhotos, shouldUseMockStore } from '@/lib/real-estate/mock-store';
+import { reordenarFotosPrisma } from '@/lib/real-estate/listing-photos-prisma';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -33,12 +34,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (listing.managingAgentId !== session.agentId) {
       return NextResponse.json({ error: 'Solo el agente que gestiona este inmueble puede reordenar sus fotos.' }, { status: 403 });
     }
-    const current = await prisma.listingPhoto.findMany({ where: { listingId: id }, select: { id: true } });
-    const currentIds = new Set(current.map((p) => p.id));
-    if (currentIds.size !== order.length || order.some((pid) => !currentIds.has(pid))) {
+    // reordenarFotosPrisma valida el conjunto y escribe todo en UNA
+    // transaccion (punto 5.1): con Promise.all, un fallo a mitad dejaba
+    // ordenes duplicados o con huecos.
+    const ok = await reordenarFotosPrisma(id, order);
+    if (!ok) {
       return NextResponse.json({ error: 'El orden no coincide con las fotos actuales del inmueble.' }, { status: 400 });
     }
-    await Promise.all(order.map((photoId, i) => prisma.listingPhoto.update({ where: { id: photoId }, data: { orden: i } })));
     const photos = await prisma.listingPhoto.findMany({ where: { listingId: id }, orderBy: { orden: 'asc' } });
     return NextResponse.json({ success: true, photos });
   } catch {

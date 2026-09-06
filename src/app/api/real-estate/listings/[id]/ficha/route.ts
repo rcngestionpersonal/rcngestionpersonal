@@ -124,7 +124,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     listingRaw = findListingById(id) as unknown as Record<string, unknown> | null;
     downloaderAgentRaw = findAgentById(session.agentId) as unknown as Record<string, unknown> | null;
     const photos = listListingPhotos(id);
-    photoUrls = [...photos].sort((a, b) => Number(b.esPortada) - Number(a.esPortada)).map((p) => p.url);
+    photoUrls = [...photos].sort((a, b) => a.orden - b.orden).map((p) => p.url);
   } else {
     try {
       const [l, a, photos] = await Promise.all([
@@ -134,7 +134,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       ]);
       listingRaw = l as unknown as Record<string, unknown> | null;
       downloaderAgentRaw = a as unknown as Record<string, unknown> | null;
-      photoUrls = [...photos].sort((x, y) => Number(y.esPortada) - Number(x.esPortada)).map((p) => p.url);
+      // Ya vienen ordenadas por "orden" desde la consulta; orden 0 es la portada.
+      photoUrls = photos.map((p) => p.url);
     } catch (err) {
       console.error('[ficha] data fetch error', { listingId: id, agentId: session.agentId, version, palette, format, lang, err });
       return NextResponse.json({ error: 'No se pudieron cargar los datos del inmueble. Intenta de nuevo.', code: 'data_fetch_failed' }, { status: 500 });

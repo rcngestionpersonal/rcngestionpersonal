@@ -756,7 +756,7 @@ export default function InmueblesTab({
                 <ListingPhotoManager
                   items={
                     editingId
-                      ? (listings.find((l) => l.id === editingId)?.photos ?? []).map((p): GalleryItem => ({ key: p.id, previewUrl: p.url, isCover: p.esPortada }))
+                      ? (listings.find((l) => l.id === editingId)?.photos ?? []).map((p): GalleryItem => ({ key: p.id, previewUrl: p.url, isCover: p.orden === 0 }))
                       : pendingPhotoPreviews.map((url, i): GalleryItem => ({ key: `pending-${i}`, previewUrl: url, isCover: i === 0 }))
                   }
                   maxPhotos={MAX_LISTING_PHOTOS}

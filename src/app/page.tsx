@@ -622,7 +622,7 @@ function DashboardPage() {
       const response = await fetch(`/api/real-estate/listings/${listingId}/photos/${photoId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ esPortada: true }),
+        body: JSON.stringify({ hacerPortada: true }),
       });
       const data = await response.json();
       if (!response.ok) {

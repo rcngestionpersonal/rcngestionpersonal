@@ -209,7 +209,6 @@ type ListingPhotoRecord = {
   listingId: string;
   url: string;
   orden: number;
-  esPortada: boolean;
   createdAt: string;
 };
 
@@ -996,15 +995,15 @@ export function deleteListing(listingId: string, managingAgentId?: string): bool
 }
 
 // --- Galeria de fotos (Fase 4) ---------------------------------------------
-// Invariante: como mucho una ListingPhoto por listing tiene esPortada=true, y
-// Listing.coverPhotoUrl siempre refleja esa foto (o queda vacio si no hay
-// ninguna) - syncCoverPhotoUrl() es el UNICO lugar que lo escribe.
+// Invariante (mismo que la rama Prisma, ver listing-photos-prisma.ts): "orden"
+// es contiguo desde 0 y la foto de orden 0 ES la portada - no hay bandera
+// aparte. Listing.coverPhotoUrl solo refleja esa foto, y syncCoverPhotoUrl()
+// es el UNICO lugar que lo escribe.
 
 function syncCoverPhotoUrl(listingId: string): void {
   const store = getStore();
   const photos = attachListingPhotos(store, listingId);
-  const cover = photos.find((p) => p.esPortada) ?? photos[0] ?? null;
-  updateListing(listingId, { coverPhotoUrl: cover?.url });
+  updateListing(listingId, { coverPhotoUrl: photos[0]?.url });
 }
 
 export function listListingPhotos(listingId: string): ListingPhotoRecord[] {
@@ -1022,9 +1021,9 @@ export function addListingPhoto(listingId: string, url: string): ListingPhotoRec
     id: uid('photo'),
     listingId,
     url,
+    // Se agrega al final; si es la primera, cae en orden 0 y por eso mismo
+    // queda de portada.
     orden: existing.length,
-    // La primera foto que sube el agente queda de portada por defecto.
-    esPortada: existing.length === 0,
     createdAt: nowIso(),
   };
   store.listingPhotos.push(photo);
@@ -1038,13 +1037,11 @@ export function deleteListingPhoto(photoId: string): { listingId: string } | nul
   if (idx < 0) return null;
   const { listingId } = store.listingPhotos[idx];
   store.listingPhotos.splice(idx, 1);
-  // Renumera para que "orden" siga siendo 0..n-1 contiguo, y si se borro la
-  // portada, la foto que quede primera la hereda.
+  // Renumera para que "orden" siga siendo 0..n-1 contiguo: si se borro la
+  // portada, la que quede primera hereda el orden 0 y con eso la portada.
   const remaining = attachListingPhotos(store, listingId);
-  const hadCover = !remaining.some((p) => p.esPortada);
   remaining.forEach((p, i) => {
     p.orden = i;
-    if (hadCover && i === 0) p.esPortada = true;
   });
   syncCoverPhotoUrl(listingId);
   return { listingId };
@@ -1057,16 +1054,22 @@ export function reorderListingPhotos(listingId: string, orderedPhotoIds: string[
   orderedPhotoIds.forEach((id, i) => {
     byId.get(id)!.orden = i;
   });
+  syncCoverPhotoUrl(listingId);
   return true;
 }
 
+// "Hacer principal": mueve la foto al frente y corre el resto una posicion -
+// ya no prende una bandera, cambia el orden, que es lo unico que define la
+// portada.
 export function setListingPhotoCover(listingId: string, photoId: string): boolean {
   const store = getStore();
   const photos = attachListingPhotos(store, listingId);
   if (!photos.some((p) => p.id === photoId)) return false;
-  for (const p of store.listingPhotos) {
-    if (p.listingId === listingId) p.esPortada = p.id === photoId;
-  }
+  const nuevoOrden = [photoId, ...photos.filter((p) => p.id !== photoId).map((p) => p.id)];
+  const byId = new Map(photos.map((p) => [p.id, p]));
+  nuevoOrden.forEach((id, i) => {
+    byId.get(id)!.orden = i;
+  });
   syncCoverPhotoUrl(listingId);
   return true;
 }

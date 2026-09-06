@@ -138,8 +138,8 @@ export function isAgentVerified(agent?: Pick<AgentItem, 'idNumber' | 'phoneVerif
 export type ListingPhotoItem = {
   id: string;
   url: string;
+  // orden 0 = portada. No hay bandera aparte (ver listing-photos-prisma.ts).
   orden: number;
-  esPortada: boolean;
 };
 
 export type ListingItem = {
