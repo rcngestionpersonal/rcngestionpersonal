@@ -69,6 +69,10 @@ export type OpportunityItem = {
   referredByAgentId?: string;
   referralCommissionPercent?: number;
   createdByAgentId?: string;
+  // "manual" | "mini_sitio" | "web_chat". Un pedido entrante del mini-sitio
+  // tiene createdByAgentId igual al del agente (para que aparezca en SU panel),
+  // asi que sin este campo se veria como si lo hubiera cargado el mismo.
+  origen?: string;
   operationType: 'SALE' | 'RENT' | 'BOTH';
   propertyType: string;
   budgetMin?: number;

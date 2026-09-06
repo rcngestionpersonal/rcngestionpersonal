@@ -418,13 +418,20 @@ export default function PedidosTab({
             const withinEditWindow = Date.now() - new Date(op.createdAt).getTime() < EDIT_WINDOW_MS;
             const editDeadline = new Date(new Date(op.createdAt).getTime() + EDIT_WINDOW_MS);
 
-            const origenLabel = op.createdByAgentId
-              ? isAdmin
-                ? `${t('admin.pedidos.cargadoPor')} ${agents.find((a) => a.id === op.createdByAgentId)?.fullName ?? op.createdByAgentId}`
-                : op.createdByAgentId === user?.agentId
-                  ? t('pedidos.cargadoPorAgente')
-                  : t('pedidos.chatWeb')
-              : t('pedidos.chatWeb');
+            // El origen real manda sobre la inferencia por createdByAgentId: un
+            // lead del mini-sitio lo tiene apuntando al propio agente (para que
+            // caiga en su panel) y sin esto se leeria como "cargado por ti",
+            // que es exactamente lo contrario de lo que paso.
+            const esDeMiSitio = op.origen === 'mini_sitio';
+            const origenLabel = esDeMiSitio
+              ? t('pedidos.desdeMiSitio')
+              : op.createdByAgentId
+                ? isAdmin
+                  ? `${t('admin.pedidos.cargadoPor')} ${agents.find((a) => a.id === op.createdByAgentId)?.fullName ?? op.createdByAgentId}`
+                  : op.createdByAgentId === user?.agentId
+                    ? t('pedidos.cargadoPorAgente')
+                    : t('pedidos.chatWeb')
+                : t('pedidos.chatWeb');
 
             const dateLabel = relativeLabel(
               op.createdAt,
@@ -440,7 +447,9 @@ export default function PedidosTab({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                     <Chip tone="violet">{tOperation(op.operationType)} · {tProperty(op.propertyType)}</Chip>
-                    <Chip tone="neutral" uppercase={false}>{origenLabel}</Chip>
+                    {/* Un pedido entrante se destaca: no es lo mismo en confianza
+                        del dato ni en urgencia de respuesta que uno propio. */}
+                    <Chip tone={esDeMiSitio ? 'teal' : 'neutral'} uppercase={false}>{origenLabel}</Chip>
                   </div>
                   <span className="shrink-0 text-[12px] font-medium text-text-3">{dateLabel}</span>
                 </div>

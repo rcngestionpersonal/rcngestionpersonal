@@ -5,8 +5,11 @@ import { prisma } from '@/lib/prisma';
 import { getAgentPointsSummary } from '@/lib/real-estate/points-log';
 import { levelColorFor } from '@/lib/real-estate/points';
 import { zoneLabel } from '@/lib/real-estate/quito-zones';
+import { propertyTypeLabelEs } from '@/lib/real-estate/labels';
 import { mensajeWhatsAppMiniSitio, resolverColor, urlMiniSitio } from '@/lib/real-estate/mini-sitio';
 import { registrarVisita, resolverEstadoMiniSitio } from '@/lib/real-estate/mini-sitio-server';
+import InventarioMiniSitio, { type InmuebleMiniSitio } from './_components/InventarioMiniSitio';
+import FormularioCaptacion from './_components/FormularioCaptacion';
 
 // Mini-sitio publico del agente (Fase 3). Server component a proposito: el SEO
 // y la vista previa de WhatsApp necesitan HTML renderizado en el servidor
@@ -53,19 +56,35 @@ async function cargarMiniSitio(slug: string) {
   if (!miniSitio) return null;
 
   const estado = resolverEstadoMiniSitio(miniSitio.agent, miniSitio);
-  if (estado !== 'visible') return { estado, miniSitio: null, agente: null, credibilidad: null };
+  if (estado !== 'visible') return { estado, miniSitio: null, agente: null, credibilidad: null, listings: [] };
 
   const agente = miniSitio.agent;
-  const [cierres, inmuebles, puntos] = await Promise.all([
+  const [cierres, inmuebles, puntos, listings] = await Promise.all([
     prisma.closedDeal.count({ where: { createdByAgentId: agente.id } }),
     prisma.listing.count({ where: { managingAgentId: agente.id, status: 'ACTIVE' } }),
     getAgentPointsSummary(agente.id).catch(() => null),
+    // Solo inmuebles ACTIVOS (punto 2.2), mas recientes primero. Nunca se
+    // seleccionan campos privados: ni el dueño, ni su telefono, ni la comision
+    // pactada (punto 9.1).
+    miniSitio.mostrarInventario
+      ? prisma.listing.findMany({
+          where: { managingAgentId: agente.id, status: 'ACTIVE' },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true, title: true, propertyType: true, operationType: true,
+            price: true, currency: true, zone: true, areaM2: true,
+            bedrooms: true, bathrooms: true, parkingSpaces: true,
+            photos: { orderBy: { orden: 'asc' }, select: { url: true, miniaturaUrl: true } },
+          },
+        })
+      : Promise.resolve([]),
   ]);
 
   return {
     estado,
     miniSitio,
     agente,
+    listings,
     credibilidad: {
       aniosEnRedinmo: new Date().getFullYear() - agente.createdAt.getFullYear(),
       cierres,
@@ -184,6 +203,22 @@ export default async function MiniSitioPage({ params }: { params: Promise<{ slug
   void registrarVisita(miniSitio.id);
 
   const telefono = (agente.phone ?? '').replace(/[^0-9]/g, '');
+
+  const inmuebles: InmuebleMiniSitio[] = datos.listings.map((l) => ({
+    id: l.id,
+    titulo: l.title,
+    tipo: l.propertyType,
+    tipoLabel: propertyTypeLabelEs(l.propertyType),
+    operacionLabel: l.operationType === 'RENT' ? 'Arriendo' : 'Venta',
+    precio: l.price,
+    moneda: l.currency,
+    sector: l.zone,
+    areaM2: l.areaM2,
+    dormitorios: l.bedrooms,
+    banos: l.bathrooms,
+    parqueaderos: l.parkingSpaces,
+    fotos: l.photos,
+  }));
   const whatsapp = `https://wa.me/${telefono}?text=${encodeURIComponent(mensajeWhatsAppMiniSitio(agente.fullName))}`;
 
   // Solo datos verificables, y se omite el item si es cero (punto 2.3): un
@@ -324,6 +359,16 @@ export default async function MiniSitioPage({ params }: { params: Promise<{ slug
           </div>
         </section>
       ) : null}
+
+      {/* ---- INVENTARIO (punto 2.2) ---- Si no tiene inmuebles activos la
+           seccion no se renderiza en absoluto: un "no hay inmuebles" vacio
+           resta credibilidad en vez de sumarla. */}
+      {miniSitio.mostrarInventario && inmuebles.length > 0 ? (
+        <InventarioMiniSitio inmuebles={inmuebles} slug={slug} telefono={telefono} nombreAgente={agente.fullName} />
+      ) : null}
+
+      {/* ---- FORMULARIO DE CAPTACION (punto 2.4) ---- */}
+      {miniSitio.mostrarFormulario ? <FormularioCaptacion slug={slug} nombreAgente={agente.fullName} /> : null}
 
       {/* ---- PIE (punto 2.5) ---- */}
       <footer className="px-4 py-10 text-center">

@@ -354,3 +354,32 @@ export function buildMilestoneEmail(input: {
     ),
   };
 }
+
+// Lead entrante del mini-sitio del agente (Fase 3, punto 2.4). Va SOLO al
+// agente dueño del sitio: el contacto es suyo, no de la red.
+export function buildLeadMiniSitioEmail(input: {
+  agentName: string;
+  contactName: string;
+  contactPhone: string;
+  resumen: string;
+  mensaje: string | null;
+  appUrl: string;
+}): { subject: string; text: string } {
+  return {
+    subject: `🔔 Nuevo contacto desde tu sitio: ${input.contactName}`,
+    text: wrap(
+      `Hola ${input.agentName},`,
+      [
+        'Alguien te escribió desde tu mini-sitio en Redinmo.io.',
+        '',
+        `👤 ${input.contactName}`,
+        `📱 ${input.contactPhone}`,
+        `📋 ${input.resumen}`,
+        ...(input.mensaje ? ['', `"${input.mensaje}"`] : []),
+        '',
+        'Ya está en tu panel como pedido entrante. Contáctalo pronto: quien deja sus datos suele estar escribiéndole a varios agentes a la vez.',
+      ].join('\n'),
+      { label: 'Ver el pedido en mi panel', url: input.appUrl },
+    ),
+  };
+}

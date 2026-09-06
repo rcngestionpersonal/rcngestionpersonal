@@ -12,8 +12,12 @@ function isPublicPath(pathname: string): boolean {
   if (pathname === '/politica-cancelacion') return true;
   if (pathname.startsWith('/legal/')) return true;
   if (pathname.startsWith('/v/')) return true;
-  // Mini-sitio publico del agente (Fase 3): sin sesion e indexable.
+  // Mini-sitio publico del agente (Fase 3): sin sesion e indexable. Sus dos
+  // endpoints tambien son publicos por definicion - los usa un visitante que
+  // no tiene cuenta: el formulario de captacion y el registro de visitas.
+  // Ambos validan por su cuenta que el sitio exista y este visible.
   if (pathname.startsWith('/a/')) return true;
+  if (pathname.startsWith('/api/real-estate/mini-sitio/')) return true;
   if (pathname.startsWith('/api/auth/')) return true;
   if (pathname === '/api/health') return true;
   if (pathname.startsWith('/_next/')) return true;
