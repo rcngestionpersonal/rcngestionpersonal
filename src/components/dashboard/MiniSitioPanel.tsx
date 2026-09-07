@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { MINI_SITIO_COLORES, MINI_SITIO_FRASE_MAX, type MiniSitioColor } from '@/lib/real-estate/mini-sitio';
 
-// Panel del mini-sitio en la cuenta del agente: personalizacion (seccion 3),
-// compartir (seccion 4) y estadisticas (seccion 6).
+// Panel del mini-sitio: personalizacion (seccion 3), compartir (seccion 4) y
+// estadisticas (seccion 6). Se monta desde la pestaña "Mi Sitio" del panel
+// (MiSitioTab), que es la que pone el titulo del modulo y el bloqueo por plan.
 
 type Ajustes = {
   slug: string;
@@ -126,8 +127,10 @@ export default function MiniSitioPanel({ appUrl }: { appUrl?: string }) {
       <div className="rounded-2xl border border-line bg-surface p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-base font-bold text-text">Mini-sitio profesional</h3>
-            <p className="mt-0.5 text-xs text-text-2">Tu página pública con tu inventario y tu carnet.</p>
+            <h3 className="text-base font-bold text-text">{activo ? 'Tu sitio está publicado' : 'Tu sitio está apagado'}</h3>
+            <p className="mt-0.5 text-xs text-text-2">
+              {activo ? 'Cualquiera con el enlace puede verlo.' : 'Nadie puede verlo hasta que lo actives.'}
+            </p>
           </div>
           <button
             onClick={() => void guardar({ activo: !activo })}

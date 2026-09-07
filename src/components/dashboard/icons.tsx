@@ -5,7 +5,8 @@ import type { SVGProps } from 'react';
 // dos archivos (eso es justo lo que causaba la deriva visual que corregimos).
 // Mapeo fijo de identidad por modulo, igual en menu y en cualquier tarjeta:
 // Gestion=grid, Ranking=podio, Suscripcion=tarjeta, Inmuebles=casa,
-// Pedidos=clipboard, Matches=estrella, Mapa de Cierres=circulo, Invitar=avion.
+// Pedidos=clipboard, Matches=estrella, Mapa de Cierres=circulo, Invitar=avion,
+// Mi Sitio=globo.
 
 export function IconGrid(props: SVGProps<SVGSVGElement>) {
   return (
@@ -183,6 +184,31 @@ export function IconCheck(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...props}>
       <path d="M4 12.5 9.5 18 20 6" />
+    </svg>
+  );
+}
+
+// Persona - "Mi perfil" en el grupo de cuenta del menu. Deliberadamente
+// distinto del avatar con foto de la barra superior: aca es una etiqueta de
+// navegacion, no la identidad del agente.
+export function IconUser(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <circle cx="12" cy="8" r="3.6" />
+      <path d="M4.8 20c.6-3.5 3.6-5.6 7.2-5.6s6.6 2.1 7.2 5.6" />
+    </svg>
+  );
+}
+
+// Globo - identidad fija del modulo "Mi Sitio" (el mini-sitio publico del
+// agente) en menu y tarjetas: es la unica pantalla que apunta hacia afuera,
+// hacia la web publica, y el globo lo dice sin texto.
+export function IconGlobe(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M3.5 12h17" />
+      <path d="M12 3.5c2.2 2.3 3.4 5.3 3.4 8.5s-1.2 6.2-3.4 8.5c-2.2-2.3-3.4-5.3-3.4-8.5S9.8 5.8 12 3.5Z" />
     </svg>
   );
 }

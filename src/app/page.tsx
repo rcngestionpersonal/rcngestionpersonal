@@ -12,6 +12,7 @@ import MatchesTab from '@/components/dashboard/tabs/MatchesTab';
 import CierresTab from '@/components/dashboard/tabs/CierresTab';
 import type { NewClosedDealInput } from '@/components/dashboard/tabs/CierreFormPanel';
 import InvitarTab from '@/components/dashboard/tabs/InvitarTab';
+import MiSitioTab from '@/components/dashboard/tabs/MiSitioTab';
 import MetricasTab from '@/components/dashboard/tabs/MetricasTab';
 import LevelUpCelebrationModal from '@/components/dashboard/LevelUpCelebrationModal';
 import NoEmailBanner from '@/components/dashboard/NoEmailBanner';
@@ -20,6 +21,7 @@ import PriceChangeNoticeBanner from '@/components/dashboard/PriceChangeNoticeBan
 import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageProvider';
 import type { NextPlayInput } from '@/lib/real-estate/next-play';
 import { daysRemaining, resolveEffectiveSubscriptionStatus } from '@/lib/real-estate/subscription-status';
+import type { AccesoInput } from '@/lib/real-estate/access';
 import {
   isAgentVerified,
   type AgentDashboardBreakdown,
@@ -90,6 +92,16 @@ function DashboardPage() {
   const myAgentActive = Boolean(myEffectiveStatus && ACTIVE_SUBSCRIPTION_STATUSES.has(myEffectiveStatus));
   const myAgentVerified = isAgentVerified(myAgent);
   const canManageInventory = isAdmin || (myAgentActive && myAgentVerified);
+  // Lo que consume RequiereFeature para decidir si una feature Pro se muestra
+  // o se bloquea. Nunca reimplementar la regla aca: la decide tieneAcceso().
+  const accesoInput: AccesoInput | null = myAgent
+    ? {
+        subscriptionStatus: myAgent.subscriptionStatus,
+        trialEndsAt: myAgent.trialEndsAt,
+        subscriptionPaidUntil: myAgent.subscriptionPaidUntil,
+        plan: myAgent.plan ?? 'BASICO',
+      }
+    : null;
   // Indicador persistente de dias de prueba restantes (item 10 del pedido de
   // Payphone/trial) - solo aplica a agentes, nunca al admin.
   const trialInfo = useMemo(() => {
@@ -951,6 +963,7 @@ function DashboardPage() {
           creating={creatingClosedDeal}
         />
       )}
+      {activeTab === 'misitio' && isAgent && <MiSitioTab suscripcion={accesoInput} />}
       {activeTab === 'invitar' && isAgent && <InvitarTab myAgentId={user?.agentId} agents={agents} />}
       {activeTab === 'metricas' && isAdmin && <MetricasTab months={churnMonths} />}
 

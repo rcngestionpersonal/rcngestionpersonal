@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import MiniSitioPanel from '@/components/dashboard/MiniSitioPanel';
 import { useRouter } from 'next/navigation';
 import { Camera } from 'lucide-react';
 import { cropImageToSquare } from '@/lib/real-estate/image-compress';
@@ -425,14 +424,17 @@ export default function EditarPerfilPage() {
             </div>
           </div>
 
-          {/* Frase de presentacion */}
+          {/* Mensaje del carnet (Agent.carnetMessage). NO es la frase del
+              mini-sitio: esa se edita en la pestaña "Mi Sitio" y se guarda en
+              MiniSitio.frasePresentacion. Antes ambas se llamaban "Frase de
+              presentación" y era imposible saber cual alimentaba que. */}
           <div>
-            <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-text-2">Frase de presentación</p>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-text-2">Mensaje de mi carnet (WhatsApp)</p>
             <textarea
               className={`${inputClass} min-h-[80px] resize-none`}
               value={carnetMessage}
               onChange={(e) => setCarnetMessage(e.target.value.slice(0, 220))}
-              placeholder="Una frase corta para presentarte a tus clientes (se usará en tu mini-sitio Pro)."
+              placeholder="Este mensaje se precarga cuando alguien escanea el QR de tu carnet."
             />
             <p className="mt-1 text-right text-[11px] text-text-3">{carnetMessage.length}/220</p>
           </div>
@@ -446,11 +448,6 @@ export default function EditarPerfilPage() {
           >
             {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
-        </section>
-
-        {/* Mini-sitio publico (Fase 3): personalizacion, compartir y metricas. */}
-        <section className="mt-6">
-          <MiniSitioPanel />
         </section>
       </div>
     </main>

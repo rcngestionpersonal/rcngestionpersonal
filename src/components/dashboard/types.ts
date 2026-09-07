@@ -339,4 +339,9 @@ export type AuthUser = {
   email?: string;
 };
 
-export type DashboardTab = 'resumen' | 'ranking' | 'suscripcion' | 'inmuebles' | 'pedidos' | 'matches' | 'cierres' | 'invitar' | 'metricas';
+// "misitio": el mini-sitio publico del agente vive en su propia pestaña (antes
+// estaba al final de /agentes/perfil, una pantalla de edicion de datos). Es la
+// feature Pro con mas peso comercial, asi que en plan Basico la entrada se ve
+// igual y abre el bloqueo de RequiereFeature: es un argumento de venta
+// permanente, no una pestaña que aparece y desaparece.
+export type DashboardTab = 'resumen' | 'ranking' | 'suscripcion' | 'inmuebles' | 'pedidos' | 'matches' | 'cierres' | 'invitar' | 'metricas' | 'misitio';

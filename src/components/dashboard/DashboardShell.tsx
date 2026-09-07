@@ -4,7 +4,7 @@ import { useState, type ReactNode, type SVGProps } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import { AvatarInitials } from './CardKit';
-import { IconClipboard, IconGrid, IconHouse, IconInvite, IconMapPin, IconPodium, IconStar, IconSubscription } from './icons';
+import { IconClipboard, IconGlobe, IconGrid, IconHouse, IconInvite, IconMapPin, IconPodium, IconStar, IconSubscription, IconUser } from './icons';
 import ThemeSwitch from './ThemeSwitch';
 import type { DashboardTab } from './types';
 
@@ -12,8 +12,17 @@ import type { DashboardTab } from './types';
 // que hace crecer la Red, y el pedido explicito fue darle prioridad visual.
 // "cierres" (Fase 5): un solo tab "Mapa de Cierres" que combina mapa + registro (el
 // registro se abre desde un boton flotante sobre el mapa, ya no es un tab aparte).
-const AGENT_TABS: DashboardTab[] = ['invitar', 'resumen', 'ranking', 'suscripcion', 'inmuebles', 'pedidos', 'matches', 'cierres'];
-const ADMIN_TABS: DashboardTab[] = ['resumen', 'ranking', 'suscripcion', 'inmuebles', 'pedidos', 'matches', 'cierres', 'metricas'];
+// "misitio" va junto a Ranking (que es donde vive el Carnet): las dos son la
+// cara publica del agente, y asi queda por encima de Inmuebles/Pedidos en vez
+// de enterrada al final de una pantalla de edicion de datos.
+const AGENT_TABS: DashboardTab[] = ['invitar', 'resumen', 'ranking', 'misitio', 'inmuebles', 'pedidos', 'matches', 'cierres'];
+const ADMIN_TABS: DashboardTab[] = ['resumen', 'ranking', 'inmuebles', 'pedidos', 'matches', 'cierres', 'metricas'];
+
+// Grupo secundario, separado con una linea de los modulos de trabajo: aca no
+// se opera, se administra la propia cuenta. Suscripcion baja desde la lista de
+// arriba y "Mi perfil" (que hasta ahora solo existia como boton de la barra
+// superior, invisible en el menu) entra a su lado.
+const CUENTA_TABS: DashboardTab[] = ['suscripcion'];
 
 function IconMetricas(props: SVGProps<SVGSVGElement>) {
   return (
@@ -50,6 +59,7 @@ const TAB_ICONS: Record<DashboardTab, (props: SVGProps<SVGSVGElement>) => ReactN
   cierres: IconMapPin,
   invitar: IconInvite,
   metricas: IconMetricas,
+  misitio: IconGlobe,
 };
 
 function tabLabelKey(tab: DashboardTab, isAdmin: boolean): string {
@@ -82,6 +92,22 @@ function LanguageSwitch() {
       </button>
     </div>
   );
+}
+
+// Una sola definicion del aspecto de cada entrada del menu, para que la
+// version de escritorio y la del menu movil no se separen visualmente cada vez
+// que se toca una (que es justo lo que paso antes con los iconos).
+function navItemClass(variant: 'desktop' | 'mobile', isActive: boolean, isInvitar: boolean): string {
+  if (variant === 'desktop') {
+    const base = 'group flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left text-sm font-semibold transition-all duration-200 ease-out';
+    if (isActive) return `${base} gradient-btn translate-x-0.5 text-grad-contrast shadow-md`;
+    if (isInvitar) return `${base} border border-accent-line bg-accent-dim text-accent hover:translate-x-0.5 hover:brightness-125`;
+    return `${base} text-text-2 hover:translate-x-0.5 hover:bg-surface-2 hover:text-text`;
+  }
+  const base = 'flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors duration-150';
+  if (isActive) return `${base} bg-brand-dim text-brand`;
+  if (isInvitar) return `${base} border border-accent-line bg-accent-dim text-accent`;
+  return `${base} text-text-2 hover:bg-surface-2 hover:text-text`;
 }
 
 export default function DashboardShell({
@@ -125,17 +151,7 @@ export default function DashboardShell({
               const isActive = activeTab === tab;
               const isInvitar = tab === 'invitar';
               return (
-                <button
-                  key={tab}
-                  onClick={() => onTabChange(tab)}
-                  className={`group flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 text-left text-sm font-semibold transition-all duration-200 ease-out ${
-                    isActive
-                      ? 'gradient-btn translate-x-0.5 text-grad-contrast shadow-md'
-                      : isInvitar
-                        ? 'border border-accent-line bg-accent-dim text-accent hover:translate-x-0.5 hover:brightness-125'
-                        : 'text-text-2 hover:translate-x-0.5 hover:bg-surface-2 hover:text-text'
-                  }`}
-                >
+                <button key={tab} onClick={() => onTabChange(tab)} className={navItemClass('desktop', isActive, isInvitar)}>
                   <Icon
                     className={`h-[18px] w-[18px] shrink-0 transition-transform duration-200 ${
                       isActive ? 'scale-110' : 'group-hover:scale-110'
@@ -146,6 +162,30 @@ export default function DashboardShell({
                 </button>
               );
             })}
+
+            {/* Grupo de cuenta, separado por una linea de los modulos de trabajo. */}
+            <div className="!mt-3 space-y-1 border-t border-line pt-3">
+              {!isAdmin ? (
+                <Link href="/agentes/perfil" className={navItemClass('desktop', false, false)}>
+                  <IconUser className="h-[18px] w-[18px] shrink-0 transition-transform duration-200 group-hover:scale-110" />
+                  <span className="truncate">{t('nav.perfil')}</span>
+                </Link>
+              ) : null}
+              {CUENTA_TABS.map((tab) => {
+                const Icon = TAB_ICONS[tab];
+                const isActive = activeTab === tab;
+                return (
+                  <button key={tab} onClick={() => onTabChange(tab)} className={navItemClass('desktop', isActive, false)}>
+                    <Icon
+                      className={`h-[18px] w-[18px] shrink-0 transition-transform duration-200 ${
+                        isActive ? 'scale-110' : 'group-hover:scale-110'
+                      }`}
+                    />
+                    <span className="truncate">{t(tabLabelKey(tab, isAdmin))}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </aside>
 
@@ -208,32 +248,35 @@ export default function DashboardShell({
                   const isActive = activeTab === tab;
                   const isInvitar = tab === 'invitar';
                   return (
-                    <button
-                      key={tab}
-                      onClick={() => selectTab(tab)}
-                      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors duration-150 ${
-                        isActive
-                          ? 'bg-brand-dim text-brand'
-                          : isInvitar
-                            ? 'border border-accent-line bg-accent-dim text-accent'
-                            : 'text-text-2 hover:bg-surface-2 hover:text-text'
-                      }`}
-                    >
+                    <button key={tab} onClick={() => selectTab(tab)} className={navItemClass('mobile', isActive, isInvitar)}>
                       <Icon className="h-[18px] w-[18px] shrink-0" />
                       <span className="truncate">{t(tabLabelKey(tab, isAdmin))}</span>
                       {isInvitar && !isActive ? <span aria-hidden="true" className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-accent" /> : null}
                     </button>
                   );
                 })}
-                <div className="space-y-2 border-t border-line pt-3">
+
+                {/* Mismo grupo de cuenta que en escritorio, con la misma separacion. */}
+                <div className="space-y-1 border-t border-line pt-3">
                   {!isAdmin ? (
-                    <Link
-                      href="/agentes/perfil"
-                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-text-2 transition-colors duration-150 hover:bg-surface-2 hover:text-text"
-                    >
-                      {t('shell.editarPerfil')}
+                    <Link href="/agentes/perfil" className={navItemClass('mobile', false, false)}>
+                      <IconUser className="h-[18px] w-[18px] shrink-0" />
+                      <span className="truncate">{t('nav.perfil')}</span>
                     </Link>
                   ) : null}
+                  {CUENTA_TABS.map((tab) => {
+                    const Icon = TAB_ICONS[tab];
+                    const isActive = activeTab === tab;
+                    return (
+                      <button key={tab} onClick={() => selectTab(tab)} className={navItemClass('mobile', isActive, false)}>
+                        <Icon className="h-[18px] w-[18px] shrink-0" />
+                        <span className="truncate">{t(tabLabelKey(tab, isAdmin))}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="space-y-2 border-t border-line pt-3">
                   <ThemeSwitch isAdmin={isAdmin} showLabel />
                   <div className="flex items-center justify-between gap-2">
                     <LanguageSwitch />

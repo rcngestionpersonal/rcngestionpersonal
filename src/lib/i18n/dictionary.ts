@@ -145,6 +145,12 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'nav.cierres': 'Mapa de Cierres',
     'nav.metricas': 'Métricas',
     'nav.invitar': 'Invita a un Colega',
+    'nav.misitio': 'Mi Sitio',
+    'nav.perfil': 'Mi perfil',
+
+    'misitio.title': 'Mi Sitio',
+    'misitio.subtitle': 'Tu página pública: tu carnet verificado, tu inventario y un formulario para recibir pedidos.',
+    'misitio.cargando': 'Cargando tu sitio…',
 
     'invitar.title': 'Invita a Redinmo.io',
     'invitar.subtitle': 'Haz crecer la comunidad de agentes y gana puntos por cada invitación.',
@@ -1007,6 +1013,12 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'nav.cierres': 'Closings Map',
     'nav.metricas': 'Metrics',
     'nav.invitar': 'Invite a Colleague',
+    'nav.misitio': 'My Site',
+    'nav.perfil': 'My profile',
+
+    'misitio.title': 'My Site',
+    'misitio.subtitle': 'Your public page: your verified agent card, your listings, and a form to receive requests.',
+    'misitio.cargando': 'Loading your site…',
 
     'invitar.title': 'Invite to Redinmo.io',
     'invitar.subtitle': 'Grow the agent community and earn points for every invitation.',
