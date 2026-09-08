@@ -33,8 +33,12 @@ export type ResultadoGeneracion = {
   modelo: string | null;
   tokensEntrada: number | null;
   tokensSalida: number | null;
-  // true cuando no habia proveedor configurado y se uso la plantilla local.
+  // true cuando el texto salio de la plantilla local en vez del modelo, sea
+  // porque no hay clave o porque el proveedor fallo.
   usoPlantilla: boolean;
+  // Por que se cayo a la plantilla. Solo para logs: al agente no se le habla
+  // de proveedores ni de claves.
+  motivoRespaldo?: MotivoFallo;
 };
 
 function modeloConfigurado(): { apiKey: string; modelo: string } | null {
@@ -142,39 +146,85 @@ type RespuestaChat = {
   usage?: { prompt_tokens?: number; completion_tokens?: number };
 };
 
-async function llamarModelo(sistema: string, usuario: string): Promise<{ contenido: string; modelo: string; entrada: number | null; salida: number | null } | null> {
-  const config = modeloConfigurado();
-  if (!config) return null;
+// Un proveedor caido NUNCA puede dejar al agente sin poder escribir una carta.
+// Por eso esta funcion no lanza: devuelve null y quien llama cae a la
+// plantilla. Se distingue el motivo para poder verlo en los logs sin exponerlo
+// en la pantalla.
+export type MotivoFallo = 'sin_clave' | 'http' | 'red' | 'respuesta_vacia';
 
-  try {
-    const respuesta = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: config.modelo,
-        // Temperatura baja: esta feature premia la fidelidad a los datos por
-        // encima de la variedad literaria.
-        temperature: 0.4,
-        messages: [
-          { role: 'system', content: sistema },
-          { role: 'user', content: usuario },
-        ],
-        response_format: { type: 'json_object' },
-      }),
-    });
-    if (!respuesta.ok) return null;
-    const payload = (await respuesta.json()) as RespuestaChat;
-    const contenido = payload.choices?.[0]?.message?.content;
-    if (!contenido) return null;
-    return {
-      contenido,
-      modelo: config.modelo,
-      entrada: payload.usage?.prompt_tokens ?? null,
-      salida: payload.usage?.completion_tokens ?? null,
-    };
-  } catch {
-    return null;
+// Un modelo que tarda mas que esto ya arruino la espera del agente: es mejor
+// entregarle el borrador de plantilla al toque que dejarlo mirando un spinner.
+const TIMEOUT_MS = 25_000;
+// Un solo reintento, y solo para fallas transitorias (429 y 5xx). Reintentar
+// un 400 o un 401 es quemar tiempo: esos no se arreglan solos.
+const REINTENTOS = 1;
+
+async function llamarModelo(
+  sistema: string,
+  usuario: string,
+): Promise<
+  | { ok: true; contenido: string; modelo: string; entrada: number | null; salida: number | null }
+  | { ok: false; motivo: MotivoFallo }
+> {
+  const config = modeloConfigurado();
+  if (!config) return { ok: false, motivo: 'sin_clave' };
+
+  let ultimoMotivo: MotivoFallo = 'red';
+
+  for (let intento = 0; intento <= REINTENTOS; intento += 1) {
+    const control = new AbortController();
+    const reloj = setTimeout(() => control.abort(), TIMEOUT_MS);
+    try {
+      const respuesta = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: config.modelo,
+          // Temperatura baja: esta feature premia la fidelidad a los datos por
+          // encima de la variedad literaria.
+          temperature: 0.4,
+          messages: [
+            { role: 'system', content: sistema },
+            { role: 'user', content: usuario },
+          ],
+          response_format: { type: 'json_object' },
+        }),
+        signal: control.signal,
+      });
+
+      if (!respuesta.ok) {
+        ultimoMotivo = 'http';
+        const transitorio = respuesta.status === 429 || respuesta.status >= 500;
+        console.error(`[cartas] el generador respondio ${respuesta.status}${transitorio && intento < REINTENTOS ? ' - se reintenta' : ''}`);
+        if (transitorio && intento < REINTENTOS) continue;
+        return { ok: false, motivo: 'http' };
+      }
+
+      const payload = (await respuesta.json()) as RespuestaChat;
+      const contenido = payload.choices?.[0]?.message?.content;
+      if (!contenido) {
+        console.error('[cartas] el generador respondio sin contenido');
+        return { ok: false, motivo: 'respuesta_vacia' };
+      }
+
+      return {
+        ok: true,
+        contenido,
+        modelo: config.modelo,
+        entrada: payload.usage?.prompt_tokens ?? null,
+        salida: payload.usage?.completion_tokens ?? null,
+      };
+    } catch (error) {
+      ultimoMotivo = 'red';
+      const abortado = error instanceof Error && error.name === 'AbortError';
+      console.error(`[cartas] el generador fallo (${abortado ? 'timeout' : 'red'})${intento < REINTENTOS ? ' - se reintenta' : ''}`);
+      if (intento >= REINTENTOS) return { ok: false, motivo: 'red' };
+    } finally {
+      clearTimeout(reloj);
+    }
   }
+
+  return { ok: false, motivo: ultimoMotivo };
 }
 
 export async function generarCarta(entrada: EntradaGeneracion): Promise<ResultadoGeneracion> {
@@ -182,8 +232,18 @@ export async function generarCarta(entrada: EntradaGeneracion): Promise<Resultad
   const usuario = instruccionDeUsuario(entrada);
   const respuesta = await llamarModelo(sistema, usuario);
 
-  if (!respuesta) {
-    return { bloques: borradorDePlantilla(entrada), modelo: null, tokensEntrada: null, tokensSalida: null, usoPlantilla: true };
+  // Sin clave, con el proveedor caido o con una respuesta ilegible: el agente
+  // igual se lleva un borrador armado con sus datos reales. La carta puede
+  // salir mas simple, nunca puede no salir.
+  if (!respuesta.ok) {
+    return {
+      bloques: borradorDePlantilla(entrada),
+      modelo: null,
+      tokensEntrada: null,
+      tokensSalida: null,
+      usoPlantilla: true,
+      motivoRespaldo: respuesta.motivo,
+    };
   }
 
   try {
@@ -191,7 +251,15 @@ export async function generarCarta(entrada: EntradaGeneracion): Promise<Resultad
     // Una respuesta a la que le falten bloques es peor que la plantilla: se
     // prefiere un borrador completo y editable antes que una carta con huecos.
     if (CARTA_BLOQUES.some((c) => !bloques[c].trim())) {
-      return { bloques: borradorDePlantilla(entrada), modelo: respuesta.modelo, tokensEntrada: respuesta.entrada, tokensSalida: respuesta.salida, usoPlantilla: true };
+      console.error('[cartas] el generador devolvio bloques incompletos - se usa la plantilla');
+      return {
+        bloques: borradorDePlantilla(entrada),
+        modelo: respuesta.modelo,
+        tokensEntrada: respuesta.entrada,
+        tokensSalida: respuesta.salida,
+        usoPlantilla: true,
+        motivoRespaldo: 'respuesta_vacia',
+      };
     }
     return {
       bloques,
@@ -201,7 +269,15 @@ export async function generarCarta(entrada: EntradaGeneracion): Promise<Resultad
       usoPlantilla: false,
     };
   } catch {
-    return { bloques: borradorDePlantilla(entrada), modelo: respuesta.modelo, tokensEntrada: respuesta.entrada, tokensSalida: respuesta.salida, usoPlantilla: true };
+    console.error('[cartas] el generador devolvio un JSON invalido - se usa la plantilla');
+    return {
+      bloques: borradorDePlantilla(entrada),
+      modelo: respuesta.modelo,
+      tokensEntrada: respuesta.entrada,
+      tokensSalida: respuesta.salida,
+      usoPlantilla: true,
+      motivoRespaldo: 'respuesta_vacia',
+    };
   }
 }
 
@@ -230,7 +306,7 @@ export async function regenerarBloque(
   ].join('\n');
 
   const respuesta = await llamarModelo(sistema, usuario);
-  if (!respuesta) return { texto: '', modelo: null, tokensEntrada: null, tokensSalida: null, sinProveedor: false };
+  if (!respuesta.ok) return { texto: '', modelo: null, tokensEntrada: null, tokensSalida: null, sinProveedor: false };
 
   try {
     const json = JSON.parse(respuesta.contenido) as Record<string, unknown>;
