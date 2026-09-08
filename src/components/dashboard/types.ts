@@ -344,4 +344,4 @@ export type AuthUser = {
 // feature Pro con mas peso comercial, asi que en plan Basico la entrada se ve
 // igual y abre el bloqueo de RequiereFeature: es un argumento de venta
 // permanente, no una pestaña que aparece y desaparece.
-export type DashboardTab = 'resumen' | 'ranking' | 'suscripcion' | 'inmuebles' | 'pedidos' | 'matches' | 'cierres' | 'invitar' | 'metricas' | 'misitio';
+export type DashboardTab = 'resumen' | 'ranking' | 'suscripcion' | 'inmuebles' | 'pedidos' | 'matches' | 'cierres' | 'invitar' | 'metricas' | 'misitio' | 'cartas';

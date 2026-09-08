@@ -4,7 +4,7 @@ import { useState, type ReactNode, type SVGProps } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import { AvatarInitials } from './CardKit';
-import { IconClipboard, IconGlobe, IconGrid, IconHouse, IconInvite, IconMapPin, IconPodium, IconStar, IconSubscription, IconUser } from './icons';
+import { IconClipboard, IconGlobe, IconGrid, IconHouse, IconInvite, IconLetter, IconMapPin, IconPodium, IconStar, IconSubscription, IconUser } from './icons';
 import ThemeSwitch from './ThemeSwitch';
 import type { DashboardTab } from './types';
 
@@ -15,7 +15,7 @@ import type { DashboardTab } from './types';
 // "misitio" va junto a Ranking (que es donde vive el Carnet): las dos son la
 // cara publica del agente, y asi queda por encima de Inmuebles/Pedidos en vez
 // de enterrada al final de una pantalla de edicion de datos.
-const AGENT_TABS: DashboardTab[] = ['invitar', 'resumen', 'ranking', 'misitio', 'inmuebles', 'pedidos', 'matches', 'cierres'];
+const AGENT_TABS: DashboardTab[] = ['invitar', 'resumen', 'ranking', 'misitio', 'cartas', 'inmuebles', 'pedidos', 'matches', 'cierres'];
 const ADMIN_TABS: DashboardTab[] = ['resumen', 'ranking', 'inmuebles', 'pedidos', 'matches', 'cierres', 'metricas'];
 
 // Grupo secundario, separado con una linea de los modulos de trabajo: aca no
@@ -60,6 +60,7 @@ const TAB_ICONS: Record<DashboardTab, (props: SVGProps<SVGSVGElement>) => ReactN
   invitar: IconInvite,
   metricas: IconMetricas,
   misitio: IconGlobe,
+  cartas: IconLetter,
 };
 
 function tabLabelKey(tab: DashboardTab, isAdmin: boolean): string {

@@ -13,6 +13,7 @@ import CierresTab from '@/components/dashboard/tabs/CierresTab';
 import type { NewClosedDealInput } from '@/components/dashboard/tabs/CierreFormPanel';
 import InvitarTab from '@/components/dashboard/tabs/InvitarTab';
 import MiSitioTab from '@/components/dashboard/tabs/MiSitioTab';
+import CartasTab from '@/components/dashboard/tabs/CartasTab';
 import MetricasTab from '@/components/dashboard/tabs/MetricasTab';
 import LevelUpCelebrationModal from '@/components/dashboard/LevelUpCelebrationModal';
 import NoEmailBanner from '@/components/dashboard/NoEmailBanner';
@@ -964,6 +965,7 @@ function DashboardPage() {
         />
       )}
       {activeTab === 'misitio' && isAgent && <MiSitioTab suscripcion={accesoInput} />}
+      {activeTab === 'cartas' && isAgent && <CartasTab suscripcion={accesoInput} />}
       {activeTab === 'invitar' && isAgent && <InvitarTab myAgentId={user?.agentId} agents={agents} />}
       {activeTab === 'metricas' && isAdmin && <MetricasTab months={churnMonths} />}
 

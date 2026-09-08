@@ -43,6 +43,18 @@ const nextConfig = {
       './node_modules/harfbuzzjs/*.wasm',
       './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
     ],
+    // Las cartas de presentacion (Fase 4) usan la MISMA cadena satori->resvg
+    // que las fichas, asi que necesitan los mismos binarios. Aplica a las dos
+    // rutas que rasterizan: la descarga/previa y el envio por correo, que
+    // genera el PDF adjunto del lado del servidor.
+    '/api/real-estate/cartas/[id]/archivo': [
+      './node_modules/harfbuzzjs/*.wasm',
+      './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
+    ],
+    '/api/real-estate/cartas/[id]/enviar': [
+      './node_modules/harfbuzzjs/*.wasm',
+      './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
+    ],
   },
   images: {
     remotePatterns: [

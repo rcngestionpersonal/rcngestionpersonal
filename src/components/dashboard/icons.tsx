@@ -188,6 +188,17 @@ export function IconCheck(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// Sobre/carta - identidad fija del modulo "Cartas" (cartas de presentacion)
+// en menu y tarjetas.
+export function IconLetter(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="3" y="5" width="18" height="14" rx="2.2" />
+      <path d="m3.6 6.5 8.4 6 8.4-6" />
+    </svg>
+  );
+}
+
 // Persona - "Mi perfil" en el grupo de cuenta del menu. Deliberadamente
 // distinto del avatar con foto de la barra superior: aca es una etiqueta de
 // navegacion, no la identidad del agente.

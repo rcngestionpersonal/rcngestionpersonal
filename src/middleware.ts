@@ -76,6 +76,13 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/api/real-estate/listing-matches') ||
       pathname.startsWith('/api/real-estate/agents/verify-phone') ||
       pathname.startsWith('/api/real-estate/agents/me') ||
+      // Configuracion del mini-sitio del agente (Fase 3). Sin esta linea el
+      // panel de personalizacion carga (GET) pero NO guarda: el PATCH moria
+      // en 403 y el agente veia que cambiar el color de acento no hacia nada.
+      pathname === '/api/real-estate/mini-sitio/me' ||
+      // Cartas de presentacion (Fase 4): crear, editar, regenerar un parrafo,
+      // duplicar, borrar y enviar son todas acciones del propio agente.
+      pathname.startsWith('/api/real-estate/cartas') ||
       pathname.startsWith('/api/real-estate/points');
 
     if (isMutating && session.role !== 'admin' && !allowAgentMutations) {

@@ -6,6 +6,11 @@ type SendEmailInput = {
   subject: string;
   text: string;
   html?: string;
+  // Reemplaza el Reply-To por defecto. Lo usan las cartas de presentacion: el
+  // envio lo hace EL AGENTE, no Redinmo (punto 7.2 de la Fase 4), asi que la
+  // respuesta del destinatario tiene que llegarle a el y no a nuestro buzon.
+  replyTo?: string;
+  attachments?: Array<{ filename: string; content: Buffer }>;
 };
 
 export type SendEmailResult = {
@@ -35,11 +40,14 @@ export async function sendEmailNotification(input: SendEmailInput): Promise<Send
     const resend = new Resend(apiKey);
     const { error } = await resend.emails.send({
       from: `${LEGAL_ENTITY.nombreComercial} <${fromEmail}>`,
-      replyTo: LEGAL_ENTITY.correoContacto,
+      replyTo: input.replyTo ?? LEGAL_ENTITY.correoContacto,
       to: input.to,
       subject: input.subject,
       text: input.text,
       html: input.html,
+      ...(input.attachments?.length
+        ? { attachments: input.attachments.map((a) => ({ filename: a.filename, content: a.content })) }
+        : {}),
     });
 
     if (error) {

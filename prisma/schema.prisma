@@ -81,10 +81,10 @@ enum ThemePreference {
 }
 
 model Agent {
-  id                    String             @id @default(cuid())
+  id                    String               @id @default(cuid())
   fullName              String
-  phone                 String             @unique
-  email                 String?            @unique
+  phone                 String               @unique
+  email                 String?              @unique
   // Correo nuevo a la espera de verificacion (seccion 3.4 - editar perfil): el
   // correo actual sigue vigente hasta que se confirme el nuevo via
   // EmailChangeToken. Nunca se escribe directo a "email" antes de confirmar.
@@ -92,7 +92,7 @@ model Agent {
   passwordHash          String?
   // Cuentas de prueba (QA) creadas durante desarrollo: se excluyen del ranking publico
   // y de los contadores, pero no se borran (conservan el historial de pruebas).
-  isTestUser            Boolean            @default(false)
+  isTestUser            Boolean              @default(false)
   // Excluye la cuenta del cron de cobro (ver cron/billing/route.ts): una
   // cuenta marcada asi NUNCA se cobra, pase lo que pase con su suscripcion.
   //
@@ -103,7 +103,7 @@ model Agent {
   // igual no se le cobra. Si en el futuro se decide que siempre van juntos,
   // consolidarlos es seguro - pero hay que hacerlo a proposito, no por
   // asumir que uno implica el otro.
-  isTestAccount         Boolean            @default(false)
+  isTestAccount         Boolean              @default(false)
   photoUrl              String?
   company               String?
   // Cedula o RUC: la identidad REAL del agente, y por eso unica a nivel de
@@ -136,10 +136,10 @@ model Agent {
   propertyTypesInterest PropertyType[]
   minBudget             Float?
   maxBudget             Float?
-  specialty             OperationType      @default(BOTH)
-  isActive              Boolean            @default(true)
+  specialty             OperationType        @default(BOTH)
+  isActive              Boolean              @default(true)
   trialEndsAt           DateTime
-  subscriptionStatus    SubscriptionStatus @default(TRIAL)
+  subscriptionStatus    SubscriptionStatus   @default(TRIAL)
   // PayPal queda inactivo (ver src/lib/real-estate/payments/paypal.ts) - estos
   // dos campos se conservan sin uso activo para no romper el historico ni la
   // reactivacion futura del adaptador para agentes fuera de Ecuador.
@@ -156,7 +156,7 @@ model Agent {
   // aplica una vez la suscripcion es ACTIVE. planSiguiente es un cambio de
   // plan programado (upgrade o downgrade) que el cron de renovacion aplica en
   // la proxima fecha de vencimiento y luego limpia.
-  plan                  PlanTipo           @default(BASICO)
+  plan                  PlanTipo             @default(BASICO)
   planDesde             DateTime?
   planSiguiente         PlanTipo?
   // Precio fundador (Fase 7, seccion 9.4): el total en centavos (con IVA) que
@@ -169,20 +169,20 @@ model Agent {
   transacciones         Transaccion[]
   referredByAgentId     String?
   rankingAlias          String?
-  useRankingAlias       Boolean            @default(false)
+  useRankingAlias       Boolean              @default(false)
   // Carnet de Agente: zonas de especializacion (max 3, validado en el endpoint,
   // catalogo de src/lib/real-estate/quito-zones.ts), mensaje de WhatsApp
   // precargado en el QR del carnet, y slug unico para la pagina publica de
   // verificacion en vivo (redinmo.io/v/[slug]).
-  specializationZones   String[]           @default([])
+  specializationZones   String[]             @default([])
   carnetMessage         String?
-  carnetSlug            String?            @unique
+  carnetSlug            String?              @unique
   // Anos de experiencia en el mercado inmobiliario (autodeclarados por el
   // agente) - se muestran en el Carnet como dato de confianza para la comunidad.
   yearsExperience       Int?
   // Preferencia de tema claro/oscuro/automatico - localStorage es el respaldo
   // inmediato (evita parpadeo), esto es la fuente de verdad multi-dispositivo.
-  themePreference       ThemePreference    @default(LIGHT)
+  themePreference       ThemePreference      @default(LIGHT)
   // Aceptacion de Terminos y Privacidad al registrarse (fase de cierre,
   // punto 2.3.2) - termsAcceptedVersion guarda el numero de version vigente
   // al momento (ver TERMS_VERSION en legal.ts), no el texto completo: a
@@ -193,14 +193,14 @@ model Agent {
   termsAcceptedAt       DateTime?
   termsAcceptedVersion  String?
   termsAcceptedIp       String?
-  createdAt             DateTime           @default(now())
-  updatedAt             DateTime           @updatedAt
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
   matches               AgentMatch[]
-  claimedOpportunities  Opportunity[]      @relation("OpportunityClaimedBy")
-  referredOpportunities Opportunity[]      @relation("OpportunityReferredBy")
-  createdOpportunities  Opportunity[]      @relation("OpportunityCreatedBy")
-  listingsManaged       Listing[]          @relation("ListingManagedBy")
-  listingsReferred      Listing[]          @relation("ListingReferredBy")
+  claimedOpportunities  Opportunity[]        @relation("OpportunityClaimedBy")
+  referredOpportunities Opportunity[]        @relation("OpportunityReferredBy")
+  createdOpportunities  Opportunity[]        @relation("OpportunityCreatedBy")
+  listingsManaged       Listing[]            @relation("ListingManagedBy")
+  listingsReferred      Listing[]            @relation("ListingReferredBy")
   notificationLogs      NotificationLog[]
   interactions          InteractionLog[]
   passwordResetTokens   PasswordResetToken[]
@@ -208,23 +208,29 @@ model Agent {
   subscription          Subscription?
   paymentMethods        PaymentMethod[]
   miniSitio             MiniSitio?
+  // Cartas de presentacion (Fase 4). "foto" | "logo": que imagen va en el
+  // encabezado. Se recuerda entre cartas para no volver a preguntar.
+  cartaImagenTipo       String?
+  cartaLogoUrl          String?
+  cartas                Carta[]
+  cartaGeneraciones     CartaGeneracion[]
 }
 
 model Listing {
-  id                     String        @id @default(cuid())
-  title                  String
-  operationType          OperationType
-  propertyType           PropertyType
-  city                   String
-  zone                   String?
-  address                String?
-  price                  Float
-  currency               String        @default("USD")
-  areaM2                 Float?
-  bedrooms               Int?
-  bathrooms              Int?
-  parkingSpaces          Int?
-  description            String?
+  id                      String         @id @default(cuid())
+  title                   String
+  operationType           OperationType
+  propertyType            PropertyType
+  city                    String
+  zone                    String?
+  address                 String?
+  price                   Float
+  currency                String         @default("USD")
+  areaM2                  Float?
+  bedrooms                Int?
+  bathrooms               Int?
+  parkingSpaces           Int?
+  description             String?
   // Campos condicionales por tipo (Fase 8, Bloque A) - todos nullable y NINGUNO
   // filtra ni pondera el matching todavia (eso llega en el Bloque B, ver
   // src/lib/real-estate/matching.ts, sin tocar aqui). Un mismo campo se
@@ -232,43 +238,43 @@ model Listing {
   // amoblado, piso/ascensor, estadoOcupacion) en vez de multiplicar columnas -
   // ver src/lib/real-estate/listing-fields.ts para que campo aplica a cada
   // PropertyType y sus valores permitidos.
-  esIndependiente        Boolean?
-  antiguedad             String?
-  amoblado               String?
-  alicuotaMensual        Float?
-  piso                   Int?
-  tieneAscensor          Boolean?
-  areasComunales         Boolean?
-  esquineroOMedianero    String?
-  usoSueloTerreno        String?
-  pisosPermitidos        Int?
-  serviciosBasicos       String?
-  frenteM                Float?
-  nivelLocal             String?
-  distribucionLocal      String?
-  estadoOcupacion        String?
-  canonMensualActual     Float?
-  alturaLibreM           Float?
-  accesoCamion           Boolean?
+  esIndependiente         Boolean?
+  antiguedad              String?
+  amoblado                String?
+  alicuotaMensual         Float?
+  piso                    Int?
+  tieneAscensor           Boolean?
+  areasComunales          Boolean?
+  esquineroOMedianero     String?
+  usoSueloTerreno         String?
+  pisosPermitidos         Int?
+  serviciosBasicos        String?
+  frenteM                 Float?
+  nivelLocal              String?
+  distribucionLocal       String?
+  estadoOcupacion         String?
+  canonMensualActual      Float?
+  alturaLibreM            Float?
+  accesoCamion            Boolean?
   // Terreno y area libre de una Casa (seccion 2.1) - seleccion multiple, NUNCA
   // calculada por resta (construccion vs terreno total): el agente declara
   // cada metraje que aplique, independientemente. "Area verde amplia" es una
   // etiqueta DERIVADA (>250m2 en cualquiera de los tres) - se calcula en
   // listing-fields.ts, no se guarda en columna propia.
-  terrenoTotalM2         Float?
-  areaLibrePropiaM2      Float?
+  terrenoTotalM2          Float?
+  areaLibrePropiaM2       Float?
   terrenoLibreExclusivoM2 Float?
   // Espacios que el agente menciona verbalmente y que antes no existian como
   // dato (Fase 8, Bloque B, seccion 1.2) - Casa/Departamento/Suite/Oficina.
   // espaciosAdicionales pondera en el matching con peso 0.7 por unidad (ver
   // matching.ts); balconOTerraza es puramente informativo (nunca pondera).
-  espaciosAdicionales    Int?
-  mediosBanos            Int?
-  balconOTerraza         Boolean?
+  espaciosAdicionales     Int?
+  mediosBanos             Int?
+  balconOTerraza          Boolean?
   // Datos del cliente propietario/arrendador: estrictamente privados, solo el agente
   // que gestiona el inmueble puede verlos (ver src/lib/real-estate/privacy.ts).
-  ownerName              String?
-  ownerPhone             String?
+  ownerName               String?
+  ownerPhone              String?
   // URL en Vercel Blob (nunca la imagen en si) de la foto de portada del
   // inmueble - CAMPO DERIVADO desde Fase 4 (galeria de fotos): se mantiene en
   // sincronia con la ListingPhoto de orden 0 (ver
@@ -277,17 +283,17 @@ model Listing {
   // listado, ficha PDF). Ninguna ruta debe escribirlo a mano fuera de ese
   // helper, y NUNCA debe leerse como fuente de verdad de cual es la portada:
   // eso lo decide orden 0.
-  coverPhotoUrl          String?
-  commissionSharePercent Float         @default(0)
-  status                 ListingStatus @default(ACTIVE)
-  managingAgent          Agent         @relation("ListingManagedBy", fields: [managingAgentId], references: [id], onDelete: Cascade)
-  managingAgentId        String
-  referredByAgent        Agent?        @relation("ListingReferredBy", fields: [referredByAgentId], references: [id], onDelete: SetNull)
-  referredByAgentId      String?
-  createdAt              DateTime      @default(now())
-  updatedAt              DateTime      @updatedAt
-  matches                ListingMatch[]
-  photos                 ListingPhoto[]
+  coverPhotoUrl           String?
+  commissionSharePercent  Float          @default(0)
+  status                  ListingStatus  @default(ACTIVE)
+  managingAgent           Agent          @relation("ListingManagedBy", fields: [managingAgentId], references: [id], onDelete: Cascade)
+  managingAgentId         String
+  referredByAgent         Agent?         @relation("ListingReferredBy", fields: [referredByAgentId], references: [id], onDelete: SetNull)
+  referredByAgentId       String?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  matches                 ListingMatch[]
+  photos                  ListingPhoto[]
 
   @@index([city, propertyType, operationType])
   @@index([status])
@@ -381,83 +387,83 @@ model ListingPhoto {
 }
 
 model Opportunity {
-  id               String          @id @default(cuid())
-  contactName      String?
-  contactPhone     String?
-  operationType    OperationType
-  propertyType     PropertyType
-  city             String
-  zone             String?
-  address          String?
-  budgetMin        Float?
-  budgetMax        Float?
-  areaM2           Float?
-  bedrooms         Int?
-  bathrooms        Int?
-  parkingSpaces    Int?
+  id                        String            @id @default(cuid())
+  contactName               String?
+  contactPhone              String?
+  operationType             OperationType
+  propertyType              PropertyType
+  city                      String
+  zone                      String?
+  address                   String?
+  budgetMin                 Float?
+  budgetMax                 Float?
+  areaM2                    Float?
+  bedrooms                  Int?
+  bathrooms                 Int?
+  parkingSpaces             Int?
   // Interruptores de preferencia (Fase 8, seccion 3.2) - sí/no/indiferente,
   // 'SI'|'NO'|null (indiferente = no pondera nada, ver Bloque B). Los
   // numericos de arriba (bedrooms/bathrooms/parkingSpaces/areaM2) se
   // reinterpretan como "minimo deseado" para pedidos, sin necesidad de
   // columnas nuevas - nunca se usaron como valor exacto en el matching.
-  prefAreaVerdeAmplia    String?
-  prefAreasComunales     String?
-  prefAscensor           String?
-  prefAmoblado           String?
-  prefTodosLosServicios  String?
+  prefAreaVerdeAmplia       String?
+  prefAreasComunales        String?
+  prefAscensor              String?
+  prefAmoblado              String?
+  prefTodosLosServicios     String?
   // Fase 8, Bloque B, seccion 1.3a - null o true = acepta que espacios
   // adicionales del inmueble (estudio, cuarto de servicio) cuenten como
   // dormitorio con peso 0.7 (checkbox marcado por defecto); false = solo
   // cuentan los dormitorios reales. Solo aplica si bedrooms esta definido.
   aceptaEspaciosAdicionales Boolean?
-  summary          String
-  extractedData    Json?
+  summary                   String
+  extractedData             Json?
   // De donde salio el pedido: "manual" (el agente lo cargo), "mini_sitio" (lo
   // envio un tercero por el formulario de captacion de /a/[slug], Fase 3) o
   // "web_chat". El panel los muestra diferenciados: un pedido entrante no es
   // lo mismo que uno que el agente escribio, ni en confianza del dato ni en
   // urgencia de respuesta.
-  origen           String          @default("manual")
-  stage            LeadStage       @default(NEW)
-  claimedByAgent   Agent?          @relation("OpportunityClaimedBy", fields: [claimedByAgentId], references: [id], onDelete: SetNull)
-  claimedByAgentId String?
-  referredByAgent  Agent?          @relation("OpportunityReferredBy", fields: [referredByAgentId], references: [id], onDelete: SetNull)
-  referredByAgentId String?
+  origen                    String            @default("manual")
+  stage                     LeadStage         @default(NEW)
+  claimedByAgent            Agent?            @relation("OpportunityClaimedBy", fields: [claimedByAgentId], references: [id], onDelete: SetNull)
+  claimedByAgentId          String?
+  referredByAgent           Agent?            @relation("OpportunityReferredBy", fields: [referredByAgentId], references: [id], onDelete: SetNull)
+  referredByAgentId         String?
   referralCommissionPercent Float?
-  createdByAgent   Agent?          @relation("OpportunityCreatedBy", fields: [createdByAgentId], references: [id], onDelete: SetNull)
-  createdByAgentId String?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  matches          AgentMatch[]
-  listingMatches   ListingMatch[]
-  notifications    NotificationLog[]
-  interactions     InteractionLog[]
+  createdByAgent            Agent?            @relation("OpportunityCreatedBy", fields: [createdByAgentId], references: [id], onDelete: SetNull)
+  createdByAgentId          String?
+  createdAt                 DateTime          @default(now())
+  updatedAt                 DateTime          @updatedAt
+  matches                   AgentMatch[]
+  listingMatches            ListingMatch[]
+  notifications             NotificationLog[]
+  interactions              InteractionLog[]
 
   @@index([city, propertyType, operationType])
   @@index([stage])
 }
 
 model ListingMatch {
-  id            String      @id @default(cuid())
-  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  opportunityId String
-  listing       Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  listingId     String
-  score         Float
-  reasons       String[]
-  status        MatchStatus @default(PENDING)
-  contactedAt   DateTime?
+  id                String            @id @default(cuid())
+  opportunity       Opportunity       @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunityId     String
+  listing           Listing           @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId         String
+  score             Float
+  reasons           String[]
+  status            MatchStatus       @default(PENDING)
+  contactedAt       DateTime?
   infoSentAt        DateTime?
   visitFollowUpAt   DateTime?
   visitScheduledFor DateTime?
   visitCompletedAt  DateTime?
   visitOutcome      String?
   offerInProgressAt DateTime?
-  closedWon     Boolean?
-  closedAt      DateTime?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  notifications NotificationLog[]
+  closedWon         Boolean?
+  closedAt          DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  notifications     NotificationLog[]
 
   @@unique([opportunityId, listingId])
   @@index([score])
@@ -504,14 +510,14 @@ model NotificationLog {
 }
 
 model InteractionLog {
-  id            String       @id @default(cuid())
+  id            String      @id @default(cuid())
   type          String
   detail        String?
   metadata      Json?
-  createdAt     DateTime     @default(now())
-  opportunity   Opportunity  @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
   opportunityId String
-  agent         Agent?       @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  agent         Agent?      @relation(fields: [agentId], references: [id], onDelete: SetNull)
   agentId       String?
 
   @@index([type])
@@ -522,17 +528,17 @@ model InteractionLog {
 // A diferencia de los campos en Agent (que solo guardan el ULTIMO pago), esto
 // permite saber que plan y monto se cobro en cada transaccion.
 model Transaccion {
-  id                String   @id @default(cuid())
-  agent             Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  agentId           String
-  plan              PlanTipo
-  provider          String
-  amountCents       Int
-  taxCents          Int
-  totalCents        Int
+  id                    String   @id @default(cuid())
+  agent                 Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentId               String
+  plan                  PlanTipo
+  provider              String
+  amountCents           Int
+  taxCents              Int
+  totalCents            Int
   providerTransactionId String?
-  authorizationCode String?
-  createdAt         DateTime @default(now())
+  authorizationCode     String?
+  createdAt             DateTime @default(now())
 
   @@index([agentId])
 }
@@ -777,3 +783,82 @@ model SubscriptionEvent {
   @@index([subscriptionId, createdAt])
 }
 
+// ---------------------------------------------------------------------------
+// CARTAS DE PRESENTACION (Fase 4) - feature Pro "carta_presentacion".
+// ---------------------------------------------------------------------------
+
+// A quien va dirigida la carta. Define el enfoque del texto, no solo el
+// saludo: una propuesta a una constructora y una carta a un propietario
+// argumentan cosas distintas (ver CARTA_DESTINATARIOS en cartas/tipos.ts).
+enum CartaDestinatario {
+  PROPIETARIO
+  COLEGA
+  CONSTRUCTORA
+  EMPRESA
+}
+
+enum CartaEstado {
+  BORRADOR
+  ENVIADA
+}
+
+model Carta {
+  id      String @id @default(cuid())
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentId String
+
+  destinatarioTipo   CartaDestinatario
+  destinatarioNombre String
+  destinatarioCargo  String?
+  // Una linea de contexto ("nos conocimos en la feria"). Es un dato de un
+  // TERCERO: solo lo ve el agente que lo escribio (punto 7.1).
+  contexto           String?
+
+  // Los seis bloques del texto, cada uno editable por separado (punto 2.4).
+  // Se guardan como objeto y no como un string unico justamente para que
+  // "regenerar este parrafo" no tenga que rehacer la carta entera.
+  bloques           Json
+  // Los bloques TAL COMO los genero el modelo. Comparar contra "bloques" es lo
+  // que permite saber que reescribio el agente y usar eso como referencia de
+  // estilo en cartas futuras (punto 3.3), sin pedirle que califique nada.
+  bloquesOriginales Json
+
+  // Foto de los datos reales con los que se genero el texto. Es la evidencia
+  // de que la carta no invento nada (punto 2.2): si mañana el agente registra
+  // 10 cierres mas, esta carta sigue diciendo lo que era cierto ese dia.
+  datosUsados Json
+
+  imagenTipo String      @default("foto")
+  paleta     String      @default("clara")
+  estado     CartaEstado @default(BORRADOR)
+
+  // Nada se descarga ni se envia sin pasar por la revision (punto 3.5).
+  revisadaAt DateTime?
+  enviadaAt  DateTime?
+  enviadaA   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agentId, createdAt])
+}
+
+// Una fila por llamada al modelo, sea una carta completa o la regeneracion de
+// un parrafo. Se guarda el consumo real de tokens ademas del conteo para poder
+// ajustar el limite con datos y no a ojo (punto 2.6).
+model CartaGeneracion {
+  id      String @id @default(cuid())
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentId String
+
+  // "carta" | "bloque"
+  tipo          String
+  cartaId       String?
+  modelo        String?
+  tokensEntrada Int?
+  tokensSalida  Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([agentId, createdAt])
+}
