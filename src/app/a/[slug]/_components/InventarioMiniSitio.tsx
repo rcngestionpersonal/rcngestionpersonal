@@ -38,6 +38,34 @@ function precioFormateado(valor: number, moneda: string): string {
   return `${moneda === 'USD' ? '$' : `${moneda} `}${valor.toLocaleString('es-EC', { maximumFractionDigits: 0 })}`;
 }
 
+// m2 / dormitorios / baños como chips y no como texto corrido (punto 1.4):
+// son datos que se comparan de un vistazo entre tarjetas, y en linea corrida
+// hay que leerlos enteros para encontrar el que interesa.
+function DatosClave({ inmueble, conParqueaderos }: { inmueble: InmuebleMiniSitio; conParqueaderos?: boolean }) {
+  const datos = [
+    inmueble.areaM2 ? `${inmueble.areaM2} m²` : null,
+    inmueble.dormitorios ? `${inmueble.dormitorios} dorm.` : null,
+    inmueble.banos ? `${inmueble.banos} baños` : null,
+    conParqueaderos && inmueble.parqueaderos ? `${inmueble.parqueaderos} parq.` : null,
+  ].filter(Boolean) as string[];
+
+  if (datos.length === 0) return null;
+
+  return (
+    <ul className="mt-3 flex flex-wrap gap-1.5">
+      {datos.map((dato) => (
+        <li
+          key={dato}
+          className="rounded-md border px-2 py-0.5 text-[11px] font-semibold"
+          style={{ background: 'var(--ms-suave)', borderColor: 'var(--ms-borde)', color: 'var(--ms-acento)' }}
+        >
+          {dato}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default function InventarioMiniSitio({
   inmuebles,
   slug,
@@ -83,16 +111,20 @@ export default function InventarioMiniSitio({
     )}`;
 
   return (
-    <section className="border-t border-line px-4 py-12">
+    <section className="px-4 py-14">
       <div className="mx-auto max-w-5xl">
-        <h2 className="text-center text-xl font-extrabold sm:text-2xl">Inmuebles disponibles</h2>
+        <h2 className="text-center text-2xl font-extrabold tracking-[-0.01em] sm:text-3xl">Inmuebles disponibles</h2>
+        <p className="mt-2 text-center text-sm text-text-2">
+          {inmuebles.length === 1 ? '1 inmueble activo' : `${inmuebles.length} inmuebles activos`}
+        </p>
 
-        <div className="mt-5 flex flex-wrap justify-center gap-2.5">
+        <div className="mt-6 flex flex-wrap justify-center gap-2.5">
           <select
             value={tipo}
             onChange={(e) => setTipo(e.target.value)}
             aria-label="Filtrar por tipo de inmueble"
-            className="min-h-[44px] rounded-xl border border-line-strong bg-surface px-3 text-sm text-text"
+            className="min-h-[44px] rounded-xl border bg-surface px-3 text-sm font-semibold text-text"
+            style={{ borderColor: 'var(--ms-borde)' }}
           >
             <option value="todos">Todos los tipos</option>
             {tipos.map(([clave, label]) => (
@@ -105,7 +137,8 @@ export default function InventarioMiniSitio({
             value={rango}
             onChange={(e) => setRango(e.target.value as typeof rango)}
             aria-label="Filtrar por rango de precio"
-            className="min-h-[44px] rounded-xl border border-line-strong bg-surface px-3 text-sm text-text"
+            className="min-h-[44px] rounded-xl border bg-surface px-3 text-sm font-semibold text-text"
+            style={{ borderColor: 'var(--ms-borde)' }}
           >
             {RANGOS.map((r) => (
               <option key={r.clave} value={r.clave}>
@@ -123,40 +156,40 @@ export default function InventarioMiniSitio({
               <button
                 key={inmueble.id}
                 onClick={() => abrirDetalle(inmueble)}
-                className="group overflow-hidden rounded-2xl border border-line bg-surface text-left transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                className="ms-tarjeta group overflow-hidden rounded-2xl border border-line bg-surface text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                 style={{ outlineColor: 'var(--ms-acento)' }}
               >
-                <div className="relative aspect-[4/3] w-full bg-surface-2">
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface-2">
                   {inmueble.fotos[0] ? (
                     <Image
                       src={inmueble.fotos[0].miniaturaUrl ?? inmueble.fotos[0].url}
                       alt={inmueble.titulo}
                       fill
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover"
+                      className="object-cover transition-transform duration-150 ease-out group-hover:scale-[1.03]"
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center text-sm text-text-3">Sin foto</div>
                   )}
+                  {/* Chip de operacion SOBRE la foto (punto 1.4): es el primer
+                      dato que separa "esto se vende" de "esto se arrienda". */}
+                  <span
+                    className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-bold shadow-sm"
+                    style={{ background: 'var(--ms-acento)', color: 'var(--ms-contraste)' }}
+                  >
+                    {inmueble.operacionLabel}
+                  </span>
                 </div>
                 <div className="p-4">
-                  <p className="text-base font-extrabold" style={{ color: 'var(--ms-acento)' }}>
+                  <p className="text-lg font-extrabold leading-none" style={{ color: 'var(--ms-acento)' }}>
                     {precioFormateado(inmueble.precio, inmueble.moneda)}
                   </p>
-                  <p className="mt-1 line-clamp-1 text-sm font-semibold text-text">{inmueble.titulo}</p>
+                  <p className="mt-2 line-clamp-1 text-sm font-bold text-text">{inmueble.titulo}</p>
                   <p className="mt-0.5 text-xs text-text-2">
-                    {inmueble.tipoLabel} · {inmueble.operacionLabel}
+                    {inmueble.tipoLabel}
                     {inmueble.sector ? ` · ${inmueble.sector}` : ''}
                   </p>
-                  <p className="mt-2 text-xs text-text-3">
-                    {[
-                      inmueble.areaM2 ? `${inmueble.areaM2} m²` : null,
-                      inmueble.dormitorios ? `${inmueble.dormitorios} dorm.` : null,
-                      inmueble.banos ? `${inmueble.banos} baños` : null,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </p>
+                  <DatosClave inmueble={inmueble} />
                 </div>
               </button>
             ))}
@@ -215,7 +248,7 @@ export default function InventarioMiniSitio({
             </div>
 
             <div className="p-5">
-              <p className="text-xl font-extrabold" style={{ color: 'var(--ms-acento)' }}>
+              <p className="text-2xl font-extrabold" style={{ color: 'var(--ms-acento)' }}>
                 {precioFormateado(abierto.precio, abierto.moneda)}
               </p>
               <h3 className="mt-1 text-base font-bold text-text">{abierto.titulo}</h3>
@@ -223,12 +256,7 @@ export default function InventarioMiniSitio({
                 {abierto.tipoLabel} · {abierto.operacionLabel}
                 {abierto.sector ? ` · ${abierto.sector}` : ''}
               </p>
-              <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-2">
-                {abierto.areaM2 ? <li>{abierto.areaM2} m²</li> : null}
-                {abierto.dormitorios ? <li>{abierto.dormitorios} dormitorios</li> : null}
-                {abierto.banos ? <li>{abierto.banos} baños</li> : null}
-                {abierto.parqueaderos ? <li>{abierto.parqueaderos} parqueaderos</li> : null}
-              </ul>
+              <DatosClave inmueble={abierto} conParqueaderos />
 
               <div className="mt-5 flex flex-col gap-2.5">
                 {telefono ? (
@@ -236,8 +264,7 @@ export default function InventarioMiniSitio({
                     href={whatsappDe(abierto)}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl px-6 text-sm font-bold"
-                    style={{ background: 'var(--ms-acento)', color: 'var(--ms-contraste)' }}
+                    className="ms-boton flex min-h-[48px] w-full items-center justify-center rounded-xl px-6 text-sm font-bold"
                   >
                     Consultar por este inmueble
                   </a>
@@ -246,7 +273,8 @@ export default function InventarioMiniSitio({
                     quien descarga (ver el comentario de la ruta). */}
                 <a
                   href={`/a/${slug}/ficha/${abierto.id}?format=pdf`}
-                  className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-line-strong px-6 text-sm font-semibold text-text-2 transition hover:bg-surface-2"
+                  className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-6 text-sm font-semibold transition hover:bg-surface-2"
+                  style={{ borderColor: 'var(--ms-borde)', color: 'var(--ms-acento)' }}
                 >
                   Descargar ficha (PDF)
                 </a>

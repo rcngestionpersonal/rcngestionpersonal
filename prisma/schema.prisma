@@ -316,8 +316,11 @@ model MiniSitio {
   // proposito NO es un color libre: un agente eligiendo fucsia sobre verde
   // degrada la percepcion de toda la plataforma.
   colorAcento       String            @default("violeta")
-  mostrarInventario Boolean           @default(true)
-  mostrarFormulario Boolean           @default(true)
+  // No hay banderas para ocultar el inventario ni el formulario: las dos
+  // secciones son obligatorias. Sin inventario el mini-sitio es una tarjeta de
+  // presentacion sin sustancia, y sin formulario no genera negocio - son las
+  // dos razones por las que existe la feature, y dejar apagarlas era dejar que
+  // el agente la vaciara de valor sin darse cuenta.
   // Maximo 160 caracteres, validado en la ruta que la escribe.
   frasePresentacion String?
   createdAt         DateTime          @default(now())

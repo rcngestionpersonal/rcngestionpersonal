@@ -80,11 +80,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   });
 
   // Un sitio apagado o sin feature no recibe leads: si la pagina no se ve,
-  // su formulario tampoco debe aceptar envios por API.
-  if (!miniSitio || !miniSitio.mostrarFormulario) {
-    return NextResponse.json({ error: 'Este formulario no está disponible.' }, { status: 404 });
-  }
-  if (resolverEstadoMiniSitio(miniSitio.agent, miniSitio) !== 'visible') {
+  // su formulario tampoco debe aceptar envios por API. El formulario ya no se
+  // puede apagar por separado (es obligatorio), asi que el estado del sitio es
+  // la unica condicion.
+  if (!miniSitio || resolverEstadoMiniSitio(miniSitio.agent, miniSitio) !== 'visible') {
     return NextResponse.json({ error: 'Este formulario no está disponible.' }, { status: 404 });
   }
 

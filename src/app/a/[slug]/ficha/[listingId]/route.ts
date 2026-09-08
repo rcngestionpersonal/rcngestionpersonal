@@ -46,7 +46,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     },
   });
 
-  if (!miniSitio || resolverEstadoMiniSitio(miniSitio.agent, miniSitio) !== 'visible' || !miniSitio.mostrarInventario) {
+  if (!miniSitio || resolverEstadoMiniSitio(miniSitio.agent, miniSitio) !== 'visible') {
     return NextResponse.json({ error: 'No disponible.' }, { status: 404 });
   }
 

@@ -122,6 +122,17 @@ export async function getSessionFromRequest(request: NextRequest): Promise<Sessi
   return await verifySession(token);
 }
 
+// Variante para SERVER COMPONENTS, que no reciben un NextRequest: lee la misma
+// cookie firmada via next/headers. Se usa donde una pagina publica necesita
+// saber si quien mira es el dueño (el estado vacio del inventario del
+// mini-sitio, punto 5.4) - nunca para decidir acceso a datos privados, para eso
+// estan las rutas de API con getSessionFromRequest.
+export async function getSessionFromCookies(): Promise<SessionPayload | null> {
+  const { cookies } = await import('next/headers');
+  const store = await cookies();
+  return await verifySession(store.get(SESSION_COOKIE_NAME)?.value);
+}
+
 export function normalizeTenant(value?: string | null): string {
   if (!value) return 'brokerhub';
   return value

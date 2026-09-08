@@ -66,9 +66,12 @@ export default function FormularioCaptacion({ slug, nombreAgente }: { slug: stri
 
   if (enviado) {
     return (
-      <section className="border-t border-line px-4 py-14">
-        <div className="mx-auto max-w-md rounded-2xl border border-line bg-surface p-7 text-center">
-          <p className="text-3xl">✓</p>
+      <section className="px-4 py-14">
+        <div
+          className="mx-auto max-w-md rounded-3xl border-2 p-7 text-center"
+          style={{ borderColor: 'var(--ms-borde)', background: 'var(--ms-suave)' }}
+        >
+          <p className="text-3xl" style={{ color: 'var(--ms-acento)' }}>✓</p>
           <h2 className="mt-3 text-lg font-extrabold text-text">Listo, tu mensaje llegó</h2>
           <p className="mt-2 text-sm leading-relaxed text-text-2">
             {nombreAgente.split(/\s+/)[0]} recibió tus datos y se pondrá en contacto contigo.
@@ -79,9 +82,14 @@ export default function FormularioCaptacion({ slug, nombreAgente }: { slug: stri
   }
 
   return (
-    <section className="border-t border-line px-4 py-14">
-      <div className="mx-auto max-w-md">
-        <h2 className="text-center text-xl font-extrabold sm:text-2xl">¿Vas a vender o arrendar tu inmueble?</h2>
+    <section className="px-4 py-14">
+      <div
+        className="mx-auto max-w-md rounded-3xl border-2 p-6 sm:p-8"
+        style={{ borderColor: 'var(--ms-borde)', background: 'var(--ms-suave)' }}
+      >
+        <h2 className="text-center text-2xl font-extrabold tracking-[-0.01em] sm:text-3xl">
+          ¿Vas a vender o arrendar tu inmueble?
+        </h2>
         <p className="mt-2 text-center text-sm text-text-2">
           Déjame tus datos y te contacto para conversarlo.
         </p>
@@ -143,8 +151,7 @@ export default function FormularioCaptacion({ slug, nombreAgente }: { slug: stri
           <button
             type="submit"
             disabled={enviando}
-            className="flex min-h-[48px] w-full items-center justify-center rounded-xl px-6 text-sm font-bold transition-opacity disabled:opacity-60"
-            style={{ background: 'var(--ms-acento)', color: 'var(--ms-contraste)' }}
+            className="ms-boton flex min-h-[48px] w-full items-center justify-center rounded-xl px-6 text-sm font-bold disabled:opacity-60"
           >
             {enviando ? 'Enviando…' : 'Enviar mis datos'}
           </button>

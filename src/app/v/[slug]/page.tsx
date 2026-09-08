@@ -2,23 +2,34 @@ import type { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import { shouldUseMockStore, findAgentBySlug } from '@/lib/real-estate/mock-store';
 import { getAgentPointsSummary } from '@/lib/real-estate/points-log';
-import { levelColorFor } from '@/lib/real-estate/points';
-import { zoneLabel } from '@/lib/real-estate/quito-zones';
+import { resolveEffectiveSubscriptionStatus } from '@/lib/real-estate/subscription-status';
+import CarnetPublico from './_components/CarnetPublico';
 
+// Pagina publica del carnet: el destino del QR y del enlace "Ver mi carnet"
+// del mini-sitio. Antes tenia su propia copia del diseño escrita a mano, que
+// se fue separando del carnet real hasta mostrar otra cosa. Ahora renderiza el
+// MISMO BrokerCard que ve el agente en Ranking, en su variante "publica"
+// (ver src/components/dashboard/BrokerCard.tsx).
 export const metadata: Metadata = {
   title: 'Carnet de Agente | Redinmo.io',
   robots: { index: false, follow: false },
 };
 
 type PublicAgent = {
+  id: string;
   fullName: string;
+  company: string | null;
   photoUrl: string | null;
   idNumber: string | null;
+  licenseNumber: string | null;
+  yearsExperience: number | null;
   phoneVerifiedAt: Date | string | null;
   specializationZones: string[];
   subscriptionStatus: string;
+  trialEndsAt: Date | string | null;
+  subscriptionPaidUntil: Date | string | null;
+  carnetSlug: string | null;
   createdAt: Date | string;
-  id: string;
 };
 
 async function loadAgent(slug: string): Promise<PublicAgent | null> {
@@ -26,38 +37,41 @@ async function loadAgent(slug: string): Promise<PublicAgent | null> {
     const agent = findAgentBySlug(slug);
     if (!agent) return null;
     return {
+      id: agent.id,
       fullName: agent.fullName,
+      company: agent.company ?? null,
       photoUrl: agent.photoUrl ?? null,
       idNumber: agent.idNumber ?? null,
+      licenseNumber: agent.licenseNumber ?? null,
+      yearsExperience: agent.yearsExperience ?? null,
       phoneVerifiedAt: agent.phoneVerifiedAt ?? null,
       specializationZones: agent.specializationZones ?? [],
       subscriptionStatus: agent.subscriptionStatus,
+      trialEndsAt: agent.trialEndsAt ?? null,
+      subscriptionPaidUntil: agent.subscriptionPaidUntil ?? null,
+      carnetSlug: agent.carnetSlug ?? null,
       createdAt: agent.createdAt,
-      id: agent.id,
     };
   }
 
   const agent = await prisma.agent.findUnique({ where: { carnetSlug: slug } });
   if (!agent) return null;
   return {
+    id: agent.id,
     fullName: agent.fullName,
+    company: agent.company,
     photoUrl: agent.photoUrl,
     idNumber: agent.idNumber,
+    licenseNumber: agent.licenseNumber,
+    yearsExperience: agent.yearsExperience,
     phoneVerifiedAt: agent.phoneVerifiedAt,
     specializationZones: agent.specializationZones,
     subscriptionStatus: agent.subscriptionStatus,
+    trialEndsAt: agent.trialEndsAt,
+    subscriptionPaidUntil: agent.subscriptionPaidUntil,
+    carnetSlug: agent.carnetSlug,
     createdAt: agent.createdAt,
-    id: agent.id,
   };
-}
-
-function initialsOf(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
-    .join('');
 }
 
 export default async function PublicCarnetPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -77,85 +91,50 @@ export default async function PublicCarnetPage({ params }: { params: Promise<{ s
   }
 
   const verified = Boolean(agent.idNumber) && Boolean(agent.phoneVerifiedAt);
-  const vigente = agent.subscriptionStatus === 'ACTIVE' || agent.subscriptionStatus === 'TRIAL';
-  const joinYear = new Date(agent.createdAt).getFullYear();
+  const efectivo = resolveEffectiveSubscriptionStatus({
+    subscriptionStatus: agent.subscriptionStatus as 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'INACTIVE',
+    trialEndsAt: agent.trialEndsAt,
+    subscriptionPaidUntil: agent.subscriptionPaidUntil,
+  });
+  const vigente = efectivo === 'ACTIVE' || efectivo === 'TRIAL' || efectivo === 'PAST_DUE';
 
   // El nivel se calcula desde el historial real de puntos, pero NUNCA se
   // exponen los puntos/posicion en esta pagina publica (privacidad + anti
-  // scraping) - solo el nombre del nivel.
+  // scraping): por eso la variante publica va con audience="clientes", que
+  // muestra cierres / año de ingreso / inmuebles activos en vez de #N y puntos.
   const summary = await getAgentPointsSummary(agent.id).catch(() => null);
-  const levelLabel = summary?.level.labelEs ?? 'Agente Inicial';
-  const levelColor = levelColorFor(summary?.level.key ?? 'BROKER_INICIAL');
 
-  const zones = agent.specializationZones.map((key) => zoneLabel(key, 'es')).filter(Boolean);
+  // Los dos numeros de la franja que si son publicos. Se consultan aparte
+  // porque el carnet en la app los recibe ya calculados del dashboard.
+  const [cierres, listingsActive] = await Promise.all([
+    prisma.closedDeal.count({ where: { createdByAgentId: agent.id } }).catch(() => 0),
+    prisma.listing.count({ where: { managingAgentId: agent.id, status: 'ACTIVE' } }).catch(() => 0),
+  ]);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-bg px-4 py-12 text-text">
-      {/* Pagina publica (sin sesion, cualquiera que escanee el QR la ve) - sigue
-          el tema del visitante igual que el carnet compartible en pantalla
-          (BrokerCard.tsx): claro por defecto, oscuro si su sistema lo pide,
-          via los mismos tokens de globals.css (el ThemeProvider del layout
-          raiz ya cubre esta ruta, con defaultTheme="light" y enableSystem). */}
-      <div
-        className="relative w-full max-w-[340px] overflow-hidden rounded-[20px] border border-accent-line p-6 text-center"
-        style={{ background: 'linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%)' }}
-      >
-        <div className="pointer-events-none absolute -right-14 -top-14 h-48 w-48 rounded-full border border-accent-line" />
-        <div className="pointer-events-none absolute -right-4 -top-4 h-28 w-28 rounded-full border border-accent-line" />
-
-        <p className="relative text-[10px] font-extrabold uppercase tracking-[0.18em] text-text-3">
-          <span className="text-accent">✦ REDINMO.IO</span> · CARNET DE AGENTE
-        </p>
-
-        <div className="relative mt-5 flex justify-center">
-          {agent.photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={agent.photoUrl}
-              alt={`Foto de ${agent.fullName}`}
-              className="h-[88px] w-[88px] rounded-full object-cover outline outline-[2.5px] outline-offset-[3px] outline-accent"
-            />
-          ) : (
-            <div
-              className="flex h-[88px] w-[88px] items-center justify-center rounded-full text-2xl font-extrabold text-[#1c1330] outline outline-[2.5px] outline-offset-[3px] outline-accent"
-              style={{ background: 'linear-gradient(160deg, #efeaff, #e0f5f2)' }}
-            >
-              {initialsOf(agent.fullName)}
-            </div>
-          )}
-        </div>
-
-        <p className="relative mt-3 text-[21px] font-extrabold text-text">{agent.fullName}</p>
-
-        <div className="relative mt-2 flex flex-wrap items-center justify-center gap-1.5">
-          <span
-            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold ${
-              verified ? 'border-accent-line bg-accent-dim text-accent' : 'border-line bg-surface-2 text-text-3'
-            }`}
-          >
-            {verified ? '✓ Agente Verificado en Redinmo.io' : 'No verificado'}
-          </span>
-          <span
-            className="inline-flex items-center gap-1 rounded-full border border-brand-line bg-brand-dim px-2.5 py-1 text-[10px] font-bold"
-            style={{ color: levelColor }}
-          >
-            ● {levelLabel}
-          </span>
-        </div>
-
-        {zones.length > 0 ? <p className="relative mt-3 text-[11.5px] text-text-2">{zones.join(' · ')}</p> : null}
-
-        <p className="relative mt-4 text-[10.5px] font-semibold text-accent">
-          {vigente ? `● Vigente · ${new Date().toLocaleDateString('es-EC', { month: 'long', year: 'numeric' })}` : null}
-        </p>
-        {!vigente ? <p className="relative mt-4 text-[11px] font-semibold text-text-3">Este carnet no está vigente actualmente.</p> : null}
-
-        <p className="relative mt-3 text-[10.5px] text-text-3">Agente en Redinmo.io desde {joinYear}</p>
-      </div>
-
-      <p className="mt-6 text-[10px] text-text-3">
-        <span className="font-bold text-accent">redinmo.io</span> · el hub que conecta colegas
-      </p>
-    </main>
+    <CarnetPublico
+      data={{
+        displayName: agent.fullName,
+        photoUrl: agent.photoUrl,
+        verified,
+        level: summary?.level ?? { key: 'BROKER_INICIAL', labelEs: 'Agente Inicial', labelEn: 'Starter Agent', min: 0 },
+        // audience="clientes" no los pinta; van en cero para no filtrarlos ni
+        // por el DOM (punto 2.3: se respetan las reglas de la pagina publica).
+        totalPoints: 0,
+        rank: 0,
+        cierres,
+        listingsActive,
+        joinYear: new Date(agent.createdAt).getFullYear(),
+        specializationZones: agent.specializationZones,
+        // Sin telefono: la variante publica no lo pinta, y tampoco viaja al
+        // cliente. Sin cedula ni direccion, por la misma razon.
+        phone: '',
+        subscriptionActive: vigente,
+        carnetSlug: agent.carnetSlug,
+        yearsExperience: agent.yearsExperience,
+        licenseNumber: agent.licenseNumber,
+        company: agent.company,
+      }}
+    />
   );
 }

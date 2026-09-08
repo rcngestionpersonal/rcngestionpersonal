@@ -60,11 +60,28 @@ function CarnetQrBlock({ phone, message, lang }: { phone: string; message: strin
   );
 }
 
-// El Carnet de Agente: UN solo componente para las dos audiencias (colegas /
-// clientes) - nunca duplicar. La version Clientes oculta puntos/posicion
-// (jerga interna que el cliente no entiende); la version Colegas las
-// muestra. Nunca se expone el total de agentes de la Red (ni aqui ni en la
-// imagen exportada - ver carnet-image.ts), solo "#N en la Red".
+// El Carnet de Agente: UN solo componente para TODOS los contextos en
+// pantalla - nunca duplicar. Antes /v/[slug] tenia su propia copia del diseño
+// escrita a mano, y las dos se fueron separando hasta que el carnet que veia
+// un visitante no era el mismo que veia el agente.
+//
+// Dos ejes independientes:
+//
+// - `audience`: QUE datos se muestran. Clientes oculta puntos/posicion (jerga
+//   interna que el cliente no entiende); Colegas los muestra. Nunca se expone
+//   el total de agentes de la Red (ni aqui ni en la imagen exportada - ver
+//   carnet-image.ts), solo "#N en la Red".
+//
+// - `variante`: DONDE se muestra.
+//     "pantalla" (por defecto) - dentro de la app, con sesion: trae el bloque
+//       de contacto y el QR de WhatsApp.
+//     "publica"  - /v/[slug], sin sesion, cualquiera que escanee el QR. Aplica
+//       las reglas de privacidad de la pagina publica: sin telefono, sin
+//       cedula y sin datos de clientes. El QR tambien se omite porque codifica
+//       el telefono, y ademas esta pagina ES el destino de ese QR.
+//   El diseño, la jerarquia, la marca de agua, los sellos y los stats son los
+//   mismos en las dos: la variante quita piezas, nunca redibuja.
+export type CarnetVariante = 'pantalla' | 'publica';
 export type BrokerCardData = {
   displayName: string;
   photoUrl?: string | null;
@@ -94,12 +111,15 @@ export function BrokerCard({
   audience,
   lang,
   t,
+  variante = 'pantalla',
 }: {
   data: BrokerCardData;
   audience: 'colegas' | 'clientes';
   lang: 'es' | 'en';
   t: (k: string) => string;
+  variante?: CarnetVariante;
 }) {
+  const esPublica = variante === 'publica';
   const levelLabel = lang === 'es' ? data.level.labelEs : data.level.labelEn;
   const levelColor = levelColorFor(data.level.key);
   const zones = data.specializationZones.map((key) => zoneLabel(key, lang)).filter(Boolean);
@@ -116,6 +136,16 @@ export function BrokerCard({
       <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full border border-accent-line" />
       <div className="pointer-events-none absolute -right-6 -top-6 h-36 w-36 rounded-full border border-accent-line" />
 
+      {/* Marca de agua: isotipo centrado, el mismo recurso que ya tenia la
+          imagen exportada (carnet-image.ts) y que en pantalla faltaba. Va
+          detras de todo el contenido, que es `relative`. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 flex select-none items-center justify-center text-[190px] font-bold leading-none text-accent opacity-[0.045]"
+      >
+        ✦
+      </span>
+
       <p className="relative text-[10px] font-extrabold uppercase tracking-[0.18em] text-text-3">
         <span className="text-accent">✦ REDINMO.IO</span> · {t('ranking.carnet.tipo').replace('· ', '')}
       </p>
@@ -127,6 +157,7 @@ export function BrokerCard({
       </div>
 
       <p className="relative mt-3 truncate text-[21px] font-extrabold text-text">{data.displayName}</p>
+      {data.company ? <p className="relative mt-0.5 truncate text-[12.5px] font-semibold text-text-2">{data.company}</p> : null}
 
       <div className="relative mt-2 flex flex-wrap items-center justify-center gap-1.5">
         {data.verified ? (
@@ -153,7 +184,7 @@ export function BrokerCard({
           ) : null}
           {data.licenseNumber ? (
             <span className="inline-flex items-center rounded-full border border-line-strong bg-surface-2 px-2.5 py-1 text-[10px] font-bold text-text">
-              {lang === 'es' ? 'Lic.' : 'Lic.'} {data.licenseNumber}
+              {lang === 'es' ? 'Lic. Prof.:' : 'Prof. Lic.:'} {data.licenseNumber}
             </span>
           ) : null}
         </div>
@@ -179,18 +210,24 @@ export function BrokerCard({
         {data.subscriptionActive ? `● ${lang === 'es' ? 'Vigente' : 'Active'} · ${vigenteLabel}` : lang === 'es' ? 'No vigente' : 'Not active'}
       </p>
 
-      <div className="relative mt-4 rounded-xl border border-dashed border-line bg-surface-2 p-3 text-left">
-        <p className="flex items-center gap-1.5 text-[12px] text-text-2">
-          <span aria-hidden="true" className="text-accent">✆</span> {data.phone}
-        </p>
-        <p className="mt-1 text-[12px] text-text-2">
-          Quito, Ecuador{zones.length > 0 ? ` · ${zones.slice(0, 2).join(', ')}` : ''}
-        </p>
-      </div>
+      {/* Telefono y QR NO existen en la pagina publica: el QR codifica el
+          numero, y esa pagina es justamente a donde lleva el QR (punto 2.3). */}
+      {!esPublica ? (
+        <>
+          <div className="relative mt-4 rounded-xl border border-dashed border-line bg-surface-2 p-3 text-left">
+            <p className="flex items-center gap-1.5 text-[12px] text-text-2">
+              <span aria-hidden="true" className="text-accent">✆</span> {data.phone}
+            </p>
+            <p className="mt-1 text-[12px] text-text-2">
+              Quito, Ecuador{zones.length > 0 ? ` · ${zones.slice(0, 2).join(', ')}` : ''}
+            </p>
+          </div>
 
-      <CarnetQrBlock phone={data.phone} message={whatsappMessage} lang={lang} />
+          <CarnetQrBlock phone={data.phone} message={whatsappMessage} lang={lang} />
+        </>
+      ) : null}
 
-      {data.carnetSlug ? (
+      {data.carnetSlug && !esPublica ? (
         <p className="relative mt-3 text-[9.5px] text-text-3">
           {lang === 'es' ? 'Verifica este carnet en' : 'Verify this card at'}{' '}
           <span className="font-semibold text-text-2">redinmo.io/v/{data.carnetSlug}</span>

@@ -15,8 +15,6 @@ export const dynamic = 'force-dynamic';
 const ajustesSchema = z.object({
   activo: z.boolean().optional(),
   colorAcento: z.string().refine(esMiniSitioColor, 'Color no válido.').optional(),
-  mostrarInventario: z.boolean().optional(),
-  mostrarFormulario: z.boolean().optional(),
   frasePresentacion: z.string().trim().max(MINI_SITIO_FRASE_MAX, `Máximo ${MINI_SITIO_FRASE_MAX} caracteres.`).nullable().optional(),
 });
 
@@ -65,8 +63,6 @@ export async function GET(request: NextRequest) {
           slug: miniSitio.slug,
           activo: miniSitio.activo,
           colorAcento: miniSitio.colorAcento,
-          mostrarInventario: miniSitio.mostrarInventario,
-          mostrarFormulario: miniSitio.mostrarFormulario,
           frasePresentacion: miniSitio.frasePresentacion,
         }
       : null,
@@ -110,8 +106,6 @@ export async function PATCH(request: NextRequest) {
       slug: miniSitio.slug,
       activo: miniSitio.activo,
       colorAcento: miniSitio.colorAcento,
-      mostrarInventario: miniSitio.mostrarInventario,
-      mostrarFormulario: miniSitio.mostrarFormulario,
       frasePresentacion: miniSitio.frasePresentacion,
     },
   });

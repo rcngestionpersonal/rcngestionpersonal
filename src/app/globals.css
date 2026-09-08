@@ -297,3 +297,119 @@ body.match-jump-transition {
 		animation: none;
 	}
 }
+
+/* ---------------------------------------------------------------------------
+   MINI-SITIO PUBLICO DEL AGENTE (/a/[slug])
+   ---------------------------------------------------------------------------
+   El agente elige un acento de una paleta acotada (MINI_SITIO_COLORES). La
+   pagina inyecta en su raiz las DOS versiones del color -clara y oscura- como
+   variables, porque es un server component y no puede saber el tema del
+   visitante. La eleccion se hace aca, con la misma convencion que el resto del
+   archivo: :root es el tema oscuro y [data-theme='light'] lo pisa.
+
+   Ningun componente del mini-sitio vuelve a escribir un hex ni arma un rgba a
+   mano: todos consumen --ms-acento / --ms-suave / --ms-borde / --ms-glow. */
+.mini-sitio {
+	--ms-acento: var(--ms-acento-oscuro);
+	--ms-contraste: var(--ms-contraste-oscuro);
+	--ms-suave: var(--ms-suave-oscuro);
+	--ms-borde: var(--ms-borde-oscuro);
+	--ms-glow: var(--ms-glow-oscuro);
+}
+
+[data-theme='light'] .mini-sitio {
+	--ms-acento: var(--ms-acento-claro);
+	--ms-contraste: var(--ms-contraste-claro);
+	--ms-suave: var(--ms-suave-claro);
+	--ms-borde: var(--ms-borde-claro);
+	--ms-glow: var(--ms-glow-claro);
+}
+
+/* Hero: el punteado violeta de la plataforma (marca, NO el color del agente -
+   punto 4.4) mas un resplandor radial en el acento que si eligio el agente. */
+.ms-hero {
+	position: relative;
+	isolation: isolate;
+	overflow: clip;
+}
+
+.ms-hero::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	z-index: -2;
+	pointer-events: none;
+	opacity: var(--dot-opacity);
+	background-image: radial-gradient(var(--dot-color) 0.7px, transparent 0.7px);
+	background-size: 4px 4px;
+}
+
+.ms-hero::after {
+	content: '';
+	position: absolute;
+	top: -180px;
+	left: 50%;
+	z-index: -1;
+	pointer-events: none;
+	width: 720px;
+	height: 560px;
+	max-width: 160vw;
+	transform: translateX(-50%);
+	border-radius: 9999px;
+	background: var(--ms-glow);
+	filter: blur(var(--glow-blur));
+}
+
+/* Nombre del agente en degradado: mismo recurso que los titulares de la
+   landing, pero tenido con el acento del agente en vez del violeta fijo. */
+.ms-nombre {
+	background-image: linear-gradient(180deg, var(--text), var(--ms-acento));
+	background-clip: text;
+	-webkit-background-clip: text;
+	color: transparent;
+	-webkit-text-fill-color: transparent;
+}
+
+/* Boton principal: degradado del acento del agente, no un relleno plano. */
+.ms-boton {
+	background-image: linear-gradient(135deg, var(--ms-acento), color-mix(in srgb, var(--ms-acento) 72%, var(--text)));
+	color: var(--ms-contraste);
+	transition: filter 150ms ease-out, transform 150ms ease-out;
+}
+
+.ms-boton:hover {
+	filter: brightness(1.08);
+	transform: translateY(-1px);
+}
+
+/* Tarjeta de inmueble: sombra suave en reposo, se eleva al pasar el cursor. */
+.ms-tarjeta {
+	transition: transform 150ms ease-out, box-shadow 150ms ease-out, border-color 150ms ease-out;
+	box-shadow: var(--shadow-sm);
+}
+
+.ms-tarjeta:hover {
+	transform: translateY(-3px);
+	box-shadow: var(--shadow-md);
+	border-color: var(--ms-borde);
+}
+
+/* Linea divisoria de seccion: se apaga hacia los bordes para que el acento se
+   lea como una costura de la pagina y no como un subrayado duro. */
+.ms-divisor {
+	border: 0;
+	height: 1px;
+	background-image: linear-gradient(90deg, transparent, var(--ms-borde), transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ms-boton,
+	.ms-tarjeta {
+		transition: none;
+	}
+
+	.ms-boton:hover,
+	.ms-tarjeta:hover {
+		transform: none;
+	}
+}

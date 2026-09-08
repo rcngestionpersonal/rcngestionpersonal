@@ -52,7 +52,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
 
   const agente = miniSitio.agent;
   const paleta = FICHA_PALETTES.oscura;
-  const acento = resolverColor(miniSitio.colorAcento).acento;
+  // La imagen OG se dibuja siempre sobre la paleta oscura, asi que usa el
+  // tono oscuro del acento: el claro seria invisible sobre ese fondo.
+  const acento = resolverColor(miniSitio.colorAcento).oscuro.acento;
 
   const [foto, puntos] = await Promise.all([
     agente.photoUrl ? fetchImageAsDataUri(agente.photoUrl, { maxWidth: 400, quality: 82 }).catch(() => null) : Promise.resolve(null),
