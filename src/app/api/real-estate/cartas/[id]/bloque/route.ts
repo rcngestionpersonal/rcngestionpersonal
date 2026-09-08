@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { agenteConCartas, bloquesDeCarta, cartaDelAgente } from '@/lib/real-estate/cartas/servidor';
 import { recolectarDatosDeAgente, recolectarMuestrasDeEstilo } from '@/lib/real-estate/cartas/datos';
 import { regenerarBloque } from '@/lib/real-estate/cartas/generar';
-import { estadoDeCuota, quedaCuota, registrarGeneracion } from '@/lib/real-estate/cartas/cuota';
+import { estadoDeCuota, registrarGeneracion } from '@/lib/real-estate/cartas/cuota';
 import { CARTA_BLOQUES, type CartaDestinatarioTipo } from '@/lib/real-estate/cartas/tipos';
 
 // "Regenerar este párrafo" (punto 3.2): rehace UN bloque sin tocar los otros
@@ -26,12 +26,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!parsed.success) return NextResponse.json({ error: 'Bloque no válido.' }, { status: 400 });
   const { bloque } = parsed.data;
 
-  if (!(await quedaCuota(auth.agentId))) {
-    return NextResponse.json(
-      { error: 'Llegaste al máximo de generaciones de este mes.', code: 'cuota_agotada', cuota: await estadoDeCuota(auth.agentId) },
-      { status: 429 },
-    );
-  }
+  // A proposito NO se consulta la cuota: el tope mensual es de cartas nuevas,
+  // no de retoques (ver CARTA_LIMITE_MENSUAL). Un agente con el tope agotado
+  // sigue puliendo, descargando y enviando lo que ya genero.
 
   // Se regenera con los datos de HOY, no con los congelados de datosUsados:
   // si el agente cargo inmuebles desde que creo la carta, el parrafo nuevo

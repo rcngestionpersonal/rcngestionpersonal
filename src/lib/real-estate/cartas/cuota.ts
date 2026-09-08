@@ -1,11 +1,16 @@
 import { prisma } from '@/lib/prisma';
 import { CARTA_LIMITE_MENSUAL } from './tipos';
 
-// Control de costos de la generacion (punto 2.6): tope mensual por agente.
+// Control de costos de la generacion: tope mensual de CARTAS NUEVAS por
+// agente.
 //
-// El limite se cuenta sobre LLAMADAS al modelo, no sobre cartas: regenerar un
-// parrafo tambien cuesta tokens, y contar solo cartas dejaria abierta la
-// puerta de gastar el presupuesto del mes a fuerza de regenerar.
+// Se cuentan cartas, no llamadas al modelo. Regenerar un parrafo tambien
+// cuesta tokens, pero descontarlo del mismo tope castigaria al agente que
+// pule su texto - que es exactamente lo que queremos que haga. Las
+// regeneraciones quedan registradas igual (tipo 'bloque') para medir el gasto.
+//
+// El tope aplica SOLO a generar cartas nuevas: editar, descargar, duplicar y
+// enviar las que ya existen nunca se bloquean.
 
 export type EstadoCuota = {
   usadas: number;
@@ -25,7 +30,7 @@ function inicioDelMesSiguiente(fecha = new Date()): Date {
 
 export async function estadoDeCuota(agentId: string): Promise<EstadoCuota> {
   const usadas = await prisma.cartaGeneracion.count({
-    where: { agentId, createdAt: { gte: inicioDelMes() } },
+    where: { agentId, tipo: 'carta', createdAt: { gte: inicioDelMes() } },
   });
   return {
     usadas,

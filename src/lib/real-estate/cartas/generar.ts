@@ -261,36 +261,76 @@ function pluralizar(tipo: string, cantidad: number): string {
 // Borrador sin modelo. Sigue las MISMAS reglas de cero invencion: cada frase
 // se arma desde un dato real y las que dependen de volumen desaparecen cuando
 // la cartera es chica.
+// Enumera en castellano: "casas, departamentos y oficinas" en vez de la lista
+// separada por comas que delata una plantilla.
+function enumerar(partes: string[]): string {
+  if (partes.length === 0) return '';
+  if (partes.length === 1) return partes[0];
+  return `${partes.slice(0, -1).join(', ')} y ${partes[partes.length - 1]}`;
+}
+
 export function borradorDePlantilla(entrada: EntradaGeneracion): CartaBloques {
   const { datos } = entrada;
   const escaso = inventarioEsEscaso(datos);
   const config = CARTA_DESTINATARIO_CONFIG[entrada.destinatarioTipo];
-  const zonas = datos.zonas.length > 0 ? datos.zonas.join(', ') : 'Quito';
-  const empresa = datos.empresa ? ` de ${datos.empresa}` : '';
-  const tratamiento = entrada.destinatarioCargo
-    ? `${entrada.destinatarioCargo} ${entrada.destinatarioNombre}`
-    : entrada.destinatarioNombre;
+  const zonas = enumerar(datos.zonas.length > 0 ? datos.zonas : ['Quito']);
+  // El cargo NO entra en el saludo: 'Estimada Gerente María Jaramillo' no es
+  // castellano. El cargo ya se imprime en el bloque de destinatario del PDF.
+  const tratamiento = entrada.destinatarioNombre;
 
-  const experiencia = escaso
-    ? `Trabajo enfocado en ${datos.especialidad} en ${zonas}, que es la zona que conozco a fondo.${
-        datos.aniosDeExperiencia ? ` Tengo ${datos.aniosDeExperiencia} años en el sector inmobiliario.` : ''
-      }`
-    : `Tengo ${datos.inmueblesActivos} inmuebles activos en cartera y ${datos.cierresRegistrados} cierres registrados en Redinmo.io${
-        datos.aniosEnRedinmo >= 1 ? `, donde opero desde ${datos.anioIngreso}` : ''
-      }.`;
+  // Presentacion: nombre, empresa, zonas y especialidad en UNA frase que se
+  // lea como una presentacion y no como cuatro campos pegados. El contexto que
+  // escribio el agente abre la carta, porque es lo unico que el destinatario
+  // reconoce de entrada.
+  const quienSoy = datos.empresa
+    ? `Mi nombre es ${datos.nombre} y trabajo como agente inmobiliario en ${datos.empresa}`
+    : `Mi nombre es ${datos.nombre} y trabajo como agente inmobiliario independiente`;
+  const presentacion = [
+    entrada.contexto ? `${entrada.contexto}.` : null,
+    `${quienSoy}. Me dedico a ${datos.especialidad} de inmuebles y opero en ${zonas}.`,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
+  // Experiencia: los numeros solo si los hay, y redactados como respaldo, no
+  // como planilla. Con cartera chica se habla de oficio, nunca de volumen.
+  const respaldo: string[] = [];
+  if (!escaso) {
+    respaldo.push(
+      `Hoy tengo ${datos.inmueblesActivos} inmuebles activos en cartera y ${datos.cierresRegistrados} cierres registrados en Redinmo.io${
+        datos.aniosEnRedinmo >= 1 ? `, la red donde opero desde ${datos.anioIngreso}` : ''
+      }.`,
+    );
+  }
+  if (datos.aniosDeExperiencia) {
+    respaldo.push(`Llevo ${datos.aniosDeExperiencia} años dedicado a esto.`);
+  }
+  if (datos.licencia) {
+    respaldo.push(`Cuento con licencia profesional vigente (${datos.licencia}).`);
+  }
+  if (respaldo.length === 0) {
+    respaldo.push(
+      `Conozco ${zonas} en detalle: los precios reales a los que se cierra, qué se mueve rápido y qué se queda, y eso es lo que pongo sobre la mesa.`,
+    );
+  }
+  if (datos.verificado) {
+    respaldo.push('Mi identidad está verificada en la plataforma y puede comprobarla en el enlace del pie de esta carta.');
+  }
+
+  // Inventario: complementa a la experiencia, no la repite. Con cartera chica
+  // habla de criterio de seleccion, que es cierto y no depende del volumen.
   const inventario = escaso
-    ? `Me especializo en ${datos.especialidad} en ${zonas}, y selecciono cada inmueble que represento.`
-    : `Hoy manejo ${datos.composicionInventario.map((c) => `${c.cantidad} ${pluralizar(c.tipo, c.cantidad)}`).join(', ')}.`;
+    ? `Si lo que necesita no está entre los inmuebles que represento hoy, lo busco: formo parte de una red de agentes en ${zonas} y muevo el requerimiento hasta dar con lo que corresponde.`
+    : `En este momento represento ${enumerar(
+        datos.composicionInventario.map((c) => `${c.cantidad} ${pluralizar(c.tipo, c.cantidad)}`),
+      )}.`;
 
   return {
     saludo: `Estimado/a ${tratamiento}:`,
-    presentacion: `Mi nombre es ${datos.nombre}, agente inmobiliario${empresa}. Opero en ${zonas} y me dedico a ${datos.especialidad} de inmuebles.${
-      entrada.contexto ? ` ${entrada.contexto}.` : ''
-    }`,
-    experiencia,
+    presentacion,
+    experiencia: respaldo.join(' '),
     inventario,
-    propuesta: `${config.fraseApertura} Me gustaría conversar sobre cómo puedo ayudarle y explicarle en detalle cómo trabajo.`,
-    cierre: 'Quedo atento a su respuesta para coordinar una conversación cuando le resulte conveniente.',
+    propuesta: `${config.fraseApertura} ${config.argumento}`,
+    cierre: config.cierre,
   };
 }

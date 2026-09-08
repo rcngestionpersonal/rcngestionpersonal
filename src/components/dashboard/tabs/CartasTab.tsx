@@ -125,6 +125,14 @@ function PanelCartas({ t }: { t: (k: string) => string }) {
   }
 
   const sinCuota = datos.cuota.restantes <= 0;
+  // La fecha de reinicio se calcula en UTC (primer dia del mes siguiente).
+  // Sin timeZone: 'UTC' aca, en Ecuador (UTC-5) se renderiza como el ultimo dia
+  // del mes actual: '1 de octubre' se leia '30 de septiembre'.
+  const renuevaEl = new Date(datos.cuota.reiniciaEl).toLocaleDateString('es-EC', {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  });
 
   return (
     <div className="space-y-5">
@@ -142,6 +150,19 @@ function PanelCartas({ t }: { t: (k: string) => string }) {
         </p>
       ) : null}
 
+      {/* Tope alcanzado: es informacion, no un fallo. Tono neutro, fecha de
+          renovacion, y se aclara que lo ya generado sigue disponible. */}
+      {sinCuota ? (
+        <div className="rounded-2xl border border-line bg-surface-2 px-4 py-3">
+          <p className="text-sm font-semibold text-text">
+            {t('cartas.limiteAlcanzado')
+              .replace('{limite}', String(datos.cuota.limite))
+              .replace('{fecha}', renuevaEl)}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-text-2">{t('cartas.limiteAlcanzado.detalle')}</p>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-text-2">
           {t('cartas.cuota').replace('{usadas}', String(datos.cuota.usadas)).replace('{limite}', String(datos.cuota.limite))}
@@ -151,7 +172,7 @@ function PanelCartas({ t }: { t: (k: string) => string }) {
           disabled={sinCuota}
           className="gradient-btn min-h-[44px] rounded-xl px-5 text-sm font-bold text-grad-contrast disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {sinCuota ? t('cartas.cuotaAgotada') : t('cartas.nueva')}
+          {sinCuota ? t('cartas.cuotaAgotada').replace('{limite}', String(datos.cuota.limite)) : t('cartas.nueva')}
         </button>
       </div>
 

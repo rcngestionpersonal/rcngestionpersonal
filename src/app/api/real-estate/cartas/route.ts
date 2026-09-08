@@ -79,10 +79,9 @@ export async function POST(request: NextRequest) {
 
   if (!(await quedaCuota(auth.agentId))) {
     const cuota = await estadoDeCuota(auth.agentId);
-    return NextResponse.json(
-      { error: 'Llegaste al máximo de generaciones de este mes.', code: 'cuota_agotada', cuota },
-      { status: 429 },
-    );
+    // El texto exacto lo arma la pantalla con la fecha de renovacion: aca solo
+    // viaja el estado. No es un fallo del agente, es un limite del plan.
+    return NextResponse.json({ code: 'cuota_agotada', cuota }, { status: 429 });
   }
 
   const datos = await recolectarDatosDeAgente(auth.agentId);

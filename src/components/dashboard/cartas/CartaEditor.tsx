@@ -121,7 +121,9 @@ export default function CartaEditor({
       const d = await r.json().catch(() => ({}));
       if (d.cuota) setCuota(d.cuota);
       if (!r.ok) {
-        setError(d.error ?? t('cartas.error.regenerar'));
+        // "sin_proveedor" no es una falla: la reescritura automatica todavia
+        // no esta encendida. Se explica sin jerga y sin tono de error.
+        setError(d.code === 'sin_proveedor' ? t('cartas.regenerar.noDisponible') : (d.error ?? t('cartas.error.regenerar')));
         return;
       }
       setBloques((previos) => ({ ...previos, [clave]: d.texto as string }));
@@ -216,7 +218,7 @@ export default function CartaEditor({
                 <p className="text-xs font-bold uppercase tracking-[0.1em] text-text-2">{t(`cartas.bloque.${clave}`)}</p>
                 <button
                   onClick={() => void regenerar(clave)}
-                  disabled={regenerando !== null || cuota.restantes <= 0}
+                  disabled={regenerando !== null}
                   className="min-h-[36px] rounded-lg border border-line-strong px-3 text-xs font-semibold text-text-2 transition hover:bg-surface-2 disabled:opacity-50"
                 >
                   {regenerando === clave ? t('cartas.regenerando') : t('cartas.regenerarParrafo')}
@@ -332,7 +334,20 @@ export default function CartaEditor({
       </div>
 
       {aviso ? <p className="rounded-xl border border-accent-line bg-accent-dim px-3.5 py-2.5 text-sm text-accent">{aviso}</p> : null}
-      {error ? <p className="rounded-xl border border-danger bg-danger-dim px-3.5 py-2.5 text-sm text-danger">{error}</p> : null}
+      {/* Los avisos informativos (como "la reescritura no está disponible") no
+          se pintan de rojo: no hay nada roto ni nada que el agente deba
+          arreglar. El rojo queda para los errores de verdad. */}
+      {error ? (
+        <p
+          className={`rounded-xl border px-3.5 py-2.5 text-sm ${
+            error === t('cartas.regenerar.noDisponible')
+              ? 'border-line bg-surface-2 text-text-2'
+              : 'border-danger bg-danger-dim text-danger'
+          }`}
+        >
+          {error}
+        </p>
+      ) : null}
 
       {/* ---- Confirmacion explicita antes de enviar (punto 5.3) ---- */}
       {envio.abierto ? (

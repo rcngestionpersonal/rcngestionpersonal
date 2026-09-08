@@ -284,7 +284,11 @@ export default function NuevaCartaAsistente({
             disabled={generando || sinCuota}
             className="gradient-btn min-h-[44px] rounded-xl px-6 text-sm font-bold text-grad-contrast disabled:cursor-not-allowed disabled:opacity-50 sm:min-w-[180px]"
           >
-            {generando ? t('cartas.generando') : sinCuota ? t('cartas.cuotaAgotada') : t('cartas.generar')}
+            {generando
+              ? t('cartas.generando')
+              : sinCuota
+                ? t('cartas.cuotaAgotada').replace('{limite}', String(datos.cuota.limite))
+                : t('cartas.generar')}
           </button>
         )}
         <button

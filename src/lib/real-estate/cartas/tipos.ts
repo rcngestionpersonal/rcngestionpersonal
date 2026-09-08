@@ -11,13 +11,28 @@ export type CartaDestinatarioTipo = (typeof CARTA_DESTINATARIOS)[number];
 // no como una etiqueta.
 export const CARTA_DESTINATARIO_CONFIG: Record<
   CartaDestinatarioTipo,
-  { titulo: string; descripcion: string; asunto: string; fraseApertura: string; enfoque: string }
+  {
+    titulo: string;
+    descripcion: string;
+    asunto: string;
+    fraseApertura: string;
+    // Como sigue la propuesta despues de la apertura, y como cierra la carta.
+    // Son del modo plantilla: le dan a cada destinatario un cuerpo propio en
+    // vez de una frase generica igual para los cuatro.
+    argumento: string;
+    cierre: string;
+    enfoque: string;
+  }
 > = {
   PROPIETARIO: {
     titulo: 'Propietario',
     descripcion: 'Por qué confiarme la venta de su inmueble.',
     asunto: 'Propuesta para la venta de su inmueble',
     fraseApertura: 'Le escribo para proponerle acompañarlo en la venta de su inmueble.',
+    argumento:
+      'Trabajo con un número acotado de propiedades a la vez, para poder atender cada una de verdad: fotos y ficha cuidadas, filtro previo de los interesados y un reporte suyo de lo que va pasando. Antes de hablar de precio prefiero ver el inmueble y entender su situación.',
+    cierre:
+      'Si le interesa, puedo pasar a conocer el inmueble sin ningún compromiso y darle mi lectura del mercado en su sector. Quedo atento.',
     enfoque:
       'El destinatario es el dueño de un inmueble que evalua a quien confiarselo. Argumenta por que este agente es una buena eleccion para gestionarlo: metodo de trabajo, conocimiento de sus zonas y seriedad. No prometas precio ni plazo de venta.',
   },
@@ -26,6 +41,10 @@ export const CARTA_DESTINATARIO_CONFIG: Record<
     descripcion: 'Propuesta de colaboración entre profesionales.',
     asunto: 'Propuesta de colaboración profesional',
     fraseApertura: 'Le escribo para proponerle que trabajemos juntos compartiendo cartera y comisión.',
+    argumento:
+      'La idea es simple: cuando usted tenga un cliente que yo pueda resolver con mi cartera, o al revés, lo trabajamos en conjunto y repartimos la comisión en los términos que acordemos. Cada uno conserva su relación con su cliente.',
+    cierre:
+      'Si le hace sentido, coordinemos una llamada corta para ver en qué se cruzan nuestras carteras. Quedo atento.',
     enfoque:
       'El destinatario es otro agente o una inmobiliaria. Propon colaborar compartiendo cartera y comision. Habla de igual a igual, sin vender servicios: el valor esta en que las carteras se complementen.',
   },
@@ -34,6 +53,10 @@ export const CARTA_DESTINATARIO_CONFIG: Record<
     descripcion: 'Propuesta para comercializar su proyecto.',
     asunto: 'Propuesta para la comercialización de su proyecto',
     fraseApertura: 'Le escribo para proponerle sumarme a la comercialización de su proyecto.',
+    argumento:
+      'Puedo aportar el trabajo de calle que un proyecto necesita: seguimiento uno a uno de cada interesado, coordinación de visitas en obra y reporte periódico de cómo avanza la colocación. Me adapto a las condiciones comerciales que ya tengan definidas.',
+    cierre:
+      'Si están abiertos a sumar fuerza comercial, me gustaría conocer el proyecto y conversarlo. Quedo atento.',
     enfoque:
       'El destinatario desarrolla proyectos inmobiliarios. Propon comercializar unidades: capacidad de colocacion, zonas donde ya opera y como trabaja la venta. No inventes volumenes de ventas ni proyectos anteriores.',
   },
@@ -42,6 +65,10 @@ export const CARTA_DESTINATARIO_CONFIG: Record<
     descripcion: 'Enfoque en inventario comercial y corporativo.',
     asunto: 'Servicios inmobiliarios corporativos',
     fraseApertura: 'Le escribo para ponerme a disposición de su empresa en la búsqueda de oficinas, locales o bodegas.',
+    argumento:
+      'Entiendo que una búsqueda corporativa no se parece a una residencial: pesan los metros útiles, el acceso, el estacionamiento y los plazos. Trabajo con un requerimiento escrito y le presento solo las opciones que lo cumplen, para no hacerle perder visitas.',
+    cierre:
+      'Si me comparten lo que están buscando, preparo una primera selección sin costo. Quedo atento.',
     enfoque:
       'El destinatario es una empresa que necesita oficinas, locales o bodegas. Enfocate en inventario comercial y corporativo y en entender requerimientos de espacio. No hables de vivienda salvo que el inventario real sea solo residencial, en cuyo caso ofrece buscar lo que necesiten.',
   },
@@ -72,11 +99,15 @@ export type CartaPaleta = (typeof CARTA_PALETAS)[number];
 export const CARTA_IMAGEN_TIPOS = ['foto', 'logo'] as const;
 export type CartaImagenTipo = (typeof CARTA_IMAGEN_TIPOS)[number];
 
-// Tope mensual de llamadas al modelo por agente (punto 2.6). Cuenta tanto la
-// generacion de una carta completa como la de un parrafo suelto: las dos
-// cuestan tokens, y contar solo las cartas dejaria la puerta abierta a gastar
-// el presupuesto regenerando parrafos.
-export const CARTA_LIMITE_MENSUAL = 30;
+// Tope mensual de CARTAS NUEVAS por agente. Vive aca y en ningun otro lado:
+// la pantalla, la API y los mensajes lo leen de esta constante.
+//
+// Regenerar un parrafo NO descuenta de este tope, a proposito: si cada ajuste
+// restara, un agente que pule su carta tres veces se quedaria sin cuota antes
+// de mandar la segunda, y penalizar el ajuste fino es penalizar justamente al
+// que usa bien la herramienta. Las regeneraciones se siguen registrando en
+// CartaGeneracion para poder medir el gasto real.
+export const CARTA_LIMITE_MENSUAL = 10;
 
 // Umbrales por debajo de los cuales la carta NO habla de volumen y la pantalla
 // muestra el aviso del punto 2.3. Son bajos a proposito: el objetivo es que el
