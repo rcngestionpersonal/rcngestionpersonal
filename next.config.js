@@ -55,6 +55,21 @@ const nextConfig = {
       './node_modules/harfbuzzjs/*.wasm',
       './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
     ],
+    // Contratos: las cuatro rutas que rasterizan el PDF necesitan los mismos
+    // binarios nativos. La de firma incluida: al completarse la ultima firma
+    // genera el PDF sellado que se adjunta al correo.
+    '/api/real-estate/contratos/[id]/archivo': [
+      './node_modules/harfbuzzjs/*.wasm',
+      './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
+    ],
+    '/api/firma/[token]': [
+      './node_modules/harfbuzzjs/*.wasm',
+      './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
+    ],
+    '/firmar/[token]/pdf': [
+      './node_modules/harfbuzzjs/*.wasm',
+      './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
+    ],
   },
   images: {
     remotePatterns: [

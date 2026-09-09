@@ -188,6 +188,17 @@ export function IconCheck(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// Documento firmado - identidad fija del modulo "Contratos".
+export function IconContract(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+      <path d="M14 3v5h5" />
+      <path d="M8.5 16.5c1.2-1.6 2-2.4 2.6-2.4.9 0 .5 2.2 1.4 2.2.6 0 1.1-.7 1.9-1.6" />
+    </svg>
+  );
+}
+
 // Sobre/carta - identidad fija del modulo "Cartas" (cartas de presentacion)
 // en menu y tarjetas.
 export function IconLetter(props: SVGProps<SVGSVGElement>) {

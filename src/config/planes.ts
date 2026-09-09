@@ -26,6 +26,7 @@ export type Feature =
   | 'fichas_pdf'
   | 'carta_presentacion'
   | 'reportes_clientes'
+  | 'contratos'
   | 'carnet_pro';
 
 export type PlanDefinicion = {
@@ -56,6 +57,7 @@ const FEATURES_PRO: Feature[] = [
   'fichas_pdf',
   'carta_presentacion',
   'reportes_clientes',
+  'contratos',
   'carnet_pro',
 ];
 

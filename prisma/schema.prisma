@@ -214,6 +214,7 @@ model Agent {
   cartaLogoUrl          String?
   cartas                Carta[]
   cartaGeneraciones     CartaGeneracion[]
+  contratos             Contrato[]
 }
 
 model Listing {
@@ -861,4 +862,119 @@ model CartaGeneracion {
   createdAt DateTime @default(now())
 
   @@index([agentId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// CONTRATOS (feature Pro "contratos") - generacion y firma por aceptacion
+// remota.
+//
+// PRIVACIDAD: un contrato contiene cedulas, direcciones y montos de TERCEROS
+// que nunca aceptaron los terminos de la plataforma. Por eso los datos de las
+// partes y el registro probatorio se guardan CIFRADOS (AES-256-GCM, ver
+// payments/encryption.ts) y solo los ve el agente que los genero. Nunca
+// aparecen en el mini-sitio, el ranking ni ninguna vista publica.
+// ---------------------------------------------------------------------------
+
+enum ContratoTipo {
+  CORRETAJE
+  ARRENDAMIENTO
+  RESERVA_ARRIENDO
+  RESERVA_COMPRAVENTA
+}
+
+enum ContratoEstado {
+  BORRADOR
+  PENDIENTE_FIRMA
+  FIRMADO
+  RECHAZADO
+  ANULADO
+}
+
+enum FirmanteEstado {
+  ENVIADO
+  ABIERTO
+  FIRMADO
+  RECHAZADO
+}
+
+model Contrato {
+  id      String @id @default(cuid())
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentId String
+
+  tipo ContratoTipo
+
+  // Inmueble del inventario del agente. Se guarda ademas una foto de sus datos
+  // en "datosCifrados": si el inmueble se edita o se borra despues, el
+  // contrato firmado tiene que seguir diciendo lo que decia el dia que se
+  // firmo.
+  listingId String?
+
+  // Version de la plantilla usada. Si mañana cambia el texto legal, los
+  // contratos ya firmados conservan el suyo (punto 5.2).
+  plantillaVersion String
+
+  // Todos los campos del formulario, cifrados en reposo: aca viven las cedulas
+  // y direcciones de las partes.
+  datosCifrados String
+
+  estado ContratoEstado @default(BORRADOR)
+
+  // SHA-256 del PDF sellado. Es lo que permite demostrar que el documento no
+  // se altero despues de la firma.
+  hashDocumento String?
+
+  // Codigo publico de verificacion (/c/[codigo]). Deliberadamente distinto del
+  // id interno: el id no deberia poder adivinarse desde una URL compartida.
+  codigoVerificacion String @unique
+
+  anuladoNota String?
+
+  enviadoAt DateTime?
+  firmadoAt DateTime?
+  anuladoAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  firmantes ContratoFirmante[]
+
+  @@index([agentId, createdAt])
+  @@index([estado])
+}
+
+model ContratoFirmante {
+  id         String   @id @default(cuid())
+  contrato   Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  contratoId String
+
+  // Rol dentro del documento: "propietario", "arrendatario", "comprador"...
+  rol           String
+  nombre        String
+  correo        String
+  // Cedula completa cifrada. En claro solo se guardan los ultimos 4 digitos,
+  // que son los que el firmante teclea para identificarse (punto 3.4) - con 4
+  // digitos sueltos no se reconstruye una cedula.
+  cedulaCifrada String
+  cedulaUlt4    String
+
+  // Hash del token del enlace, nunca el token: si alguien lee la base de datos
+  // no puede firmar por nadie. El token viaja solo en el correo.
+  tokenHash String   @unique
+  expiraAt  DateTime
+
+  estado FirmanteEstado @default(ENVIADO)
+
+  enviadoAt      DateTime?
+  abiertoAt      DateTime?
+  firmadoAt      DateTime?
+  rechazadoAt    DateTime?
+  motivoRechazo  String?
+  recordatorioAt DateTime?
+
+  // Registro probatorio cifrado (punto 3.5): IP, navegador, dispositivo y
+  // confirmacion de que desplazo el documento completo.
+  evidenciaCifrada String?
+
+  @@index([contratoId])
+  @@index([estado, expiraAt])
 }
