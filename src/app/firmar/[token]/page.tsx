@@ -127,7 +127,7 @@ export default async function PaginaFirma({ params }: { params: Promise<{ token:
     fecha: contrato.createdAt,
   });
 
-  const plantilla = obtenerPlantilla(contrato.plantillaVersion);
+  const plantilla = obtenerPlantilla(tipo, contrato.plantillaVersion);
 
   // Se convierte a una forma serializable: el componente de cliente no puede
   // recibir funciones.
@@ -147,6 +147,8 @@ export default async function PaginaFirma({ params }: { params: Promise<{ token:
           firmado: f.estado === 'FIRMADO',
         })),
       });
+    } else if (b.tipo === 'ficha') {
+      bloques.push({ tipo: 'ficha', titulo: b.titulo, filas: b.filas });
     } else {
       bloques.push({ tipo: b.tipo, texto: b.texto });
     }

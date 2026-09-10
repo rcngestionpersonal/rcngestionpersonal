@@ -22,11 +22,22 @@ export type DatosInmuebleDocumento = {
   caracteristicas: string;
 };
 
+// Valor numerico de un campo de dinero. Un importe mal escrito vale 0 y no
+// rompe el documento: el formulario ya valida que sea un numero.
+function aNumero(valor: string): number {
+  const numero = Number(String(valor).replace(/[^\d.-]/g, ''));
+  return Number.isFinite(numero) ? numero : 0;
+}
+
+function formatearImporte(numero: number): string {
+  const conMiles = numero.toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `USD $${conMiles} (${enLetras(numero)})`;
+}
+
 function formatearDinero(valor: string): string {
   const numero = Number(String(valor).replace(/[^\d.-]/g, ''));
   if (!Number.isFinite(numero) || numero === 0) return valor || '—';
-  const conMiles = numero.toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return `USD $${conMiles} (${enLetras(numero)})`;
+  return formatearImporte(numero);
 }
 
 // Los montos de un contrato se escriben en numero y en letras: es la practica
@@ -97,7 +108,7 @@ export function construirDocumento(input: {
   inmueble: DatosInmuebleDocumento;
   fecha: Date;
 }): { bloques: BloqueDocumento[]; version: string; revisadaPorAbogado: boolean; avisoSinRevisar: string } {
-  const plantilla = obtenerPlantilla(input.version);
+  const plantilla = obtenerPlantilla(input.tipo, input.version);
 
   const contexto: DatosDocumento = {
     ciudad: input.agente.ciudad || 'Quito',
@@ -113,6 +124,10 @@ export function construirDocumento(input: {
       return valor;
     },
     dinero: (clave) => formatearDinero((input.datos[clave] ?? '').trim()),
+    numero: (clave) => aNumero(input.datos[clave] ?? ''),
+    // A diferencia de dinero(), aca el cero SI es un importe: es el resultado
+    // de un calculo, no un campo vacio, y tiene que imprimirse como cifra.
+    dineroDe: (valor) => formatearImporte(valor),
     opcion: (clave) => etiquetaDeOpcion(input.tipo, clave, (input.datos[clave] ?? '').trim()),
     lista: (clave) =>
       (input.datos[clave] ?? '')
@@ -138,7 +153,12 @@ export function bloquesATextoPlano(bloques: BloqueDocumento[]): string {
   for (const bloque of bloques) {
     if (bloque.tipo === 'titulo' || bloque.tipo === 'subtitulo') partes.push(bloque.texto.toUpperCase());
     else if (bloque.tipo === 'parrafo' || bloque.tipo === 'aviso') partes.push(bloque.texto);
-    else if (bloque.tipo === 'clausula') {
+    else if (bloque.tipo === 'ficha') {
+      // La ficha entra al texto plano porque el hash SHA-256 se calcula sobre
+      // el documento completo: si el precio de la ficha cambiara y el hash no,
+      // la constancia dejaria de probar lo que las partes leyeron.
+      partes.push(`${bloque.titulo.toUpperCase()}\n${bloque.filas.map((f) => `${f.etiqueta}: ${f.valor}`).join('\n')}`);
+    } else if (bloque.tipo === 'clausula') {
       numero += 1;
       partes.push(`${romano(numero)}. ${bloque.titulo}\n${bloque.texto}`);
     }

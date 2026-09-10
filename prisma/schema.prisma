@@ -193,6 +193,13 @@ model Agent {
   termsAcceptedAt       DateTime?
   termsAcceptedVersion  String?
   termsAcceptedIp       String?
+  // Aceptacion del aviso de "modelos referenciales" del modulo de contratos
+  // (punto 4.2.a). Se repite cada 90 dias y cada vez que cambia el texto, asi
+  // que a diferencia de termsAccepted* esto NO es una aceptacion unica: se
+  // sobrescribe con la ultima. Guarda la version del texto aceptado para que
+  // un cambio de redaccion obligue a volver a aceptarlo.
+  contratosAvisoAt      DateTime?
+  contratosAvisoVersion String?
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
   matches               AgentMatch[]
@@ -877,6 +884,8 @@ model CartaGeneracion {
 
 enum ContratoTipo {
   CORRETAJE
+  CORRETAJE_EXCLUSIVO
+  CORRETAJE_ABIERTO
   ARRENDAMIENTO
   RESERVA_ARRIENDO
   RESERVA_COMPRAVENTA

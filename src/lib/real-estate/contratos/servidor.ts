@@ -140,7 +140,7 @@ export async function construirPdf(contrato: NonNullable<ContratoConFirmantes>):
     };
   });
 
-  const plantilla = obtenerPlantilla(contrato.plantillaVersion);
+  const plantilla = obtenerPlantilla(tipo, contrato.plantillaVersion);
   const texto = bloquesATextoPlano(doc.bloques);
 
   const buffer = await renderContratoPdf({

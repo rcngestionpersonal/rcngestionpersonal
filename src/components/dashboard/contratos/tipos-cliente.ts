@@ -45,9 +45,16 @@ export type ListingOpcion = {
   zone: string | null;
 };
 
+// Cada documento versiona su plantilla por separado (punto 1.4): el modulo ya
+// no tiene "una version" sino una por tipo.
+export type PlantillaVigente = { tipo: ContratoTipo; version: string; revisada: boolean };
+
 export type DatosPantallaContratos = {
   contratos: ContratoResumen[];
   listings: ListingOpcion[];
   agente: { nombre: string; tieneCedula: boolean; tieneDireccion: boolean; tieneCorreo: boolean };
-  plantilla: { version: string; revisada: boolean; aviso: string };
+  plantilla: { revisada: boolean; aviso: string; versiones: PlantillaVigente[] };
+  // Aviso de modelo referencial: si toca aceptarlo, no se genera nada hasta
+  // que el agente lo acepte (punto 4.2.a).
+  avisoLegal: { debeAceptar: boolean; aceptadoAt: string | null; version: string };
 };

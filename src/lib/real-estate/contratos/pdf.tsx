@@ -68,6 +68,7 @@ type ElementoPagina =
   | { tipo: 'parrafo'; texto: string }
   | { tipo: 'clausula'; encabezado: string; texto: string }
   | { tipo: 'aviso'; texto: string }
+  | { tipo: 'ficha'; titulo: string; filas: Array<{ etiqueta: string; valor: string }> }
   | { tipo: 'firmas'; nombres: Array<{ rol: string; nombre: string; cedula: string }> };
 
 function altoEstimado(el: ElementoPagina): number {
@@ -85,6 +86,9 @@ function altoEstimado(el: ElementoPagina): number {
     case 'aviso':
       // Recuadro con padding: ocupa mas que su texto.
       return lineas(el.texto, 0.94) + 34;
+    case 'ficha':
+      // Cada fila es una linea de tabla; el valor puede envolver a dos.
+      return 26 + el.filas.reduce((alto, f) => alto + Math.max(ALTO_LINEA + 8, lineas(f.valor, 0.62) + 8), 0) + 12;
     case 'firmas':
       return 60 + el.nombres.length * 78;
   }
@@ -102,6 +106,8 @@ function aElementos(bloques: BloqueDocumento[], firmantes: FirmanteConstancia[])
         tipo: 'firmas',
         nombres: firmantes.map((f) => ({ rol: f.rol, nombre: f.nombre, cedula: f.cedula })),
       });
+    } else if (bloque.tipo === 'ficha') {
+      salida.push({ tipo: 'ficha', titulo: bloque.titulo, filas: bloque.filas });
     } else {
       salida.push({ tipo: bloque.tipo, texto: bloque.texto });
     }
@@ -221,6 +227,51 @@ function pagina(
             );
           }
           if (el.tipo === 'aviso') return <Aviso key={i} texto={el.texto} />;
+          if (el.tipo === 'ficha') {
+            return (
+              <div
+                key={i}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  border: '1px solid #d6cfe8',
+                  borderRadius: 6,
+                  marginTop: 4,
+                  marginBottom: 14,
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: 0.4,
+                    padding: '7px 12px',
+                    borderBottom: '1px solid #e7e3f0',
+                    background: '#faf9fc',
+                  }}
+                >
+                  {el.titulo}
+                </div>
+                {el.filas.map((f, j) => (
+                  <div
+                    key={f.etiqueta}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      padding: '6px 12px',
+                      ...(j < el.filas.length - 1 ? { borderBottom: '1px solid #f0edf6' } : {}),
+                    }}
+                  >
+                    <div style={{ display: 'flex', width: 170, fontSize: 10.5, fontWeight: 700, color: '#5c5676' }}>
+                      {f.etiqueta}
+                    </div>
+                    <div style={{ display: 'flex', flexGrow: 1, fontSize: 10.5, lineHeight: 1.45 }}>{f.valor}</div>
+                  </div>
+                ))}
+              </div>
+            );
+          }
           if (el.tipo === 'clausula') {
             return (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', marginBottom: 12 }}>

@@ -38,7 +38,7 @@ export const LEGAL_ENTITY = {
 // (punto 2.3.3 del pedido; el mecanismo de re-aceptacion forzada todavia no
 // esta construido, ver el resumen de la fase de cierre).
 export const LEGAL_VERSIONS = {
-  terminos: '2026-09-02',
+  terminos: '2026-09-09',
   privacidad: '2026-09-02',
   suscripcion: '2026-09-02',
   cookies: '2026-09-02',

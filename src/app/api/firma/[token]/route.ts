@@ -205,6 +205,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     estado: 'FIRMADO',
     faltanOtros: 0,
     completo: true,
-    plantilla: obtenerPlantilla(contrato.plantillaVersion).version,
+    plantilla: obtenerPlantilla(tipo, contrato.plantillaVersion).version,
   });
 }

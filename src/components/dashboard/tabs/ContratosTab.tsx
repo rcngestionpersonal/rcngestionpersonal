@@ -8,8 +8,14 @@ import { ModuleHeader } from '../CardKit';
 import { IconContract } from '../icons';
 import ContratoFormulario from '../contratos/ContratoFormulario';
 import ContratoSeguimiento from '../contratos/ContratoSeguimiento';
+import AvisoModelosReferenciales from '../contratos/AvisoModelosReferenciales';
 import type { ContratoResumen, DatosPantallaContratos } from '../contratos/tipos-cliente';
-import { CONTRATO_DEFINICION, type ContratoTipo } from '@/lib/real-estate/contratos/tipos';
+import {
+  CONTRATO_DEFINICION,
+  ENLACE_REVISION_ABOGADO,
+  ENLACE_REVISION_ABOGADO_ETIQUETA,
+  type ContratoTipo,
+} from '@/lib/real-estate/contratos/tipos';
 
 // Modulo "Contratos" (punto 4.1). Pestaña propia, feature Pro con bloqueo
 // elegante en Basico.
@@ -78,6 +84,20 @@ function Panel({ t }: { t: (k: string) => string }) {
   if (error) return <p className="rounded-xl border border-danger bg-danger-dim px-3.5 py-2.5 text-sm text-danger">{error}</p>;
   if (!datos) return null;
 
+  // La puerta del punto 4.2.a: antes de aceptar el aviso no hay lista, ni
+  // formulario, ni seguimiento. Va delante de todo lo demás a propósito.
+  if (datos.avisoLegal.debeAceptar) {
+    return (
+      <AvisoModelosReferenciales
+        reaparicion={Boolean(datos.avisoLegal.aceptadoAt)}
+        onAceptado={() => {
+          setVista({ modo: 'lista' });
+          void cargar();
+        }}
+      />
+    );
+  }
+
   if (vista.modo === 'nuevo' || vista.modo === 'editar') {
     return (
       <ContratoFormulario
@@ -130,14 +150,23 @@ function Panel({ t }: { t: (k: string) => string }) {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-text-2">
-          {t('contratos.plantillaVersion').replace('{version}', datos.plantilla.version)}
+          {t('contratos.plantillasVigentes').replace('{n}', String(datos.plantilla.versiones.length))}
         </p>
-        <button
-          onClick={() => setVista({ modo: 'nuevo' })}
-          className="gradient-btn min-h-[44px] rounded-xl px-5 text-sm font-bold text-grad-contrast"
-        >
-          {t('contratos.nuevo')}
-        </button>
+        <div className="flex flex-col items-stretch gap-1.5 sm:items-end">
+          <button
+            onClick={() => setVista({ modo: 'nuevo' })}
+            className="gradient-btn min-h-[44px] rounded-xl px-5 text-sm font-bold text-grad-contrast"
+          >
+            {t('contratos.nuevo')}
+          </button>
+          {/* Enlace discreto de orientación (punto 4.6) */}
+          <a
+            href={ENLACE_REVISION_ABOGADO}
+            className="text-center text-[11.5px] text-text-3 underline-offset-2 transition hover:text-text-2 hover:underline"
+          >
+            {ENLACE_REVISION_ABOGADO_ETIQUETA}
+          </a>
+        </div>
       </div>
 
       {datos.contratos.length === 0 ? (

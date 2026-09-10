@@ -113,7 +113,35 @@ export default function TerminosPage() {
           </section>
 
           <section>
-            <h2 className="mb-1.5 text-base font-bold text-text">8. Ley aplicable y controversias</h2>
+            <h2 className="mb-1.5 text-base font-bold text-text">8. Documentos y contratos</h2>
+            <p>
+              La Plataforma pone a disposición del agente modelos referenciales de documentos contractuales. Estos modelos:
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              <li>
+                No constituyen asesoría legal ni sustituyen la intervención de un profesional del derecho.
+              </li>
+              <li>No están adaptados a las particularidades de cada operación.</li>
+              <li>
+                Pueden requerir ajustes según la normativa vigente, la jurisdicción aplicable o las condiciones específicas del
+                negocio.
+              </li>
+            </ul>
+            <p className="mt-2">
+              El Titular <strong className="text-text">no es parte</strong> de los contratos que el agente genere, no interviene en
+              su negociación ni garantiza su idoneidad, validez o suficiencia para el caso concreto. La responsabilidad por el
+              contenido, la suscripción y los efectos de dichos documentos corresponde exclusivamente a las partes que los
+              suscriben. Antes de generar su primer documento, y periódicamente después, el agente debe aceptar de forma expresa
+              un aviso con este mismo contenido; esa aceptación queda registrada con su fecha. Puedes consultar{' '}
+              <a href="/legal/revision-abogado" className="font-semibold text-accent hover:underline">
+                cuándo conviene que un abogado revise el documento
+              </a>
+              .
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-1.5 text-base font-bold text-text">9. Ley aplicable y controversias</h2>
             <p>
               Estos Términos se rigen por las leyes de la República del Ecuador. Cualquier controversia derivada de su
               interpretación o cumplimiento se someterá, en primer lugar, a un intento de solución directa entre las partes; de
@@ -123,7 +151,7 @@ export default function TerminosPage() {
           </section>
 
           <section>
-            <h2 className="mb-1.5 text-base font-bold text-text">9. Cambios a estos Términos</h2>
+            <h2 className="mb-1.5 text-base font-bold text-text">10. Cambios a estos Términos</h2>
             <p>
               Podemos actualizar estos Términos cuando cambie el servicio o lo exija la ley. Cada versión publicada indica su
               fecha de vigencia en la parte superior de esta página. Si un cambio es sustancial, lo notificaremos por correo o

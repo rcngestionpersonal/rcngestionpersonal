@@ -2,13 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AVISO_VISTA_PREVIA,
   CONTRATO_DEFINICION,
-  CONTRATO_TIPOS,
+  CONTRATO_MENU,
+  ENLACE_REVISION_ABOGADO,
+  ENLACE_REVISION_ABOGADO_ETIQUETA,
   camposFaltantes,
   type CampoDefinicion,
   type ContratoTipo,
 } from '@/lib/real-estate/contratos/tipos';
-import type { ContratoCompleto, ListingOpcion } from './tipos-cliente';
+import type { ContratoCompleto, ListingOpcion, PlantillaVigente } from './tipos-cliente';
 
 // El formulario que el agente completa frente al cliente.
 //
@@ -29,12 +32,15 @@ export default function ContratoFormulario({
 }: {
   t: (k: string) => string;
   listings: ListingOpcion[];
-  plantilla: { version: string; revisada: boolean; aviso: string };
+  plantilla: { revisada: boolean; aviso: string; versiones: PlantillaVigente[] };
   contratoId: string | null;
   onCancelar: () => void;
   onEnviado: (id: string) => void;
 }) {
   const [tipo, setTipo] = useState<ContratoTipo | null>(null);
+  // Grupo abierto en el selector: hoy solo el corretaje, que se despliega en
+  // sus dos modalidades antes de mostrar el formulario (punto 1.1).
+  const [grupo, setGrupo] = useState<string | null>(null);
   const [listingId, setListingId] = useState<string | null>(listings[0]?.id ?? null);
   const [datos, setDatos] = useState<Record<string, string>>({});
   const [id, setId] = useState<string | null>(contratoId);
@@ -142,22 +148,85 @@ export default function ContratoFormulario({
 
   if (cargando) return <p className="text-sm text-text-2">{t('contratos.cargando')}</p>;
 
+  // ---- Paso 0b: qué modalidad de corretaje (punto 1.2) ---------------------
+  // Dos tarjetas, cada una con una línea que explica la diferencia en
+  // lenguaje llano. El agente tiene que poder elegir sin ser abogado.
+  if (!tipo && grupo) {
+    const entrada = CONTRATO_MENU.find((e) => e.clase === 'grupo' && e.clave === grupo);
+    if (entrada && entrada.clase === 'grupo') {
+      return (
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-base font-bold text-text">{t('contratos.elegirModalidad')}</h3>
+            <p className="mt-1 text-xs leading-relaxed text-text-2">{t('contratos.elegirModalidad.detalle')}</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {entrada.modalidades.map((clave) => {
+              const definicion = CONTRATO_DEFINICION[clave];
+              return (
+                <button
+                  key={clave}
+                  onClick={() => elegirTipo(clave)}
+                  className="min-h-[44px] rounded-2xl border border-line bg-surface p-4 text-left transition hover:border-line-strong"
+                >
+                  <p className="text-sm font-bold text-text">{definicion.titulo}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-text-2">{definicion.descripcion}</p>
+                  {definicion.ayuda ? (
+                    <p className="mt-2 rounded-lg bg-surface-2 px-3 py-2 text-[11.5px] leading-relaxed text-text-2">
+                      {definicion.ayuda}
+                    </p>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => setGrupo(null)}
+            className="min-h-[44px] rounded-xl border border-line px-6 text-sm font-semibold text-text-2 transition hover:bg-surface-2"
+          >
+            {t('contratos.volver')}
+          </button>
+        </div>
+      );
+    }
+  }
+
   // ---- Paso 0: qué documento ----------------------------------------------
   if (!tipo) {
     return (
       <div className="space-y-4">
         <h3 className="text-base font-bold text-text">{t('contratos.elegirTipo')}</h3>
         <div className="grid gap-3 sm:grid-cols-2">
-          {CONTRATO_TIPOS.map((clave) => (
-            <button
-              key={clave}
-              onClick={() => elegirTipo(clave)}
-              className="min-h-[44px] rounded-2xl border border-line bg-surface p-4 text-left transition hover:border-line-strong"
-            >
-              <p className="text-sm font-bold text-text">{CONTRATO_DEFINICION[clave].titulo}</p>
-              <p className="mt-1 text-xs leading-relaxed text-text-2">{CONTRATO_DEFINICION[clave].descripcion}</p>
-            </button>
-          ))}
+          {CONTRATO_MENU.map((entrada) => {
+            if (entrada.clase === 'grupo') {
+              return (
+                <button
+                  key={entrada.clave}
+                  onClick={() => setGrupo(entrada.clave)}
+                  className="min-h-[44px] rounded-2xl border border-line bg-surface p-4 text-left transition hover:border-line-strong"
+                >
+                  <p className="text-sm font-bold text-text">{entrada.titulo}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-text-2">{entrada.descripcion}</p>
+                </button>
+              );
+            }
+            const definicion = CONTRATO_DEFINICION[entrada.tipo];
+            return (
+              <button
+                key={entrada.tipo}
+                onClick={() => elegirTipo(entrada.tipo)}
+                className="min-h-[44px] rounded-2xl border border-line bg-surface p-4 text-left transition hover:border-line-strong"
+              >
+                <p className="text-sm font-bold text-text">{definicion.titulo}</p>
+                <p className="mt-1 text-xs leading-relaxed text-text-2">{definicion.descripcion}</p>
+                {definicion.ayuda ? (
+                  <p className="mt-2 rounded-lg bg-surface-2 px-3 py-2 text-[11.5px] leading-relaxed text-text-2">
+                    {definicion.ayuda}
+                  </p>
+                ) : null}
+              </button>
+            );
+          })}
         </div>
         <button
           onClick={onCancelar}
@@ -191,6 +260,13 @@ export default function ContratoFormulario({
       {!plantilla.revisada ? (
         <p className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-[13px] leading-relaxed text-amber-700 dark:text-amber-200">
           {plantilla.aviso}
+        </p>
+      ) : null}
+
+      {/* Advertencia propia del tipo: el arrendamiento la lleva por el 5.7. */}
+      {definicion.ayuda ? (
+        <p className="rounded-2xl border border-line bg-surface-2 px-4 py-3 text-[13px] leading-relaxed text-text-2">
+          {definicion.ayuda}
         </p>
       ) : null}
 
@@ -240,6 +316,12 @@ export default function ContratoFormulario({
 
       {error ? <p className="rounded-xl border border-danger bg-danger-dim px-3.5 py-2.5 text-sm text-danger">{error}</p> : null}
 
+      {/* Punto 4.2.b: banner de la vista previa, siempre visible y sin forma de
+          descartarlo. No hay botón de cerrar ni preferencia que lo apague. */}
+      <p className="rounded-2xl border border-accent-line bg-accent-dim px-4 py-3 text-[13.5px] font-semibold leading-relaxed text-accent">
+        {AVISO_VISTA_PREVIA}
+      </p>
+
       <div className="flex flex-col gap-2 sm:flex-row-reverse">
         <button
           onClick={() => setConfirmar(true)}
@@ -259,6 +341,13 @@ export default function ContratoFormulario({
           </a>
         ) : null}
       </div>
+
+      {/* Punto 4.6: orientación, no recomendación de despachos. */}
+      <p className="text-[12px] leading-relaxed text-text-3">
+        <a href={ENLACE_REVISION_ABOGADO} className="font-semibold text-accent hover:underline">
+          {ENLACE_REVISION_ABOGADO_ETIQUETA}
+        </a>
+      </p>
 
       {/* Confirmación explícita: quién va a recibir el documento (punto 3.2b) */}
       {confirmar ? (
@@ -345,6 +434,39 @@ function Campo({
         </select>
         {ayuda}
       </label>
+    );
+  }
+
+  // Las decisiones que el agente tiene que ENTENDER, no solo responder: todas
+  // las alternativas visibles a la vez, cada una con su consecuencia práctica
+  // al lado. Un desplegable escondería justo lo que hay que leer.
+  if (campo.tipo === 'opcionExplicada') {
+    return (
+      <div className="sm:col-span-2">
+        {etiqueta}
+        <div className="flex flex-col gap-2">
+          {campo.opciones?.map((o) => {
+            const activo = valor === o.valor;
+            return (
+              <button
+                key={o.valor}
+                type="button"
+                aria-pressed={activo}
+                onClick={() => onChange(campo.clave, o.valor)}
+                className={`rounded-xl border p-3.5 text-left transition ${
+                  activo ? 'border-brand-line bg-brand-dim' : 'border-line hover:bg-surface-2'
+                }`}
+              >
+                <span className={`block text-sm font-bold ${activo ? 'text-brand' : 'text-text'}`}>{o.etiqueta}</span>
+                {o.consecuencia ? (
+                  <span className="mt-1 block text-[12px] leading-relaxed text-text-2">{o.consecuencia}</span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+        {ayuda}
+      </div>
     );
   }
 

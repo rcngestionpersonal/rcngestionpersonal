@@ -3,8 +3,20 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { agenteConContratos, describirInmueble } from '@/lib/real-estate/contratos/servidor';
 import { cifrarDatos, generarCodigoVerificacion } from '@/lib/real-estate/contratos/firma';
-import { CONTRATO_TIPOS, camposFaltantes, type ContratoTipo } from '@/lib/real-estate/contratos/tipos';
-import { PLANTILLA_ACTUAL, obtenerPlantilla } from '@/lib/real-estate/contratos/plantillas';
+import {
+  AVISO_MODULO_VERSION,
+  CONTRATO_TIPOS,
+  CONTRATO_TIPOS_LEGADO,
+  camposFaltantes,
+  debeAceptarAviso,
+  type ContratoTipo,
+} from '@/lib/real-estate/contratos/tipos';
+import {
+  AVISO_PLANTILLA_SIN_REVISAR,
+  hayPlantillasSinRevisar,
+  plantillaActual,
+  plantillasVigentes,
+} from '@/lib/real-estate/contratos/plantillas';
 import type { ContratoTipo as PrismaContratoTipo } from '@prisma/client';
 
 // Listado y creacion de contratos.
@@ -40,11 +52,12 @@ export async function GET(request: NextRequest) {
     }),
     prisma.agent.findUnique({
       where: { id: auth.agentId },
-      select: { fullName: true, idNumber: true, direccion: true, ciudad: true, email: true },
+      select: {
+        fullName: true, idNumber: true, direccion: true, ciudad: true, email: true,
+        contratosAvisoAt: true, contratosAvisoVersion: true,
+      },
     }),
   ]);
-
-  const plantilla = obtenerPlantilla(PLANTILLA_ACTUAL);
 
   return NextResponse.json({
     contratos,
@@ -57,7 +70,21 @@ export async function GET(request: NextRequest) {
       tieneDireccion: Boolean(agente?.direccion),
       tieneCorreo: Boolean(agente?.email),
     },
-    plantilla: { version: plantilla.version, revisada: plantilla.revisadaPorAbogado, aviso: plantilla.avisoSinRevisar },
+    // Cada documento versiona su plantilla por separado (punto 1.4), asi que
+    // ya no hay "una version" del modulo sino una por tipo.
+    plantilla: {
+      revisada: !hayPlantillasSinRevisar(),
+      aviso: AVISO_PLANTILLA_SIN_REVISAR,
+      // Las legadas no se muestran: el agente no puede generarlas.
+      versiones: plantillasVigentes().filter((p) => !CONTRATO_TIPOS_LEGADO.includes(p.tipo)),
+    },
+    // Aviso de modelo referencial (punto 4.2.a): si toca aceptarlo, el modulo
+    // lo pide antes de dejar generar nada.
+    avisoLegal: {
+      debeAceptar: debeAceptarAviso(agente?.contratosAvisoAt ?? null, agente?.contratosAvisoVersion ?? null),
+      aceptadoAt: agente?.contratosAvisoAt ?? null,
+      version: AVISO_MODULO_VERSION,
+    },
   });
 }
 
@@ -70,6 +97,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Datos inválidos.', details: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
   const { tipo, listingId, datos } = parsed.data;
+
+  // El corretaje sin modalidad ya no se genera: hay que elegir exclusivo o
+  // abierto (punto 1.1). Los contratos viejos con ese tipo siguen abriendose.
+  if (CONTRATO_TIPOS_LEGADO.includes(tipo)) {
+    return NextResponse.json(
+      { error: 'Elige la modalidad del corretaje: exclusivo o abierto.', code: 'tipo_legado' },
+      { status: 400 },
+    );
+  }
+
+  // El aviso de modelo referencial se acepta ANTES del primer contrato, y otra
+  // vez cada 90 dias (punto 4.2.a). La comprobacion vive tambien aca y no solo
+  // en la pantalla: la aceptacion es la constancia, y una constancia que se
+  // puede saltar desde la consola del navegador no es una constancia.
+  const agente = await prisma.agent.findUnique({
+    where: { id: auth.agentId },
+    select: { contratosAvisoAt: true, contratosAvisoVersion: true },
+  });
+  if (debeAceptarAviso(agente?.contratosAvisoAt ?? null, agente?.contratosAvisoVersion ?? null)) {
+    return NextResponse.json(
+      { error: 'Antes de generar un contrato debes aceptar el aviso sobre modelos referenciales.', code: 'aviso_pendiente' },
+      { status: 409 },
+    );
+  }
 
   // Se congela la descripcion del inmueble dentro de los datos: si mañana el
   // agente edita o borra el inmueble, el contrato tiene que seguir diciendo lo
@@ -87,7 +138,7 @@ export async function POST(request: NextRequest) {
       agentId: auth.agentId,
       tipo: tipo as PrismaContratoTipo,
       listingId: listingId ?? null,
-      plantillaVersion: PLANTILLA_ACTUAL,
+      plantillaVersion: plantillaActual(tipo as ContratoTipo),
       datosCifrados: cifrarDatos(datosCompletos),
       codigoVerificacion: generarCodigoVerificacion(),
     },

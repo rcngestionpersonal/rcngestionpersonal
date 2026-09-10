@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AVISO_FIRMA_ELECTRONICA, NOTA_PIE_OBLIGATORIA } from '@/lib/real-estate/contratos/tipos';
+import { AVISO_FIRMA_ELECTRONICA, AVISO_PAGINA_FIRMA, NOTA_PIE_OBLIGATORIA } from '@/lib/real-estate/contratos/tipos';
 
 // La pantalla donde una parte lee y acepta. Funciona igual en celular, tablet
 // y escritorio: una sola columna, el documento arriba y la decisión abajo.
@@ -13,6 +13,7 @@ import { AVISO_FIRMA_ELECTRONICA, NOTA_PIE_OBLIGATORIA } from '@/lib/real-estate
 export type BloqueVista =
   | { tipo: 'titulo' | 'subtitulo' | 'parrafo' | 'aviso'; texto: string }
   | { tipo: 'clausula'; encabezado: string; texto: string }
+  | { tipo: 'ficha'; titulo: string; filas: Array<{ etiqueta: string; valor: string }> }
   | { tipo: 'firmas'; partes: Array<{ nombre: string; rol: string; firmado: boolean }> };
 
 type Resultado = { estado: 'FIRMADO'; completo: boolean } | { estado: 'RECHAZADO' };
@@ -193,6 +194,23 @@ export default function PanelFirma({
                 </p>
               );
             }
+            if (b.tipo === 'ficha') {
+              return (
+                <div key={i} className="my-5 overflow-hidden rounded-xl border border-line">
+                  <p className="border-b border-line bg-surface-2 px-4 py-2.5 text-xs font-extrabold tracking-[0.06em] text-text-2">
+                    {b.titulo}
+                  </p>
+                  <dl className="divide-y divide-line">
+                    {b.filas.map((f) => (
+                      <div key={f.etiqueta} className="flex flex-col gap-0.5 px-4 py-2.5 sm:flex-row sm:gap-4">
+                        <dt className="text-[13px] font-semibold text-text-2 sm:w-48 sm:shrink-0">{f.etiqueta}</dt>
+                        <dd className="min-w-0 text-[13.5px] leading-relaxed text-text">{f.valor}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              );
+            }
             if (b.tipo === 'clausula') {
               return (
                 <div key={i} className="mb-4">
@@ -245,6 +263,11 @@ export default function PanelFirma({
 
         {/* Decisión */}
         <section className="mt-5 rounded-2xl border border-line bg-surface p-5">
+          {/* Punto 4.2.c: antes de las casillas y con el mismo peso tipográfico
+              que el resto de la sección. Nunca en letra chica: quien firma
+              tiene que poder leerlo sin buscarlo. */}
+          <p className="mb-4 text-[13.5px] leading-relaxed text-text-2">{AVISO_PAGINA_FIRMA}</p>
+
           {!llegoAlFinal ? (
             <p className="mb-4 rounded-xl border border-line bg-surface-2 px-4 py-3 text-[13px] leading-relaxed text-text-2">
               Desplace el documento hasta el final para habilitar la firma. Queda registrado que tuvo el contenido

@@ -22,10 +22,18 @@
 // ===========================================================================
 
 import {
-  AVISO_LEY_INQUILINATO,
   AVISO_RESERVA_NO_ES_PROMESA,
   type ContratoTipo,
 } from '../tipos';
+import {
+  agenteCompareciente,
+  comparecientes,
+  contraer,
+  inmuebleAntecedente,
+  jurisdiccion,
+  type BloqueDocumento,
+  type DatosDocumento,
+} from './base';
 
 export const PLANTILLA_VERSION = 'v1-2026-09';
 
@@ -33,94 +41,19 @@ export const PLANTILLA_VERSION = 'v1-2026-09';
 // Se quita cambiando esta bandera, no borrando texto de las clausulas.
 export const PLANTILLA_REVISADA_POR_ABOGADO = false;
 
+// El aviso de inquilinato de ESTA version, congelado. La constante compartida
+// cambio de redaccion al publicarse la v2; una version ya emitida tiene que
+// seguir imprimiendo palabra por palabra lo que las partes aceptaron.
+const AVISO_LEY_INQUILINATO =
+  'El arrendamiento de inmuebles urbanos destinados a vivienda se rige por la Ley de Inquilinato, que contiene normas imperativas sobre plazo mínimo, causales de terminación y registro del contrato. Las partes y el agente deberán verificar el registro del contrato ante la Oficina de Inquilinato del cantón correspondiente cuando ello sea exigible.';
+
 export const AVISO_PLANTILLA_SIN_REVISAR =
   'PLANTILLA EN REVISIÓN. El texto de este documento es una propuesta que aún no ha sido validada por un profesional del derecho. Revíselo con su abogado antes de suscribirlo.';
 
-// Un bloque del documento. "clausula" numera automaticamente; "titulo",
-// "parrafo" y "aviso" no.
-export type BloqueDocumento =
-  | { tipo: 'titulo'; texto: string }
-  | { tipo: 'subtitulo'; texto: string }
-  | { tipo: 'parrafo'; texto: string }
-  | { tipo: 'clausula'; titulo: string; texto: string }
-  | { tipo: 'aviso'; texto: string }
-  | { tipo: 'firmas' };
-
-// Datos ya resueltos que la plantilla consume. La plantilla NO conoce Prisma
-// ni el formulario: recibe strings listos para imprimir.
-export type DatosDocumento = {
-  ciudad: string;
-  fechaLarga: string;
-  agente: { nombre: string; cedula: string; ruc: string | null; direccion: string; telefono: string; correo: string };
-  inmueble: { descripcion: string; ubicacion: string; caracteristicas: string };
-  // Los campos del formulario, ya normalizados a texto legible.
-  campo: (clave: string) => string;
-  dinero: (clave: string) => string;
-  // Etiqueta legible de un campo de opcion.
-  opcion: (clave: string) => string;
-  lista: (clave: string) => string[];
-};
-
-// Las etiquetas de opcion empiezan con articulo ('El comprador'), y al
-// insertarlas tras una preposicion sale 'de el comprador'. Se contrae.
-function contraer(preposicion: 'de' | 'a', frase: string): string {
-  const texto = frase.trim().toLowerCase();
-  if (preposicion === 'de' && texto.startsWith('el ')) return `del ${texto.slice(3)}`;
-  if (preposicion === 'a' && texto.startsWith('el ')) return `al ${texto.slice(3)}`;
-  return `${preposicion} ${texto}`;
-}
-
-function comparecientes(d: DatosDocumento, partes: Array<{ rol: string; titulo: string }>): BloqueDocumento[] {
-  const bloques: BloqueDocumento[] = [{ tipo: 'subtitulo', texto: 'COMPARECIENTES' }];
-  for (const p of partes) {
-    const nombre = d.campo(`${p.rol}_nombre`);
-    const cedula = d.campo(`${p.rol}_cedula`);
-    const direccion = d.campo(`${p.rol}_direccion`);
-    const estadoCivil = d.campo(`${p.rol}_estadoCivil`);
-    const detalle = [
-      estadoCivil ? `de estado civil ${estadoCivil}` : null,
-      `titular de la cédula/RUC N.º ${cedula}`,
-      direccion ? `con domicilio en ${direccion}` : null,
-    ]
-      .filter(Boolean)
-      .join(', ');
-    bloques.push({
-      tipo: 'parrafo',
-      texto: `${p.titulo.toUpperCase()}: ${nombre}, ${detalle}, en adelante "${p.titulo}".`,
-    });
-  }
-  return bloques;
-}
-
-function agenteCompareciente(d: DatosDocumento, etiqueta = 'EL AGENTE'): BloqueDocumento {
-  const ruc = d.agente.ruc ? ` y RUC N.º ${d.agente.ruc}` : '';
-  return {
-    tipo: 'parrafo',
-    texto: `${etiqueta}: ${d.agente.nombre}, titular de la cédula N.º ${d.agente.cedula}${ruc}, con oficina en ${d.agente.direccion}, en adelante "el Agente".`,
-  };
-}
-
-function inmuebleAntecedente(d: DatosDocumento): BloqueDocumento {
-  return {
-    tipo: 'parrafo',
-    texto: `El inmueble objeto de este contrato es: ${d.inmueble.descripcion}, ubicado en ${d.inmueble.ubicacion}. ${d.inmueble.caracteristicas}`.trim(),
-  };
-}
-
-function jurisdiccion(d: DatosDocumento): BloqueDocumento[] {
-  return [
-    {
-      tipo: 'clausula',
-      titulo: 'NOTIFICACIONES',
-      texto: `Las partes señalan como direcciones para notificaciones las indicadas en la comparecencia y los correos electrónicos consignados en la constancia de firma de este documento. Cualquier cambio deberá comunicarse por escrito.`,
-    },
-    {
-      tipo: 'clausula',
-      titulo: 'DOMICILIO Y JURISDICCIÓN',
-      texto: `Para todos los efectos de este contrato las partes se someten a la jurisdicción de los jueces competentes de ${d.ciudad}, renunciando a fuero y domicilio distintos, y a los procedimientos previstos en la legislación ecuatoriana.`,
-    },
-  ];
-}
+// Los tipos de bloque y los fragmentos compartidos viven en ./base. Se movieron
+// alli sin tocar una sola palabra de su redaccion: esta version imprime
+// exactamente el mismo texto que imprimia antes del traslado.
+export type { BloqueDocumento, DatosDocumento };
 
 // ---------------------------------------------------------------------------
 // 1. CORRETAJE
@@ -413,7 +346,10 @@ function reservaCompraventa(d: DatosDocumento): BloqueDocumento[] {
   ];
 }
 
-const CONSTRUCTORES: Record<ContratoTipo, (d: DatosDocumento) => BloqueDocumento[]> = {
+// Esta version solo cubre los cuatro tipos que existian cuando se publico. El
+// registro (./index) nunca le pide otro: cada tipo resuelve su propia linea de
+// versiones.
+const CONSTRUCTORES: Partial<Record<ContratoTipo, (d: DatosDocumento) => BloqueDocumento[]>> = {
   CORRETAJE: corretaje,
   ARRENDAMIENTO: arrendamiento,
   RESERVA_ARRIENDO: reservaArriendo,
@@ -421,5 +357,7 @@ const CONSTRUCTORES: Record<ContratoTipo, (d: DatosDocumento) => BloqueDocumento
 };
 
 export function construirBloques(tipo: ContratoTipo, datos: DatosDocumento): BloqueDocumento[] {
-  return CONSTRUCTORES[tipo](datos);
+  const constructor = CONSTRUCTORES[tipo];
+  if (!constructor) throw new Error(`La plantilla ${PLANTILLA_VERSION} no cubre el tipo ${tipo}.`);
+  return constructor(datos);
 }
