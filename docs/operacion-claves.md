@@ -80,6 +80,77 @@ contratos: no se carga y ya.
 Intentar descifrar un contrato existente. Si descifra, es la clave. Si no, no lo
 es, y cargarla causará el daño silencioso descrito arriba.
 
+## Rotar la clave
+
+Hace falta si la clave se filtró, si dejó de estar bajo control de quien debe, o
+si una política interna obliga a cambiarla cada cierto tiempo.
+
+**La regla que lo gobierna todo: primero se recifran los datos, después se
+cambia la clave en los entornos.** Al revés se pierde todo, y sin ruido.
+
+El script `scripts/rotar-encryption-key.ts` hace el recifrado. Recorre cada
+columna cifrada, abre cada fila con la clave vieja, la vuelve a cerrar con la
+nueva y comprueba la ida y vuelta antes de escribir. Escribe dentro de una sola
+transacción: o se rotan todas las filas o no se rota ninguna.
+
+### Procedimiento
+
+1. **Respalda la base antes de empezar.** En Neon, un branch o un point-in-time
+   restore. Es la red que evita que un error sea definitivo.
+
+2. **Genera la clave nueva y guárdala** junto a la vieja, sin borrar la vieja
+   todavía. Hasta que la rotación termine, la vieja sigue siendo la que abre
+   los datos.
+
+   ```bash
+   openssl rand -hex 32
+   ```
+
+3. **Ensayo, sin escribir nada.** Descifra y recifra todo en memoria y verifica
+   que cada fila cuadra.
+
+   ```bash
+   ENCRYPTION_KEY_VIEJA=<vieja> ENCRYPTION_KEY_NUEVA=<nueva> \
+     npx tsx --env-file=.env scripts/rotar-encryption-key.ts --ensayo
+   ```
+
+   Si informa de alguna fila que no abre con la clave vieja, **detente**. Puede
+   haber datos de una clave anterior distinta, y hay que resolver eso antes.
+
+4. **Rotación real**, el mismo comando sin `--ensayo`. A partir de aquí los
+   datos están cifrados con la clave nueva y la aplicación, que todavía usa la
+   vieja, no puede leerlos. Esta ventana debe ser corta: hazlo con el módulo
+   fuera de uso.
+
+5. **Carga la clave nueva** en los tres entornos de Vercel y en tu `.env` local.
+   El despliegue siguiente ya lee con ella.
+
+   ```bash
+   vercel env rm ENCRYPTION_KEY production
+   vercel env add ENCRYPTION_KEY production
+   # repetir para preview y development
+   ```
+
+6. **Verifica** abriendo un contrato existente. Si se ve completo, la rotación
+   salió bien. Si se ve **en blanco**, la clave cargada no es la que se usó al
+   recifrar: vuelve a poner la anterior y revisa antes de tocar nada más.
+
+7. **Solo entonces**, retira la clave vieja de tus respaldos.
+
+### Si aparece una columna cifrada nueva
+
+El script tiene la lista de columnas en una constante al principio, `COLUMNAS`.
+Cuando se cifre algo nuevo, se agrega ahí. Es el único sitio que hay que tocar
+para que entre en la rotación, y olvidarlo significa que esa columna se queda
+atrás con la clave vieja.
+
+### Qué está probado
+
+`src/lib/real-estate/contratos/rotacion.test.ts` fija la semántica: que recifrar
+conserva el contenido exacto, y que cambiar la clave sin recifrar devuelve un
+objeto vacío en vez de fallar. Ese segundo test existe para que el peligro esté
+escrito en el código y no solo aquí.
+
 ## Incidente del 2026-09-09
 
 Queda anotado porque es el caso real que motivó este documento.
@@ -101,5 +172,12 @@ Lo que cambió a raíz de esto:
   que una ausencia se ve al desplegar y no cuando un agente abre la pestaña.
 - Existe este documento.
 
-Lo que sigue pendiente de decidir: qué se hace con esos 6 contratos si la clave
-original no aparece.
+**Desenlace.** La clave original no apareció. Se generó una nueva y se borraron
+los 6 contratos y sus 6 firmantes, que eran de prueba: todos los correos de las
+partes eran del dominio reservado `@ejemplo.test`. Los 22 agentes y los 3
+inmuebles quedaron intactos.
+
+Se añadió además `scripts/rotar-encryption-key.ts` y el procedimiento de
+rotación de este documento, para que el día que haya contratos de clientes
+reales cambiar la clave sea una operación con ensayo previo y no una
+improvisación.
