@@ -38,9 +38,17 @@ export const FIRMA_RECORDATORIO_DIAS = 3;
 // preferencia de configuracion que las desactive: el interruptor no existe.
 // ---------------------------------------------------------------------------
 
-// Nota al pie de TODAS las paginas de TODOS los documentos (punto 4.2.d).
+// Nota al pie del PDF. Va en la PRIMERA y en la ÚLTIMA página, no en todas:
+// un aviso repetido siete veces se lee como descargo de responsabilidad; una
+// vez, como nota informativa.
+//
+// Está redactada para las PARTES, que es quien lee el PDF. Dice lo mismo que la
+// versión anterior sin sugerir que el documento sea provisional: quien recibe
+// un contrato de su agente no tiene por qué deducir que le mandaron un borrador.
+// El aviso enfático, el que habla de revisión legal, sigue existiendo entero
+// pero donde corresponde: de cara al agente, que es quien decide usarlo.
 export const NOTA_PIE_OBLIGATORIA =
-  'Documento generado en Redinmo a partir de un modelo referencial. Se recomienda revisión por un profesional del derecho. Redinmo no es parte del presente contrato ni presta asesoría legal.';
+  'Documento generado en Redinmo sobre un modelo contractual de uso habitual. Redinmo no es parte de este contrato.';
 
 // Naturaleza de la firma (puntos 0.2 y 3.10). Se muestra en el documento y en
 // la pagina de firma, sin letra chica.
@@ -89,12 +97,24 @@ export const AVISO_VISTA_PREVIA =
 
 // c. En la pagina de firma que ven las partes (punto 4.2.c). Se muestra con el
 // mismo peso tipografico que el resto de la pagina, nunca como letra chica.
+//
+// PRECISO Y NEUTRO, a diferencia del aviso que ve el agente. Informa un derecho
+// del firmante en vez de advertir sobre el documento, y deja al agente como
+// interlocutor legitimo a quien preguntar. La posibilidad de consultar a un
+// abogado sigue dicha; lo que se quita es el tono de "esto quiza no sirva",
+// que dejaba al agente explicando por que mando algo dudoso.
 export const AVISO_PAGINA_FIRMA =
-  'Este documento fue generado a partir de un modelo referencial. Las partes pueden someterlo a revisión legal antes de aceptarlo. Redinmo no es parte de este contrato ni presta asesoría jurídica.';
+  'Este documento fue elaborado sobre un modelo contractual de uso habitual en el mercado inmobiliario ecuatoriano. Antes de firmarlo, usted puede descargarlo, consultarlo con un profesional de su confianza o solicitar aclaraciones a quien se lo envió. Redinmo provee la herramienta con la que se generó este documento; no es parte del contrato ni interviene en lo acordado entre ustedes.';
 
 // Enlace de orientacion junto al boton de generar (punto 4.6).
 export const ENLACE_REVISION_ABOGADO = '/legal/revision-abogado';
 export const ENLACE_REVISION_ABOGADO_ETIQUETA = '¿Necesitas que un abogado lo revise?';
+
+// Guion para presentarle el documento al cliente, junto al boton de enviar a
+// firma. Es material de apoyo comercial, no legal: existe para que el agente
+// transmita seguridad en vez de disculparse por el documento que envia.
+export const ENLACE_EXPLICAR_CLIENTE = '/ayuda/explicar-el-contrato';
+export const ENLACE_EXPLICAR_CLIENTE_ETIQUETA = '¿Cómo explicarle este documento a tu cliente?';
 
 // Un agente vuelve a aceptar el aviso si nunca lo aceptó, si aceptó una
 // version anterior del texto, o si pasaron mas de 90 dias.

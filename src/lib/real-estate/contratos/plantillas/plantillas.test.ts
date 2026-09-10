@@ -4,6 +4,10 @@ import { obtenerPlantilla, plantillaActual, plantillasVigentes } from './index';
 import {
   CONTRATO_DEFINICION,
   CONTRATO_TIPOS,
+  AVISO_MODULO_CASILLA,
+  AVISO_MODULO_PARRAFOS,
+  AVISO_PAGINA_FIRMA,
+  AVISO_VISTA_PREVIA,
   NOTA_PIE_OBLIGATORIA,
   camposFaltantes,
   type ContratoTipo,
@@ -350,10 +354,41 @@ describe('plantillas de contrato', () => {
     });
   });
 
-  // Punto 4.3: el aviso obligatorio no depende de lo que mande el formulario.
-  it('la nota al pie obligatoria menciona el modelo referencial y el deslinde', () => {
-    expect(NOTA_PIE_OBLIGATORIA).toContain('modelo referencial');
-    expect(NOTA_PIE_OBLIGATORIA).toContain('no es parte');
-    expect(NOTA_PIE_OBLIGATORIA).toContain('profesional del derecho');
+  // El aviso obligatorio no depende de lo que mande el formulario, y su tono
+  // cambia según quién lo lee: enfático para el agente, que decide usar el
+  // documento; preciso y neutro para las partes, que lo reciben de él.
+  describe('avisos según quién los lee', () => {
+    // Palabras que dejan al agente explicando por qué mandó algo dudoso.
+    const SUGIEREN_PROVISIONAL = ['referencial', 'se recomienda revisión', 'aún no ha sido validada', 'propuesta'];
+
+    it('lo que ven las PARTES no insinúa que el documento sea provisional', () => {
+      for (const texto of [NOTA_PIE_OBLIGATORIA, AVISO_PAGINA_FIRMA]) {
+        for (const palabra of SUGIEREN_PROVISIONAL) {
+          expect(texto.toLowerCase(), palabra).not.toContain(palabra.toLowerCase());
+        }
+      }
+    });
+
+    it('lo que ven las partes sí conserva el deslinde y el derecho a consultar', () => {
+      expect(NOTA_PIE_OBLIGATORIA).toContain('no es parte de este contrato');
+      expect(NOTA_PIE_OBLIGATORIA).toContain('modelo contractual de uso habitual');
+      expect(AVISO_PAGINA_FIRMA).toContain('consultarlo con un profesional de su confianza');
+      expect(AVISO_PAGINA_FIRMA).toContain('solicitar aclaraciones a quien se lo envió');
+      expect(AVISO_PAGINA_FIRMA).toContain('no es parte del contrato');
+    });
+
+    it('lo que ve el AGENTE sigue siendo explícito', () => {
+      expect(AVISO_MODULO_PARRAFOS.join(' ')).toContain('no contemplan las particularidades');
+      expect(AVISO_MODULO_PARRAFOS.join(' ')).toContain('Recomendamos que un abogado revise');
+      expect(AVISO_MODULO_CASILLA).toContain('referenciales');
+      expect(AVISO_VISTA_PREVIA).toContain('revisión por un abogado');
+    });
+
+    // Punto 3.3: donde hay un riesgo concreto, el aviso se mantiene para todos.
+    it('la advertencia del arrendamiento se mantiene, porque ahí el riesgo es real', () => {
+      const texto = bloquesATextoPlano(documentoDe('ARRENDAMIENTO').bloques);
+      expect(texto).toContain('normas de orden público');
+      expect(texto).toContain('registrar este contrato ante la autoridad competente');
+    });
   });
 });

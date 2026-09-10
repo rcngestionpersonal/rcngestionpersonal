@@ -118,14 +118,14 @@ export default function PanelFirma({
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-text-2">
             {resultado.estado === 'RECHAZADO'
-              ? 'Registramos su rechazo y avisamos a quien le envió el documento. El proceso quedó detenido.'
+              ? 'Registramos su rechazo y avisamos a quien se lo envió. El proceso quedó detenido.'
               : resultado.completo
-                ? 'Todas las partes firmaron. Le enviamos el documento final en PDF a su correo, con la constancia de firma.'
-                : 'Su firma quedó registrada. Cuando las demás partes firmen, recibirá el documento final en su correo.'}
+                ? 'Ya firmaron todas las partes. Le enviamos el PDF final a su correo, con la constancia al pie.'
+                : 'Su firma quedó registrada. Cuando las demás partes hagan lo propio, recibirá el PDF final en su correo.'}
           </p>
           {resultado.estado === 'FIRMADO' ? (
             <p className="mt-4 text-xs text-text-3">
-              Identificador del documento: <span className="font-semibold text-text-2">{codigo}</span>
+              Identificador: <span className="font-semibold text-text-2">{codigo}</span>
             </p>
           ) : null}
         </div>
@@ -258,7 +258,7 @@ export default function PanelFirma({
           href={urlPdf}
           className="mt-3 flex min-h-[44px] w-full items-center justify-center rounded-xl border border-line px-5 text-sm font-semibold text-text-2 transition hover:bg-surface-2"
         >
-          Descargar borrador en PDF
+          Descargar el documento en PDF
         </a>
 
         {/* Decisión */}
@@ -270,7 +270,7 @@ export default function PanelFirma({
 
           {!llegoAlFinal ? (
             <p className="mb-4 rounded-xl border border-line bg-surface-2 px-4 py-3 text-[13px] leading-relaxed text-text-2">
-              Desplace el documento hasta el final para habilitar la firma. Queda registrado que tuvo el contenido
+              Desplace hasta el final para habilitar la firma. Queda registrado que tuvo el contenido
               completo a la vista.
             </p>
           ) : null}
@@ -283,7 +283,7 @@ export default function PanelFirma({
               className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--accent)]"
             />
             <span className="text-[13.5px] leading-relaxed text-text-2">
-              He leído el documento en su totalidad y acepto su contenido.
+              He leído el documento en su totalidad y estoy de acuerdo con su contenido.
             </span>
           </label>
 
@@ -294,9 +294,12 @@ export default function PanelFirma({
               onChange={(e) => setAceptaFirma(e.target.checked)}
               className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--accent)]"
             />
+            {/* "Reconozco" y no "acepto": una consecuencia jurídica no se
+                acepta, se reconoce. Y se nombra el acto por lo que es, una
+                firma electrónica, en vez de "mi aceptación electrónica". */}
             <span className="text-[13.5px] leading-relaxed text-text-2">
-              Acepto que mi aceptación electrónica tiene valor de firma conforme a la Ley de Comercio Electrónico,
-              Firmas Electrónicas y Mensajes de Datos del Ecuador.
+              Reconozco que esta firma electrónica tiene el mismo valor que mi firma manuscrita, conforme a la Ley de
+              Comercio Electrónico, Firmas Electrónicas y Mensajes de Datos del Ecuador.
             </span>
           </label>
 
@@ -327,7 +330,7 @@ export default function PanelFirma({
             disabled={!puedeFirmar}
             className="gradient-btn mt-4 min-h-[52px] w-full rounded-xl text-base font-bold text-grad-contrast disabled:cursor-not-allowed disabled:opacity-45"
           >
-            {enviando ? 'Registrando su firma…' : 'Firmar documento'}
+            {enviando ? 'Registrando su firma…' : 'Firmar'}
           </button>
 
           <button

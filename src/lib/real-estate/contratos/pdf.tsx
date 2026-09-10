@@ -286,8 +286,8 @@ function pagina(
             return (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', marginTop: 26 }}>
                 <div style={{ display: 'flex', fontSize: 10.5, color: '#5c5676', marginBottom: 18 }}>
-                  Las partes suscriben el presente documento mediante aceptación electrónica, en la fecha y con la
-                  constancia que se detalla al final de este instrumento.
+                  Las partes suscriben el presente instrumento mediante firma electrónica, en la fecha y con la
+                  constancia que se detalla al final.
                 </div>
                 {el.nombres.map((f) => (
                   <div key={f.rol} style={{ display: 'flex', flexDirection: 'column', marginBottom: 22 }}>
@@ -312,7 +312,10 @@ function pagina(
         })}
       </div>
 
-      {/* Pie: marca discreta + nota obligatoria + numeracion (puntos 6.1 y 6.3) */}
+      {/* Pie: marca discreta + numeracion (puntos 6.1 y 6.3).
+          La nota va SOLO en la primera y en la ultima pagina. Repetida en las
+          siete se lee como descargo de responsabilidad; una vez, como nota
+          informativa. */}
       <div
         style={{
           display: 'flex',
@@ -322,7 +325,9 @@ function pagina(
           marginTop: 10,
         }}
       >
-        <div style={{ display: 'flex', fontSize: 8.5, color: '#8983a2', lineHeight: 1.45 }}>{NOTA_PIE_OBLIGATORIA}</div>
+        {numeroPagina === 1 || numeroPagina === totalPaginas ? (
+          <div style={{ display: 'flex', fontSize: 8.5, color: '#8983a2', lineHeight: 1.45 }}>{NOTA_PIE_OBLIGATORIA}</div>
+        ) : null}
         <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
           <div style={{ display: 'flex', fontSize: 8.5, color: '#8983a2' }}>
             redinmo.io · doc. {datos.codigoVerificacion} · plantilla {datos.plantillaVersion}
@@ -382,12 +387,12 @@ function paginaConstancia(datos: DatosPdfContrato, numeroPagina: number, totalPa
             {[
               ['Cédula / RUC', f.cedula],
               ['Correo notificado', f.correo],
-              ['Envío del documento', f.enviadoAt ?? '—'],
+              ['Envío del enlace', f.enviadoAt ?? '—'],
               ['Primer acceso', f.abiertoAt ?? '—'],
-              ['Aceptación', f.firmadoAt ?? '—'],
+              ['Firma registrada', f.firmadoAt ?? '—'],
               ['Dirección IP', f.ip ?? '—'],
               ['Navegador y dispositivo', f.navegador ?? '—'],
-              ['Documento desplazado íntegramente', f.leyoCompleto ? 'Sí' : 'No'],
+              ['Leyó el texto hasta el final', f.leyoCompleto ? 'Sí' : 'No'],
             ].map(([k, v]) => (
               <div key={k} style={{ display: 'flex', flexDirection: 'row', marginBottom: 2 }}>
                 <div style={etiqueta}>{k}</div>

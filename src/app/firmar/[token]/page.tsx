@@ -54,7 +54,7 @@ export default async function PaginaFirma({ params }: { params: Promise<{ token:
     return (
       <AvisoPagina
         titulo="Proceso detenido"
-        detalle="Una de las partes rechazó este documento, por lo que el proceso de firma se detuvo. Contacte con quien se lo envió."
+        detalle="Una de las partes lo rechazó. Contacte con quien se lo envió."
       />
     );
   }
@@ -64,8 +64,8 @@ export default async function PaginaFirma({ params }: { params: Promise<{ token:
   if (firmante.estado === 'FIRMADO') {
     return (
       <AvisoPagina
-        titulo="Ya firmó este documento"
-        detalle={`Su aceptación quedó registrada. El documento es ${nombreDocumento}, identificador ${contrato.codigoVerificacion}.`}
+        titulo="Usted ya firmó"
+        detalle={`Su firma quedó registrada. Se trata de ${nombreDocumento}, identificador ${contrato.codigoVerificacion}.`}
         descarga={{ url: `/firmar/${token}/pdf`, etiqueta: 'Descargar el documento en PDF' }}
       />
     );

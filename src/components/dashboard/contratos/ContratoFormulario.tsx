@@ -5,6 +5,8 @@ import {
   AVISO_VISTA_PREVIA,
   CONTRATO_DEFINICION,
   CONTRATO_MENU,
+  ENLACE_EXPLICAR_CLIENTE,
+  ENLACE_EXPLICAR_CLIENTE_ETIQUETA,
   ENLACE_REVISION_ABOGADO,
   ENLACE_REVISION_ABOGADO_ETIQUETA,
   camposFaltantes,
@@ -342,8 +344,13 @@ export default function ContratoFormulario({
         ) : null}
       </div>
 
-      {/* Punto 4.6: orientación, no recomendación de despachos. */}
-      <p className="text-[12px] leading-relaxed text-text-3">
+      {/* Dos enlaces con públicos distintos: uno orienta sobre cuándo conviene
+          un abogado, el otro le da al agente el guion para presentar el
+          documento con seguridad en vez de disculparse por él. */}
+      <p className="flex flex-wrap gap-x-5 gap-y-1 text-[12px] leading-relaxed text-text-3">
+        <a href={ENLACE_EXPLICAR_CLIENTE} className="font-semibold text-accent hover:underline">
+          {ENLACE_EXPLICAR_CLIENTE_ETIQUETA}
+        </a>
         <a href={ENLACE_REVISION_ABOGADO} className="font-semibold text-accent hover:underline">
           {ENLACE_REVISION_ABOGADO_ETIQUETA}
         </a>
