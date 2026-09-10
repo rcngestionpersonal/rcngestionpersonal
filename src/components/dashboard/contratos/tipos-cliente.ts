@@ -20,6 +20,13 @@ export type FirmanteResumen = {
 export type ContratoResumen = {
   id: string;
   tipo: ContratoTipo;
+  // El servidor resuelve la etiqueta: la pantalla NO vuelve a buscar el tipo en
+  // el catálogo. Si la base trae un tipo que este despliegue no conoce, la fila
+  // se dibuja igual con un nombre genérico en vez de tumbar la lista entera.
+  tipoEtiqueta: string;
+  tipoConocido: boolean;
+  // La fila no se pudo preparar y viene con lo mínimo. Se muestra marcada.
+  ilegible?: boolean;
   estado: ContratoEstado;
   listingId: string | null;
   codigoVerificacion: string;

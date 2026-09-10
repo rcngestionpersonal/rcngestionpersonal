@@ -13,6 +13,28 @@ import { obtenerPlantilla } from './plantillas';
 // Piezas compartidas por las rutas de contratos: la guarda de sesion + feature
 // y el armado del PDF a partir de una fila de la base.
 
+// Toda negativa y todo fallo del modulo deja una linea en el log del servidor,
+// con el motivo y el agente afectado. Antes no la dejaba, y un 503 perfectamente
+// deliberado se leia desde fuera igual que una base caida: el codigo de estado
+// decia "no disponible" y no habia forma de saber por que sin leer el codigo.
+//
+// Nunca se registra el valor de un secreto ni dato de una parte: solo el motivo,
+// el agente y, cuando hay excepcion, su mensaje.
+export function logContratos(
+  motivo: string,
+  datos: { agentId?: string; contratoId?: string; error?: unknown } = {},
+): void {
+  const partes = [`[contratos] ${motivo}`];
+  if (datos.agentId) partes.push(`agente=${datos.agentId}`);
+  if (datos.contratoId) partes.push(`contrato=${datos.contratoId}`);
+  if (datos.error !== undefined) {
+    const e = datos.error;
+    partes.push(`error=${e instanceof Error ? `${e.name}: ${e.message}` : String(e)}`);
+  }
+  console.error(partes.join(' | '));
+  if (datos.error instanceof Error && datos.error.stack) console.error(datos.error.stack);
+}
+
 export async function agenteConContratos(
   request: NextRequest,
 ): Promise<{ error: NextResponse; agentId?: undefined } | { error?: undefined; agentId: string }> {
@@ -24,14 +46,22 @@ export async function agenteConContratos(
   // clave de cifrado el modulo NO opera: es preferible negarse con un mensaje
   // claro que guardar datos sensibles en claro o reventar con un 500.
   if (!process.env.ENCRYPTION_KEY) {
+    logContratos('ENCRYPTION_KEY no está definida en este entorno: el módulo se niega a operar', {
+      agentId: session.agentId,
+    });
     return {
       error: NextResponse.json(
-        { error: 'El módulo de contratos no está configurado en este entorno.', code: 'sin_cifrado' },
+        {
+          error:
+            'El módulo de contratos no está configurado en este entorno. Falta la clave de cifrado con la que se protegen los datos de las partes.',
+          code: 'sin_cifrado',
+        },
         { status: 503 },
       ),
     };
   }
   if (!(await tieneAccesoPorAgenteId(session.agentId, 'contratos'))) {
+    logContratos('acceso denegado: la función es del plan Pro', { agentId: session.agentId });
     return {
       error: NextResponse.json(
         { error: 'Los contratos son una función del plan Pro.', code: 'feature_locked' },

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { agenteConContratos, describirInmueble } from '@/lib/real-estate/contratos/servidor';
+import { agenteConContratos, describirInmueble, logContratos } from '@/lib/real-estate/contratos/servidor';
+import { filasTolerantes, type ContratoFila } from '@/lib/real-estate/contratos/listado';
 import { cifrarDatos, generarCodigoVerificacion } from '@/lib/real-estate/contratos/firma';
 import {
   AVISO_MODULO_VERSION,
@@ -33,6 +34,21 @@ export async function GET(request: NextRequest) {
   const auth = await agenteConContratos(request);
   if (auth.error) return auth.error;
 
+  try {
+    return await listar(auth.agentId);
+  } catch (error) {
+    // Antes esto salía como un 500 sin rastro. Ahora el log dice qué reventó
+    // y a quién le pasó, que es lo único que sirve para arreglarlo.
+    logContratos('fallo al cargar el listado de contratos', { agentId: auth.agentId, error });
+    return NextResponse.json(
+      { error: 'No se pudieron cargar tus contratos. Vuelve a intentarlo.', code: 'error_listado' },
+      { status: 500 },
+    );
+  }
+}
+
+async function listar(agentId: string) {
+  const auth = { agentId };
   const [contratos, listings, agente] = await Promise.all([
     prisma.contrato.findMany({
       where: { agentId: auth.agentId },
@@ -60,7 +76,13 @@ export async function GET(request: NextRequest) {
   ]);
 
   return NextResponse.json({
-    contratos,
+    contratos: filasTolerantes(contratos as unknown as ContratoFila[], (contrato, error) =>
+      logContratos('no se pudo preparar un contrato para el listado: se muestra degradado', {
+        agentId,
+        contratoId: typeof contrato?.id === 'string' ? contrato.id : undefined,
+        error,
+      }),
+    ),
     listings,
     // El agente necesita saber si le faltan datos propios ANTES de empezar: un
     // contrato sin la cedula del agente no sirve.
