@@ -18,7 +18,10 @@
 // separación.
 // ===========================================================================
 
-import { AVISO_LEY_INQUILINATO } from '../tipos';
+// El aviso de esta version, congelado: la constante compartida desaparecio al
+// retirarse el aviso general, y una version publicada no cambia de texto.
+const AVISO_LEY_INQUILINATO =
+  'El arrendamiento de inmuebles urbanos en Ecuador se rige por normas de orden público que las partes no pueden modificar libremente. Verifique con un profesional del derecho las obligaciones aplicables a su caso, incluida la eventual necesidad de registrar este contrato ante la autoridad competente de su cantón.';
 import {
   comparecientes,
   contraer,

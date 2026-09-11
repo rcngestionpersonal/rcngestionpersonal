@@ -143,6 +143,7 @@ export async function construirPdf(contrato: NonNullable<ContratoConFirmantes>):
       nombre: agente?.fullName ?? '—',
       cedula: agente?.idNumber ?? '—',
       ruc: null,
+      licencia: agente?.licenseNumber ?? null,
       direccion: [agente?.direccion, agente?.referenciaDireccion, agente?.ciudad].filter(Boolean).join(', ') || 'Quito',
       telefono: agente?.phone ?? '—',
       correo: agente?.email ?? '—',

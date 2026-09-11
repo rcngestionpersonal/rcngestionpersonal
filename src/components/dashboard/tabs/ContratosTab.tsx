@@ -8,7 +8,6 @@ import { ModuleHeader } from '../CardKit';
 import { IconContract } from '../icons';
 import ContratoFormulario from '../contratos/ContratoFormulario';
 import ContratoSeguimiento from '../contratos/ContratoSeguimiento';
-import AvisoModelosReferenciales from '../contratos/AvisoModelosReferenciales';
 import type { ContratoResumen, DatosPantallaContratos } from '../contratos/tipos-cliente';
 // Esta pantalla ya NO importa el catálogo de tipos a propósito: la etiqueta de
 // cada fila la resuelve el servidor. Un tipo que este despliegue no conozca se
@@ -129,20 +128,6 @@ function Panel({ t }: { t: (k: string) => string }) {
 
   if (!datos) return null;
 
-  // La puerta del punto 4.2.a: antes de aceptar el aviso no hay lista, ni
-  // formulario, ni seguimiento. Va delante de todo lo demás a propósito.
-  if (datos.avisoLegal.debeAceptar) {
-    return (
-      <AvisoModelosReferenciales
-        reaparicion={Boolean(datos.avisoLegal.aceptadoAt)}
-        onAceptado={() => {
-          setVista({ modo: 'lista' });
-          void cargar();
-        }}
-      />
-    );
-  }
-
   if (vista.modo === 'nuevo' || vista.modo === 'editar') {
     return (
       <ContratoFormulario
@@ -179,14 +164,6 @@ function Panel({ t }: { t: (k: string) => string }) {
 
   return (
     <div className="space-y-5">
-      {/* La plantilla todavia no pasa revision legal: se dice en el modulo, no
-          solo en el PDF (punto 5.4). */}
-      {!datos.plantilla.revisada ? (
-        <p className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-[13px] leading-relaxed text-amber-700 dark:text-amber-200">
-          {datos.plantilla.aviso}
-        </p>
-      ) : null}
-
       {faltaPerfil ? (
         <p className="rounded-2xl border border-line bg-surface-2 px-4 py-3 text-[13px] leading-relaxed text-text-2">
           {t('contratos.faltaPerfil')}
@@ -253,6 +230,9 @@ function Fila({
           {contrato.ilegible ? (
             <p className="mt-0.5 text-[11px] text-text-3">{t('contratos.filaIlegible')}</p>
           ) : null}
+          {contrato.archivado ? (
+            <p className="mt-0.5 text-[11px] text-text-3">{t('contratos.filaArchivada')}</p>
+          ) : null}
           <p className="mt-0.5 text-xs text-text-2">
             {contrato.firmantes.map((f) => f.nombre).join(' · ') || t('contratos.sinPartes')}
           </p>
@@ -275,7 +255,7 @@ function Fila({
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        {contrato.estado === 'BORRADOR' ? (
+        {contrato.estado === 'BORRADOR' && !contrato.archivado ? (
           <>
             <button
               onClick={() => onAbrir({ modo: 'editar', id: contrato.id })}

@@ -7,6 +7,7 @@ import { correoSolicitudFirma } from '@/lib/real-estate/contratos/correos';
 import { encryptAtRest } from '@/lib/real-estate/payments/encryption';
 import {
   CONTRATO_DEFINICION,
+  esTipoArchivado,
   FIRMANTES_POR_TIPO,
   camposFaltantes,
   correoValido,
@@ -25,6 +26,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { id } = await params;
   const contrato = await contratoDelAgente(id, auth.agentId);
   if (!contrato) return NextResponse.json({ error: 'Contrato no encontrado.' }, { status: 404 });
+  if (esTipoArchivado(contrato.tipo)) {
+    return NextResponse.json(
+      { error: 'Este tipo de contrato fue retirado y ya no se envía a firma.', code: 'tipo_archivado' },
+      { status: 409 },
+    );
+  }
   if (contrato.estado !== 'BORRADOR') {
     return NextResponse.json({ error: 'Este contrato ya fue enviado.', code: 'ya_enviado' }, { status: 409 });
   }

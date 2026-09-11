@@ -18,7 +18,7 @@ const PREGUNTAS = [
   {
     pregunta: '"¿Esto lo hiciste tú o es un formato?"',
     respuesta:
-      'Es un modelo estándar, y eso es una ventaja. Está armado con las cláusulas que se usan en este tipo de operaciones, no improvisado para tu caso. Lo que sí es tuyo son las condiciones: el monto, el plazo y lo que acordamos.',
+      'Es un modelo estándar, y eso es una ventaja. Está armado sobre los formatos que usan habitualmente los corredores de bienes raíces, no improvisado para tu caso. Lo que sí es tuyo son las condiciones: el precio, el plazo y lo que acordamos.',
   },
   {
     pregunta: '"¿No debería verlo un abogado?"',
@@ -79,12 +79,12 @@ export default function ExplicarElContratoPage() {
         <section className="mt-9">
           <h2 className="text-lg font-bold text-text">El guion, en treinta segundos</h2>
           <blockquote className="mt-4 rounded-2xl border-l-4 border-accent bg-surface p-5 text-[15px] leading-relaxed text-text">
-            Este es el modelo que usamos para formalizar la reserva. Recoge lo que acordamos: el monto, el plazo y qué
+            Este es el modelo que usamos para formalizar la operación. Recoge lo que acordamos: el precio, el plazo y qué
             pasa si alguna de las partes se retira. Léelo con calma y, si quieres consultarlo con tu abogado, adelante.
             Está redactado con las cláusulas que se usan habitualmente en este tipo de operaciones.
           </blockquote>
           <p className="mt-3 text-[13.5px] leading-relaxed text-text-2">
-            Cambia &laquo;la reserva&raquo; por lo que corresponda. El resto funciona igual para cualquiera de los
+            Cambia &laquo;la operación&raquo; por lo que corresponda. El resto funciona igual para cualquiera de los
             documentos.
           </p>
         </section>

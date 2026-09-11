@@ -1,4 +1,4 @@
-import { CONTRATO_DEFINICION, type ContratoTipo } from './tipos';
+import { CONTRATO_DEFINICION, esTipoArchivado, type ContratoTipo } from './tipos';
 
 // Preparación de las filas del listado para la pantalla del agente.
 //
@@ -19,6 +19,7 @@ export type FilaListado = Record<string, unknown> & {
   tipoEtiqueta: string;
   tipoConocido: boolean;
   ilegible?: boolean;
+  archivado?: boolean;
 };
 
 function filaDeContrato(contrato: ContratoFila): FilaListado {
@@ -32,6 +33,9 @@ function filaDeContrato(contrato: ContratoFila): FilaListado {
     tipo: contrato.tipo,
     tipoEtiqueta: definicion?.titulo ?? 'Documento',
     tipoConocido: Boolean(definicion),
+    // Un tipo retirado se sigue abriendo y descargando, pero no se edita ni se
+    // envia a firma: la pantalla oculta esas acciones a partir de aqui.
+    archivado: esTipoArchivado(contrato.tipo),
   };
 }
 

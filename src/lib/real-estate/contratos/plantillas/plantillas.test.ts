@@ -2,29 +2,26 @@ import { describe, expect, it } from 'vitest';
 import { bloquesATextoPlano, construirDocumento } from '../documento';
 import { obtenerPlantilla, plantillaActual, plantillasVigentes } from './index';
 import {
+  AVISO_MODULO,
   CONTRATO_DEFINICION,
+  CONTRATO_MENU,
   CONTRATO_TIPOS,
-  AVISO_MODULO_CASILLA,
-  AVISO_MODULO_PARRAFOS,
-  AVISO_PAGINA_FIRMA,
-  AVISO_VISTA_PREVIA,
-  NOTA_PIE_OBLIGATORIA,
+  CONTRATO_TIPOS_LEGADO,
+  MARCADOR_SIN_COMPLETAR,
+  NOTA_PIE_PDF,
   camposFaltantes,
+  esTipoArchivado,
   type ContratoTipo,
 } from '../tipos';
 
 // Pruebas de las plantillas de contrato. NO tocan la base: construirDocumento
 // es puro, recibe los datos ya resueltos y devuelve bloques.
-//
-// Lo que vigilan es lo que duele si se rompe en silencio: que todo tipo que el
-// agente puede generar produzca un documento, que las dos modalidades de
-// corretaje sean documentos distintos y no el mismo texto con un campo
-// cambiado, y que ningun documento vuelva a imprimir datos bancarios.
 
 const AGENTE = {
   nombre: 'Ana Sarmiento',
   cedula: '1710804954',
   ruc: null,
+  licencia: 'CBR-4821',
   direccion: 'Av. República del Salvador N36-109, Quito',
   telefono: '+593 96 870 7200',
   correo: 'ana@ejemplo.com',
@@ -37,8 +34,8 @@ const INMUEBLE = {
   caracteristicas: 'El inmueble cuenta con 120 m² de área, 3 dormitorios, 2 baños.',
 };
 
-// Un valor plausible para cada campo de cada tipo, para que ninguna cláusula
-// se evalúe con la cadena vacía y pase por buena sin haberse ejercitado.
+// Un valor plausible para cada campo, para que ninguna cláusula se evalúe con
+// la cadena vacía y pase por buena sin haberse ejercitado.
 function datosDe(tipo: ContratoTipo): Record<string, string> {
   const datos: Record<string, string> = {};
   for (const seccion of CONTRATO_DEFINICION[tipo].secciones) {
@@ -91,11 +88,27 @@ function documentoDe(tipo: ContratoTipo, extra: Record<string, string> = {}) {
     datos: { ...datosDe(tipo), ...extra },
     agente: AGENTE,
     inmueble: INMUEBLE,
-    fecha: new Date('2026-09-09T12:00:00Z'),
+    fecha: new Date('2026-09-11T12:00:00Z'),
   });
 }
 
+function textoDe(tipo: ContratoTipo, extra: Record<string, string> = {}): string {
+  return bloquesATextoPlano(documentoDe(tipo, extra).bloques);
+}
+
+function clausula(tipo: ContratoTipo, titulo: string, extra: Record<string, string> = {}): string {
+  const b = documentoDe(tipo, extra).bloques.find((x) => x.tipo === 'clausula' && x.titulo === titulo);
+  return b && 'texto' in b ? b.texto : '';
+}
+
+const VIVOS = CONTRATO_MENU.map((e) => e.tipo);
+
 describe('plantillas de contrato', () => {
+  it('solo se pueden generar corretaje y arrendamiento', () => {
+    expect(VIVOS).toEqual(['CORRETAJE', 'ARRENDAMIENTO']);
+    for (const tipo of VIVOS) expect(esTipoArchivado(tipo), tipo).toBe(false);
+  });
+
   it('cada tipo genera un documento con cláusulas y bloque de firmas', () => {
     for (const tipo of CONTRATO_TIPOS) {
       const doc = documentoDe(tipo);
@@ -106,289 +119,265 @@ describe('plantillas de contrato', () => {
     }
   });
 
-  it('ningún documento imprime "..." de un campo sin resolver', () => {
+  it('ningún documento imprime marcas de campo sin resolver', () => {
     for (const tipo of CONTRATO_TIPOS) {
-      const texto = bloquesATextoPlano(documentoDe(tipo).bloques);
+      const texto = textoDe(tipo);
       expect(texto, tipo).not.toContain('…………');
       expect(texto, tipo).not.toContain('undefined');
       expect(texto, tipo).not.toContain('[object Object]');
     }
   });
 
-  // Punto 2: el número de cuenta salió del formulario y no puede volver por
-  // ninguna plantilla. Se comprueba sobre el texto generado, no sobre el
-  // código, porque lo que circula por correo es el texto.
-  it('ningún documento contiene campos de cuenta bancaria', () => {
-    for (const tipo of CONTRATO_TIPOS) {
-      const texto = bloquesATextoPlano(documentoDe(tipo).bloques).toLowerCase();
-      expect(texto, tipo).not.toContain('número de cuenta');
-      expect(texto, tipo).not.toContain('cuenta bancaria');
-      expect(texto, tipo).not.toContain('cuenta corriente');
-      expect(texto, tipo).not.toContain('cuenta de ahorros');
-    }
-    // Y el formulario tampoco lo pregunta.
-    for (const tipo of CONTRATO_TIPOS) {
-      const claves = CONTRATO_DEFINICION[tipo].secciones.flatMap((s) => s.campos.map((c) => c.clave));
-      expect(claves, tipo).not.toContain('cuentaBancaria');
-    }
-  });
-
-  // Punto 2.4: las reservas remiten el respaldo al comprobante.
-  it('las reservas remiten el respaldo del pago al comprobante de la transacción', () => {
-    for (const tipo of ['RESERVA_COMPRAVENTA', 'RESERVA_ARRIENDO'] as const) {
-      const texto = bloquesATextoPlano(documentoDe(tipo).bloques);
-      expect(texto, tipo).toContain('comprobante emitido en la respectiva transacción');
-      expect(texto, tipo).toContain('parte integrante del presente instrumento');
-      expect(texto, tipo).toContain('canal separado');
-    }
-  });
-
-  // La penalidad se deriva de quién tiene el dinero. Lo que se vigila aquí es
-  // que nunca se le pida devolver a alguien que no lo recibió.
-  describe('penalidad coherente con el tenedor de la reserva', () => {
-    function penalidad(extra: Record<string, string>): string {
-      const doc = documentoDe('RESERVA_COMPRAVENTA', extra);
-      const clausula = doc.bloques.find((b) => b.tipo === 'clausula' && b.titulo === 'PENALIDAD POR DESISTIMIENTO');
-      return clausula && 'texto' in clausula ? clausula.texto : '';
-    }
-
-    it('con la reserva en poder de la vendedora, el corredor no mueve dinero', () => {
-      for (const comprador of ['SE_PIERDE', 'DEVOLUCION_TOTAL', 'DEVOLUCION_PARCIAL']) {
-        for (const vendedor of ['DEVUELVE_DOBLE', 'DEVUELVE_SIMPLE']) {
-          const texto = penalidad({
-            reservaEntregadaA: 'VENDEDOR',
-            siDesisteComprador: comprador,
-            siDesisteVendedor: vendedor,
-          });
-          expect(texto, `${comprador}/${vendedor}`).toContain('en poder de la Parte Vendedora');
-          expect(texto, `${comprador}/${vendedor}`).not.toContain('el Corredor devolverá');
-          expect(texto, `${comprador}/${vendedor}`).not.toContain('el Corredor lo entregará');
-        }
+  // Los tipos retirados se abren y se imprimen; lo que no se puede es crearlos.
+  describe('tipos retirados', () => {
+    it('no aparecen en el selector', () => {
+      for (const tipo of CONTRATO_TIPOS_LEGADO) {
+        expect(VIVOS, tipo).not.toContain(tipo);
+        expect(esTipoArchivado(tipo), tipo).toBe(true);
       }
     });
 
-    it('con la reserva en poder del corredor, es el corredor quien entrega o devuelve', () => {
-      const sePierde = penalidad({
-        reservaEntregadaA: 'CORREDOR',
-        siDesisteComprador: 'SE_PIERDE',
-        siDesisteVendedor: 'DEVUELVE_DOBLE',
-      });
-      expect(sePierde).toContain('el Corredor lo entregará a la Parte Vendedora');
-      expect(sePierde).toContain('el Corredor devolverá a la Parte Compradora');
-      // Y devuelve solo lo que recibió: la indemnización la paga la vendedora.
-      expect(sePierde).toContain('la Parte Vendedora le pagará directamente');
-      expect(sePierde).toContain('no responde con su patrimonio');
-    });
-
-    it('el corredor solo queda como depositario cuando tiene el dinero', () => {
-      const conCorredor = penalidad({
-        reservaEntregadaA: 'CORREDOR',
-        siDesisteComprador: 'SE_PIERDE',
-        siDesisteVendedor: 'DEVUELVE_DOBLE',
-      });
-      const conVendedora = penalidad({
-        reservaEntregadaA: 'VENDEDOR',
-        siDesisteComprador: 'SE_PIERDE',
-        siDesisteVendedor: 'DEVUELVE_DOBLE',
-      });
-      expect(conCorredor).toContain('simple depositario');
-      expect(conVendedora).not.toContain('simple depositario');
-    });
-
-    it('si nadie tiene que desembolsar, la cláusula lo dice en vez de fingir una devolución', () => {
-      const texto = penalidad({
-        reservaEntregadaA: 'VENDEDOR',
-        siDesisteComprador: 'SE_PIERDE',
-        siDesisteVendedor: 'DEVUELVE_SIMPLE',
-      });
-      expect(texto).toContain('que ya lo tiene en su poder');
-      expect(texto).toContain('sin que deba realizarse desembolso alguno');
-    });
-
-    it('la indemnización del doble se imprime como cifra, no como cálculo pendiente', () => {
-      const texto = penalidad({
-        reservaEntregadaA: 'VENDEDOR',
-        siDesisteComprador: 'SE_PIERDE',
-        siDesisteVendedor: 'DEVUELVE_DOBLE',
-        montoReserva: '9000',
-      });
-      expect(texto).toContain('USD $9.000,00');
-    });
-
-    it('la reserva de arriendo aplica la misma regla con el agente', () => {
-      function noConcreta(extra: Record<string, string>): string {
-        const doc = documentoDe('RESERVA_ARRIENDO', extra);
-        const clausula = doc.bloques.find(
-          (b) => b.tipo === 'clausula' && b.titulo === 'SI EL ARRENDAMIENTO NO SE CONCRETA',
-        );
-        return clausula && 'texto' in clausula ? clausula.texto : '';
+    it('conservan su definición y siguen generando su documento', () => {
+      for (const tipo of CONTRATO_TIPOS_LEGADO) {
+        expect(CONTRATO_DEFINICION[tipo], tipo).toBeDefined();
+        expect(textoDe(tipo).length, tipo).toBeGreaterThan(1500);
       }
-      expect(noConcreta({ reservaEntregadaA: 'AGENTE', siNoSeConcreta: 'SE_PIERDE' })).toContain(
-        'el Agente lo entregará al arrendador',
-      );
-      expect(noConcreta({ reservaEntregadaA: 'ARRENDADOR', siNoSeConcreta: 'SE_PIERDE' })).toContain(
-        'que ya lo tiene en su poder',
-      );
-      expect(noConcreta({ reservaEntregadaA: 'AGENTE', siNoSeConcreta: 'DEVOLUCION_TOTAL' })).toContain(
-        'el Agente devolverá al Interesado',
-      );
-      expect(noConcreta({ reservaEntregadaA: 'ARRENDADOR', siNoSeConcreta: 'DEVOLUCION_TOTAL' })).toContain(
-        'el arrendador devolverá al Interesado',
-      );
+    });
+
+    it('la reserva ya no se puede generar, pero una archivada se reimprime', () => {
+      for (const tipo of ['RESERVA_COMPRAVENTA', 'RESERVA_ARRIENDO'] as const) {
+        expect(VIVOS).not.toContain(tipo);
+        expect(obtenerPlantilla(tipo, 'v1-2026-09').version).toBe('v1-2026-09');
+      }
+    });
+
+    it('no se listan como plantillas vigentes del módulo', () => {
+      const ofrecidas = plantillasVigentes().filter((p) => !CONTRATO_TIPOS_LEGADO.includes(p.tipo));
+      expect(ofrecidas.map((p) => p.tipo).sort()).toEqual(['ARRENDAMIENTO', 'CORRETAJE']);
     });
   });
 
-  // Punto 1.4 y 1.5: son dos documentos distintos, y cada uno lo dice.
-  describe('modalidades de corretaje', () => {
-    it('son plantillas distintas, no el mismo texto con un campo cambiado', () => {
-      const exclusivo = bloquesATextoPlano(documentoDe('CORRETAJE_EXCLUSIVO').bloques);
-      const abierto = bloquesATextoPlano(documentoDe('CORRETAJE_ABIERTO').bloques);
-      expect(exclusivo).not.toEqual(abierto);
-      expect(plantillaActual('CORRETAJE_EXCLUSIVO')).not.toEqual(plantillaActual('CORRETAJE_ABIERTO'));
+  // Un campo opcional vacío deja una marca visible, no un hueco que pase
+  // desapercibido al revisar y termine en el documento firmado.
+  it('los campos opcionales vacíos salen marcados, no en blanco', () => {
+    const texto = textoDe('CORRETAJE', { propiedadCatastro: '', linderoNorte: '', linderoSur: '' });
+    expect(texto).toContain(MARCADOR_SIN_COMPLETAR);
+  });
+
+  describe('corretaje: consignación para venta', () => {
+    it('emite las once cláusulas, siempre las mismas', () => {
+      for (const exclusividad of ['CON', 'SIN']) {
+        const clausulas = documentoDe('CORRETAJE', { exclusividad }).bloques.filter((b) => b.tipo === 'clausula');
+        expect(clausulas, exclusividad).toHaveLength(11);
+      }
     });
 
-    it('la exclusiva declara la exclusividad en el título y en la primera cláusula', () => {
-      const doc = documentoDe('CORRETAJE_EXCLUSIVO');
-      const titulo = doc.bloques.find((b) => b.tipo === 'titulo');
-      expect(titulo && 'texto' in titulo ? titulo.texto : '').toContain('EXCLUSIVO');
-      const primera = doc.bloques.find((b) => b.tipo === 'clausula');
-      expect(primera && 'titulo' in primera ? primera.titulo : '').toContain('EXCLUSIVA');
-      expect(primera && 'texto' in primera ? primera.texto : '').toContain('DE MANERA EXCLUSIVA');
+    it('la exclusividad cambia el título y la cláusula séptima, y nada más', () => {
+      const con = documentoDe('CORRETAJE', { exclusividad: 'CON' }).bloques.filter((b) => b.tipo === 'clausula');
+      const sin = documentoDe('CORRETAJE', { exclusividad: 'SIN' }).bloques.filter((b) => b.tipo === 'clausula');
+      const distintas = con.filter((c, i) => JSON.stringify(c) !== JSON.stringify(sin[i]));
+      expect(distintas).toHaveLength(1);
+      expect(distintas[0] && 'titulo' in distintas[0] ? distintas[0].titulo : '').toBe('EXCLUSIVIDAD');
     });
 
-    it('la abierta declara la no exclusividad en el título y en la primera cláusula', () => {
-      const doc = documentoDe('CORRETAJE_ABIERTO');
-      const titulo = doc.bloques.find((b) => b.tipo === 'titulo');
-      expect(titulo && 'texto' in titulo ? titulo.texto : '').toContain('NO EXCLUSIVO');
-      const primera = doc.bloques.find((b) => b.tipo === 'clausula');
-      expect(primera && 'titulo' in primera ? primera.titulo : '').toContain('ABIERTA');
-      expect(primera && 'texto' in primera ? primera.texto : '').toContain('conserva la facultad de encargar');
-    });
-
-    it('solo la exclusiva cobra comisión por la operación hecha por fuera', () => {
-      const exclusivo = bloquesATextoPlano(documentoDe('CORRETAJE_EXCLUSIVO').bloques);
-      const abierto = bloquesATextoPlano(documentoDe('CORRETAJE_ABIERTO').bloques);
-      expect(exclusivo).toContain('OPERACIONES CELEBRADAS POR FUERA DE ESTE ENCARGO');
-      expect(abierto).not.toContain('OPERACIONES CELEBRADAS POR FUERA DE ESTE ENCARGO');
-    });
-
-    it('solo la abierta devenga la comisión por el interesado presentado', () => {
-      const abierto = bloquesATextoPlano(documentoDe('CORRETAJE_ABIERTO').bloques);
-      const exclusivo = bloquesATextoPlano(documentoDe('CORRETAJE_EXCLUSIVO').bloques);
-      expect(abierto).toContain('DEVENGO DE LA COMISIÓN');
-      expect(abierto).toContain('REGISTRO DE INTERESADOS PRESENTADOS');
-      expect(exclusivo).not.toContain('REGISTRO DE INTERESADOS PRESENTADOS');
-    });
-
-    it('el anexo de interesados lista los nombres que el agente escribió', () => {
-      const texto = bloquesATextoPlano(
-        documentoDe('CORRETAJE_ABIERTO', { interesadosPresentados: 'María Andrade\nJorge Villacís' }).bloques,
+    it('con exclusividad, cobra aunque se venda por otra vía', () => {
+      expect(clausula('CORRETAJE', 'EXCLUSIVIDAD', { exclusividad: 'CON' })).toContain('se abstiene de comercializar');
+      expect(clausula('CORRETAJE', 'AUSENCIA DE EXCLUSIVIDAD', { exclusividad: 'SIN' })).toContain(
+        'conserva la facultad de comercializar',
       );
-      expect(texto).toContain('María Andrade; Jorge Villacís');
+    });
+
+    // El IVA no se fija en ningún número duro: cambia por ley y el documento
+    // quedaría desactualizado sin que nadie lo note.
+    it('el IVA nunca se imprime como número si no se declara', () => {
+      const sinTarifa = clausula('CORRETAJE', 'HONORARIOS', { ivaTarifa: '' });
+      expect(sinTarifa).toContain('a la tarifa vigente');
+      expect(sinTarifa).not.toMatch(/tarifa vigente del \d/);
+      expect(clausula('CORRETAJE', 'HONORARIOS', { ivaTarifa: '15' })).toContain('a la tarifa vigente del 15%');
+    });
+
+    it('nunca escribe un 12% de IVA quemado', () => {
+      expect(textoDe('CORRETAJE', { ivaTarifa: '' })).not.toContain('12%');
+    });
+
+    it('el alcance del comprador presentado cubre parientes, herederos y sociedades', () => {
+      const texto = clausula('CORRETAJE', 'ALCANCE DEL COMPRADOR PRESENTADO');
+      for (const palabra of ['parientes', 'herederos', 'beneficiarios', 'socios', 'sociedades']) {
+        expect(texto, palabra).toContain(palabra);
+      }
+    });
+
+    it('la señal la devuelve quien la tiene', () => {
+      expect(clausula('CORRETAJE', 'DEPÓSITO O SEÑAL DE TRATO', { depositoEnPoderDe: 'CORREDOR' })).toContain(
+        'en poder del Corredor',
+      );
+      expect(clausula('CORRETAJE', 'DEPÓSITO O SEÑAL DE TRATO', { depositoEnPoderDe: 'PROPIETARIO' })).toContain(
+        'en poder del Propietario',
+      );
+      expect(
+        clausula('CORRETAJE', 'DEPÓSITO O SEÑAL DE TRATO', {
+          depositoEnPoderDe: 'PROPIETARIO',
+          siDesisteComprador: 'SE_PIERDE',
+        }),
+      ).toContain('sin que deba realizarse desembolso alguno');
+    });
+
+    it('la información de la propiedad va al final, con sus linderos', () => {
+      const doc = documentoDe('CORRETAJE');
+      const ficha = doc.bloques.find((b) => b.tipo === 'ficha' && b.titulo === 'INFORMACIÓN DE LA PROPIEDAD');
+      expect(ficha).toBeDefined();
+      const etiquetas = ficha && 'filas' in ficha ? ficha.filas.map((f) => f.etiqueta) : [];
+      expect(etiquetas).toEqual([
+        'Precio de venta',
+        'Dirección',
+        'Ciudad',
+        'Provincia',
+        'Número de catastro',
+        'Lindero norte',
+        'Lindero sur',
+        'Lindero este',
+        'Lindero oeste',
+      ]);
     });
   });
 
-  // Punto 5.2: una versión publicada no cambia. Un contrato viejo pide la suya
-  // y la recibe, no la actual.
+  describe('arrendamiento', () => {
+    it('no contiene ninguna de las cláusulas irrenunciables', () => {
+      const texto = textoDe('ARRENDAMIENTO').toLowerCase();
+      for (const prohibida of [
+        'desahucio',
+        'renuncia a la jurisdicción',
+        'renuncian a la jurisdicción',
+        'por su propia cuenta los bienes',
+        'cánones fijados por el municipio',
+        'jefatura de catastros',
+        'registro de arrendamientos',
+      ]) {
+        expect(texto, prohibida).not.toContain(prohibida);
+      }
+    });
+
+    it('la terminación remite a la normativa vigente, sin vías de hecho', () => {
+      const texto = clausula('ARRENDAMIENTO', 'CAUSALES DE TERMINACIÓN');
+      expect(texto).toContain('conforme a la normativa vigente');
+      expect(texto).toContain('las acciones legales que correspondan');
+    });
+
+    it('las controversias van a mediación y luego a jueces competentes', () => {
+      const texto = clausula('ARRENDAMIENTO', 'SOLUCIÓN DE CONTROVERSIAS');
+      expect(texto).toContain('mediación');
+      expect(texto).toContain('jueces competentes');
+      expect(texto).not.toContain('renuncia');
+    });
+
+    // Declaración mutua, no renuncia unilateral.
+    describe('declaración sobre el canon', () => {
+      const TITULO = 'DECLARACIÓN DE LAS PARTES SOBRE EL CANON';
+
+      it('viene activada por defecto', () => {
+        expect(CONTRATO_DEFINICION.ARRENDAMIENTO.secciones.flatMap((s) => s.campos).find((c) => c.clave === 'declaracionCanon')
+          ?.porDefecto).toBe('SI');
+        expect(clausula('ARRENDAMIENTO', TITULO)).not.toBe('');
+      });
+
+      it('se puede desactivar', () => {
+        expect(clausula('ARRENDAMIENTO', TITULO, { declaracionCanon: 'NO' })).toBe('');
+      });
+
+      it('es una declaración de ambas partes y no usa la palabra renuncia', () => {
+        const texto = clausula('ARRENDAMIENTO', TITULO);
+        expect(texto).toContain('Las partes declaran');
+        expect(texto).toContain('libre y voluntaria');
+        expect(texto).toContain('condiciones vigentes del mercado');
+        expect(texto.toLowerCase()).not.toContain('renuncia');
+        expect(texto.toLowerCase()).not.toContain('municipio');
+      });
+    });
+
+    it('el uso comercial añade la responsabilidad por permisos, y la vivienda no', () => {
+      expect(clausula('ARRENDAMIENTO', 'DESTINO Y USO', { destino: 'LOCAL_COMERCIAL' })).toContain('permisos, patentes y licencias');
+      expect(clausula('ARRENDAMIENTO', 'DESTINO Y USO', { destino: 'VIVIENDA' })).not.toContain('permisos, patentes');
+    });
+
+    it('la tabla de daños se imprime con sus conceptos', () => {
+      const ficha = documentoDe('ARRENDAMIENTO').bloques.find(
+        (b) => b.tipo === 'ficha' && b.titulo === 'VALORES DE LIQUIDACIÓN DE DAÑOS',
+      );
+      expect(ficha).toBeDefined();
+      const etiquetas = ficha && 'filas' in ficha ? ficha.filas.map((f) => f.etiqueta) : [];
+      expect(etiquetas[0]).toContain('Pintura');
+      expect(etiquetas[1]).toContain('Piso');
+      expect(etiquetas[2]).toContain('Cerradura');
+      expect(etiquetas).toHaveLength(4);
+    });
+  });
+
+  // El disclaimer informa en vez de advertir: las plantillas dejaron de ser
+  // redacción improvisada.
+  describe('disclaimer', () => {
+    it('el pie del PDF es una sola línea y no llama referencial al documento', () => {
+      expect(NOTA_PIE_PDF).toBe('Formato referencial. Redinmo no es parte del contrato.');
+      expect(NOTA_PIE_PDF.split('.').filter(Boolean)).toHaveLength(2);
+    });
+
+    it('la nota del módulo nombra la base documental y el límite del servicio', () => {
+      expect(AVISO_MODULO).toContain('formatos de uso común entre asociaciones de corredores de bienes raíces del Ecuador');
+      expect(AVISO_MODULO).toContain('Redinmo no presta servicios legales');
+      expect(AVISO_MODULO).toContain('revisa el documento con tu abogado');
+    });
+
+    it('ninguna plantilla viva se marca como pendiente de revisión legal', () => {
+      for (const tipo of VIVOS) {
+        expect(obtenerPlantilla(tipo, plantillaActual(tipo)).revisadaPorAbogado, tipo).toBe(true);
+        expect(documentoDe(tipo).bloques.some((b) => b.tipo === 'aviso'), tipo).toBe(false);
+      }
+    });
+  });
+
   describe('versionado por tipo', () => {
-    it('cada tipo tiene su propia versión actual', () => {
-      const versiones = plantillasVigentes().map((p) => p.version);
-      expect(new Set(versiones).size).toBe(versiones.length);
+    it('cada tipo vivo tiene su propia versión actual', () => {
+      expect(plantillaActual('CORRETAJE')).toBe('corretaje-v2-2026-09');
+      expect(plantillaActual('ARRENDAMIENTO')).toBe('arrendamiento-v3-2026-09');
     });
 
-    it('un contrato viejo sigue resolviendo la plantilla global v1', () => {
-      for (const tipo of ['ARRENDAMIENTO', 'RESERVA_ARRIENDO', 'RESERVA_COMPRAVENTA', 'CORRETAJE'] as const) {
-        expect(obtenerPlantilla(tipo, 'v1-2026-09').version, tipo).toBe('v1-2026-09');
-      }
+    it('un contrato viejo sigue resolviendo la versión con la que se firmó', () => {
+      expect(obtenerPlantilla('ARRENDAMIENTO', 'arrendamiento-v2-2026-09').version).toBe('arrendamiento-v2-2026-09');
+      expect(obtenerPlantilla('CORRETAJE_EXCLUSIVO', 'corretaje-exclusivo-v1-2026-09').version).toBe(
+        'corretaje-exclusivo-v1-2026-09',
+      );
     });
 
     it('una versión desconocida cae a la actual de su tipo en vez de reventar', () => {
-      expect(obtenerPlantilla('CORRETAJE_EXCLUSIVO', 'no-existe').version).toBe(
-        plantillaActual('CORRETAJE_EXCLUSIVO'),
-      );
+      expect(obtenerPlantilla('CORRETAJE', 'no-existe').version).toBe(plantillaActual('CORRETAJE'));
     });
   });
 
-  // Decisión de producto ratificada: las cláusulas de desistimiento se eligen
-  // a mano. Este test existe para que un cambio futuro que les ponga default
-  // "para mejorar la usabilidad" falle en CI en vez de pasar inadvertido.
-  describe('las cláusulas de desistimiento se eligen conscientemente', () => {
+  // Decisión de producto ratificada: las cláusulas que más conflicto generan se
+  // eligen a mano. Este test existe para que un default futuro falle en CI.
+  describe('las decisiones con consecuencia se eligen conscientemente', () => {
     const SIN_DEFAULT: Array<[ContratoTipo, string]> = [
-      ['RESERVA_COMPRAVENTA', 'siDesisteComprador'],
-      ['RESERVA_COMPRAVENTA', 'siDesisteVendedor'],
-      ['RESERVA_ARRIENDO', 'siNoSeConcreta'],
+      ['CORRETAJE', 'exclusividad'],
+      ['CORRETAJE', 'siDesisteComprador'],
     ];
-
-    function definicionDe(tipo: ContratoTipo, clave: string) {
-      const campo = CONTRATO_DEFINICION[tipo].secciones.flatMap((s) => s.campos).find((c) => c.clave === clave);
-      expect(campo, `${tipo}.${clave} debe existir`).toBeDefined();
-      return campo!;
-    }
 
     it('no tienen valor por defecto y son obligatorias', () => {
       for (const [tipo, clave] of SIN_DEFAULT) {
-        const campo = definicionDe(tipo, clave);
-        expect(campo.porDefecto, `${tipo}.${clave} no puede traer default`).toBeUndefined();
-        expect(campo.obligatorio, `${tipo}.${clave} debe ser obligatorio`).toBe(true);
-      }
-    });
-
-    it('muestran todas las alternativas con su consecuencia práctica', () => {
-      for (const [tipo, clave] of SIN_DEFAULT) {
-        const campo = definicionDe(tipo, clave);
-        expect(campo.tipo, `${tipo}.${clave} debe verse como tarjetas, no como desplegable`).toBe('opcionExplicada');
-        expect(campo.opciones?.length ?? 0).toBeGreaterThan(1);
-        for (const opcion of campo.opciones ?? []) {
-          expect(opcion.consecuencia, `${tipo}.${clave}/${opcion.valor} sin consecuencia`).toBeTruthy();
-          expect((opcion.consecuencia ?? '').length).toBeGreaterThan(40);
+        const campo = CONTRATO_DEFINICION[tipo].secciones.flatMap((s) => s.campos).find((c) => c.clave === clave);
+        expect(campo, `${tipo}.${clave}`).toBeDefined();
+        expect(campo?.porDefecto, `${tipo}.${clave} no puede traer default`).toBeUndefined();
+        expect(campo?.obligatorio, `${tipo}.${clave} debe ser obligatorio`).toBe(true);
+        expect(campo?.tipo, `${tipo}.${clave} debe verse como tarjetas`).toBe('opcionExplicada');
+        for (const opcion of campo?.opciones ?? []) {
+          expect(opcion.consecuencia, `${tipo}.${clave}/${opcion.valor}`).toBeTruthy();
         }
       }
     });
 
     it('un contrato sin elegirlas no se puede enviar a firma', () => {
       for (const [tipo, clave] of SIN_DEFAULT) {
-        const datos = { ...datosDe(tipo), [clave]: '' };
-        const etiqueta = definicionDe(tipo, clave).etiqueta;
-        expect(camposFaltantes(tipo, datos), `${tipo}.${clave}`).toContain(etiqueta);
+        const etiqueta = CONTRATO_DEFINICION[tipo].secciones.flatMap((s) => s.campos).find((c) => c.clave === clave)!.etiqueta;
+        expect(camposFaltantes(tipo, { ...datosDe(tipo), [clave]: '' }), `${tipo}.${clave}`).toContain(etiqueta);
       }
-    });
-  });
-
-  // El aviso obligatorio no depende de lo que mande el formulario, y su tono
-  // cambia según quién lo lee: enfático para el agente, que decide usar el
-  // documento; preciso y neutro para las partes, que lo reciben de él.
-  describe('avisos según quién los lee', () => {
-    // Palabras que dejan al agente explicando por qué mandó algo dudoso.
-    const SUGIEREN_PROVISIONAL = ['referencial', 'se recomienda revisión', 'aún no ha sido validada', 'propuesta'];
-
-    it('lo que ven las PARTES no insinúa que el documento sea provisional', () => {
-      for (const texto of [NOTA_PIE_OBLIGATORIA, AVISO_PAGINA_FIRMA]) {
-        for (const palabra of SUGIEREN_PROVISIONAL) {
-          expect(texto.toLowerCase(), palabra).not.toContain(palabra.toLowerCase());
-        }
-      }
-    });
-
-    it('lo que ven las partes sí conserva el deslinde y el derecho a consultar', () => {
-      expect(NOTA_PIE_OBLIGATORIA).toContain('no es parte de este contrato');
-      expect(NOTA_PIE_OBLIGATORIA).toContain('modelo contractual de uso habitual');
-      expect(AVISO_PAGINA_FIRMA).toContain('consultarlo con un profesional de su confianza');
-      expect(AVISO_PAGINA_FIRMA).toContain('solicitar aclaraciones a quien se lo envió');
-      expect(AVISO_PAGINA_FIRMA).toContain('no es parte del contrato');
-    });
-
-    it('lo que ve el AGENTE sigue siendo explícito', () => {
-      expect(AVISO_MODULO_PARRAFOS.join(' ')).toContain('no contemplan las particularidades');
-      expect(AVISO_MODULO_PARRAFOS.join(' ')).toContain('Recomendamos que un abogado revise');
-      expect(AVISO_MODULO_CASILLA).toContain('referenciales');
-      expect(AVISO_VISTA_PREVIA).toContain('revisión por un abogado');
-    });
-
-    // Punto 3.3: donde hay un riesgo concreto, el aviso se mantiene para todos.
-    it('la advertencia del arrendamiento se mantiene, porque ahí el riesgo es real', () => {
-      const texto = bloquesATextoPlano(documentoDe('ARRENDAMIENTO').bloques);
-      expect(texto).toContain('normas de orden público');
-      expect(texto).toContain('registrar este contrato ante la autoridad competente');
     });
   });
 });

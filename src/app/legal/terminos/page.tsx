@@ -115,7 +115,8 @@ export default function TerminosPage() {
           <section>
             <h2 className="mb-1.5 text-base font-bold text-text">8. Documentos y contratos</h2>
             <p>
-              La Plataforma pone a disposición del agente modelos referenciales de documentos contractuales. Estos modelos:
+              La Plataforma pone a disposición del agente modelos de documentos contractuales, elaborados sobre la base de
+              formatos de uso común entre asociaciones de corredores de bienes raíces del Ecuador. Estos modelos:
             </p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>
@@ -131,8 +132,7 @@ export default function TerminosPage() {
               El Titular <strong className="text-text">no es parte</strong> de los contratos que el agente genere, no interviene en
               su negociación ni garantiza su idoneidad, validez o suficiencia para el caso concreto. La responsabilidad por el
               contenido, la suscripción y los efectos de dichos documentos corresponde exclusivamente a las partes que los
-              suscriben. Antes de generar su primer documento, y periódicamente después, el agente debe aceptar de forma expresa
-              un aviso con este mismo contenido; esa aceptación queda registrada con su fecha. Puedes consultar{' '}
+              suscriben. Puedes consultar{' '}
               <a href="/legal/revision-abogado" className="font-semibold text-accent hover:underline">
                 cuándo conviene que un abogado revise el documento
               </a>

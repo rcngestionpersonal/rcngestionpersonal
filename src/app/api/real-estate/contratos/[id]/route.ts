@@ -5,7 +5,7 @@ import { isEmailConfigured, sendEmailNotification } from '@/lib/real-estate/emai
 import { agenteConContratos, contratoDelAgente, etiquetaRol } from '@/lib/real-estate/contratos/servidor';
 import { cifrarDatos, descifrarDatos } from '@/lib/real-estate/contratos/firma';
 import { correoCancelado } from '@/lib/real-estate/contratos/correos';
-import { CONTRATO_DEFINICION, camposFaltantes, esEditable, type ContratoEstado, type ContratoTipo } from '@/lib/real-estate/contratos/tipos';
+import { CONTRATO_DEFINICION, camposFaltantes, esEditable, esTipoArchivado, type ContratoEstado, type ContratoTipo } from '@/lib/real-estate/contratos/tipos';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -76,9 +76,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   // Un contrato firmado NO se puede editar (punto 4.3). Tampoco uno que ya
   // salio a firmar: las partes estan leyendo ese texto en este momento.
-  if (!esEditable(contrato.estado as ContratoEstado)) {
+  if (!esEditable(contrato.estado as ContratoEstado, contrato.tipo)) {
     return NextResponse.json(
-      { error: 'Este contrato ya no se puede editar. Anúlalo y genera uno nuevo.', code: 'no_editable' },
+      {
+        error: esTipoArchivado(contrato.tipo)
+          ? 'Este tipo de contrato fue retirado. Puedes abrirlo y descargarlo, pero ya no se edita.'
+          : 'Este contrato ya no se puede editar. Anúlalo y genera uno nuevo.',
+        code: esTipoArchivado(contrato.tipo) ? 'tipo_archivado' : 'no_editable',
+      },
       { status: 409 },
     );
   }

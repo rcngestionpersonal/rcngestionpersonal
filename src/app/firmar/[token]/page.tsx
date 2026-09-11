@@ -101,7 +101,7 @@ export default async function PaginaFirma({ params }: { params: Promise<{ token:
   const agente = await prisma.agent.findUnique({
     where: { id: contrato.agentId },
     select: {
-      fullName: true, company: true, photoUrl: true, idNumber: true, direccion: true,
+      fullName: true, company: true, photoUrl: true, idNumber: true, licenseNumber: true, direccion: true,
       referenciaDireccion: true, ciudad: true, phone: true, email: true,
     },
   });
@@ -114,6 +114,7 @@ export default async function PaginaFirma({ params }: { params: Promise<{ token:
       nombre: agente?.fullName ?? '—',
       cedula: agente?.idNumber ?? '—',
       ruc: null,
+      licencia: agente?.licenseNumber ?? null,
       direccion: [agente?.direccion, agente?.referenciaDireccion, agente?.ciudad].filter(Boolean).join(', ') || 'Quito',
       telefono: agente?.phone ?? '—',
       correo: agente?.email ?? '—',

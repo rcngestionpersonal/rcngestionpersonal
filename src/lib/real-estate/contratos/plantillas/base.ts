@@ -28,7 +28,7 @@ export type BloqueDocumento =
 export type DatosDocumento = {
   ciudad: string;
   fechaLarga: string;
-  agente: { nombre: string; cedula: string; ruc: string | null; direccion: string; telefono: string; correo: string };
+  agente: { nombre: string; cedula: string; ruc: string | null; licencia: string | null; direccion: string; telefono: string; correo: string };
   inmueble: { descripcion: string; ubicacion: string; caracteristicas: string };
   // Los campos del formulario, ya normalizados a texto legible.
   campo: (clave: string) => string;
@@ -185,4 +185,12 @@ export function enMediaFrase(texto: string): string {
   const limpio = texto.trim();
   if (!limpio) return '';
   return limpio.charAt(0).toLowerCase() + limpio.slice(1);
+}
+
+// Valor de un campo OPCIONAL. Si está vacío imprime un marcador visible en vez
+// de un hueco: un espacio en blanco pasa desapercibido al revisar y termina en
+// el documento firmado sin que nadie lo note.
+export function opcional(valor: string, marcador = '[ POR COMPLETAR ]'): string {
+  const limpio = valor.trim();
+  return limpio.length > 0 ? limpio : marcador;
 }

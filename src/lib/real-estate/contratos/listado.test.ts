@@ -32,12 +32,11 @@ describe('filas del listado de contratos', () => {
     }
   });
 
-  // El corretaje legado es el caso real: existe en la base, ya no se ofrece, y
-  // su definición sigue viva justo para que estas filas se dibujen.
-  it('el corretaje legado se muestra normal, no degradado', () => {
+// Un tipo retirado sigue teniendo definición, justo para que estas filas se  // dibujen y el contrato archivado se pueda abrir y descargar.
+  it('el corretaje se muestra normal, no degradado', () => {
     const [fila] = filasTolerantes([contrato({ tipo: 'CORRETAJE' })], () => {});
     expect(fila.tipoConocido).toBe(true);
-    expect(fila.tipoEtiqueta).toBe('Contrato de corretaje');
+    expect(fila.tipoEtiqueta).toBe('Corretaje inmobiliario');
     expect(fila.ilegible).toBeUndefined();
   });
 

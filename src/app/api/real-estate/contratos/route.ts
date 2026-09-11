@@ -5,16 +5,13 @@ import { agenteConContratos, describirInmueble, logContratos } from '@/lib/real-
 import { filasTolerantes, type ContratoFila } from '@/lib/real-estate/contratos/listado';
 import { cifrarDatos, generarCodigoVerificacion } from '@/lib/real-estate/contratos/firma';
 import {
-  AVISO_MODULO_VERSION,
+  AVISO_MODULO,
   CONTRATO_TIPOS,
   CONTRATO_TIPOS_LEGADO,
   camposFaltantes,
-  debeAceptarAviso,
   type ContratoTipo,
 } from '@/lib/real-estate/contratos/tipos';
 import {
-  AVISO_PLANTILLA_SIN_REVISAR,
-  hayPlantillasSinRevisar,
   plantillaActual,
   plantillasVigentes,
 } from '@/lib/real-estate/contratos/plantillas';
@@ -68,13 +65,10 @@ async function listar(agentId: string) {
     }),
     prisma.agent.findUnique({
       where: { id: auth.agentId },
-      select: {
-        fullName: true, idNumber: true, direccion: true, ciudad: true, email: true,
-        contratosAvisoAt: true, contratosAvisoVersion: true,
-      },
+      select: { fullName: true, idNumber: true, direccion: true, ciudad: true, email: true },
     }),
-  ]);
 
+  ]);
   return NextResponse.json({
     contratos: filasTolerantes(contratos as unknown as ContratoFila[], (contrato, error) =>
       logContratos('no se pudo preparar un contrato para el listado: se muestra degradado', {
@@ -92,20 +86,12 @@ async function listar(agentId: string) {
       tieneDireccion: Boolean(agente?.direccion),
       tieneCorreo: Boolean(agente?.email),
     },
-    // Cada documento versiona su plantilla por separado (punto 1.4), asi que
-    // ya no hay "una version" del modulo sino una por tipo.
+    // Cada documento versiona su plantilla por separado: no hay "una version"
+    // del modulo sino una por tipo. Las retiradas no se listan, porque el
+    // agente no puede generarlas.
     plantilla: {
-      revisada: !hayPlantillasSinRevisar(),
-      aviso: AVISO_PLANTILLA_SIN_REVISAR,
-      // Las legadas no se muestran: el agente no puede generarlas.
+      aviso: AVISO_MODULO,
       versiones: plantillasVigentes().filter((p) => !CONTRATO_TIPOS_LEGADO.includes(p.tipo)),
-    },
-    // Aviso de modelo referencial (punto 4.2.a): si toca aceptarlo, el modulo
-    // lo pide antes de dejar generar nada.
-    avisoLegal: {
-      debeAceptar: debeAceptarAviso(agente?.contratosAvisoAt ?? null, agente?.contratosAvisoVersion ?? null),
-      aceptadoAt: agente?.contratosAvisoAt ?? null,
-      version: AVISO_MODULO_VERSION,
     },
   });
 }
@@ -120,29 +106,15 @@ export async function POST(request: NextRequest) {
   }
   const { tipo, listingId, datos } = parsed.data;
 
-  // El corretaje sin modalidad ya no se genera: hay que elegir exclusivo o
-  // abierto (punto 1.1). Los contratos viejos con ese tipo siguen abriendose.
+  // Los tipos retirados son de solo lectura: existen para reimprimir lo que ya
+  // se firmo, no para crear nada nuevo.
   if (CONTRATO_TIPOS_LEGADO.includes(tipo)) {
     return NextResponse.json(
-      { error: 'Elige la modalidad del corretaje: exclusivo o abierto.', code: 'tipo_legado' },
+      { error: "Ese tipo de contrato ya no está disponible.", code: "tipo_archivado" },
       { status: 400 },
     );
   }
 
-  // El aviso de modelo referencial se acepta ANTES del primer contrato, y otra
-  // vez cada 90 dias (punto 4.2.a). La comprobacion vive tambien aca y no solo
-  // en la pantalla: la aceptacion es la constancia, y una constancia que se
-  // puede saltar desde la consola del navegador no es una constancia.
-  const agente = await prisma.agent.findUnique({
-    where: { id: auth.agentId },
-    select: { contratosAvisoAt: true, contratosAvisoVersion: true },
-  });
-  if (debeAceptarAviso(agente?.contratosAvisoAt ?? null, agente?.contratosAvisoVersion ?? null)) {
-    return NextResponse.json(
-      { error: 'Antes de generar un contrato debes aceptar el aviso sobre modelos referenciales.', code: 'aviso_pendiente' },
-      { status: 409 },
-    );
-  }
 
   // Se congela la descripcion del inmueble dentro de los datos: si mañana el
   // agente edita o borra el inmueble, el contrato tiene que seguir diciendo lo

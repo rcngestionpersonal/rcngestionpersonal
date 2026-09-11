@@ -7,6 +7,7 @@ import { CONTRATO_DEFINICION, type ContratoTipo } from './tipos';
 // redaccion.
 
 export type DatosAgenteDocumento = {
+  licencia: string | null;
   nombre: string;
   cedula: string;
   ruc: string | null;

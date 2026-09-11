@@ -27,6 +27,8 @@ export type ContratoResumen = {
   tipoConocido: boolean;
   // La fila no se pudo preparar y viene con lo mínimo. Se muestra marcada.
   ilegible?: boolean;
+  // Tipo retirado: se puede abrir y descargar, pero no editar ni enviar.
+  archivado?: boolean;
   estado: ContratoEstado;
   listingId: string | null;
   codigoVerificacion: string;
@@ -60,8 +62,5 @@ export type DatosPantallaContratos = {
   contratos: ContratoResumen[];
   listings: ListingOpcion[];
   agente: { nombre: string; tieneCedula: boolean; tieneDireccion: boolean; tieneCorreo: boolean };
-  plantilla: { revisada: boolean; aviso: string; versiones: PlantillaVigente[] };
-  // Aviso de modelo referencial: si toca aceptarlo, no se genera nada hasta
-  // que el agente lo acepte (punto 4.2.a).
-  avisoLegal: { debeAceptar: boolean; aceptadoAt: string | null; version: string };
+  plantilla: { aviso: string; versiones: PlantillaVigente[] };
 };

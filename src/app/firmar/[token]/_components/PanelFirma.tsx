@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AVISO_FIRMA_ELECTRONICA, AVISO_PAGINA_FIRMA, NOTA_PIE_OBLIGATORIA } from '@/lib/real-estate/contratos/tipos';
+import { AVISO_FIRMA_ELECTRONICA, AVISO_PAGINA_FIRMA, NOTA_PIE_PDF } from '@/lib/real-estate/contratos/tipos';
 
 // La pantalla donde una parte lee y acepta. Funciona igual en celular, tablet
 // y escritorio: una sola columna, el documento arriba y la decisión abajo.
@@ -247,7 +247,7 @@ export default function PanelFirma({
           })}
 
           <p className="mt-6 border-t border-line pt-4 text-[11.5px] leading-relaxed text-text-3">
-            {NOTA_PIE_OBLIGATORIA}
+            {NOTA_PIE_PDF}
           </p>
 
           {/* Centinela: cuando esto entra en pantalla, la persona llegó al final. */}

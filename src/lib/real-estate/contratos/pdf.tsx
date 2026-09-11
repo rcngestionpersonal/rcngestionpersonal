@@ -6,7 +6,7 @@ import { loadFichaFonts } from '@/lib/real-estate/ficha/fonts';
 import { pngPageToJpeg } from '@/lib/real-estate/ficha/photos';
 import { romano } from './documento';
 import type { BloqueDocumento } from './plantillas';
-import { AVISO_FIRMA_ELECTRONICA, AVISO_REDINMO_NO_ES_PARTE, NOTA_PIE_OBLIGATORIA } from './tipos';
+import { AVISO_FIRMA_ELECTRONICA, AVISO_REDINMO_NO_ES_PARTE, NOTA_PIE_PDF } from './tipos';
 
 // PDF del contrato: A4 sobrio y formal, fondo blanco (punto 6.1). Misma cadena
 // satori -> resvg -> pdf-lib que las fichas y las cartas, pero con paginacion
@@ -326,7 +326,7 @@ function pagina(
         }}
       >
         {numeroPagina === 1 || numeroPagina === totalPaginas ? (
-          <div style={{ display: 'flex', fontSize: 8.5, color: '#8983a2', lineHeight: 1.45 }}>{NOTA_PIE_OBLIGATORIA}</div>
+          <div style={{ display: 'flex', fontSize: 8.5, color: '#8983a2', lineHeight: 1.45 }}>{NOTA_PIE_PDF}</div>
         ) : null}
         <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
           <div style={{ display: 'flex', fontSize: 8.5, color: '#8983a2' }}>
@@ -425,7 +425,7 @@ function paginaConstancia(datos: DatosPdfContrato, numeroPagina: number, totalPa
           {AVISO_REDINMO_NO_ES_PARTE}
         </div>
         <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-          <div style={{ display: 'flex', fontSize: 8.5, color: '#8983a2' }}>{NOTA_PIE_OBLIGATORIA}</div>
+          <div style={{ display: 'flex', fontSize: 8.5, color: '#8983a2' }}>{NOTA_PIE_PDF}</div>
           <div style={{ display: 'flex', fontSize: 8.5, color: '#8983a2' }}>
             Página {numeroPagina} de {totalPaginas}
           </div>

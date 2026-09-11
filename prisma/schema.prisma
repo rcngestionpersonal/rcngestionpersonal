@@ -193,6 +193,12 @@ model Agent {
   termsAcceptedAt       DateTime?
   termsAcceptedVersion  String?
   termsAcceptedIp       String?
+  // HISTORICO. Registro de la aceptacion del aviso de modelos referenciales del
+  // modulo de contratos, que existio mientras el aviso era una puerta bloqueante
+  // con casilla obligatoria. Ese aviso se retiro al pasar las plantillas a
+  // basarse en formatos de uso comun: hoy es una nota discreta bajo el selector
+  // y no se acepta. Las columnas se conservan porque contienen aceptaciones
+  // reales con su fecha, y borrarlas destruiria esa constancia.
   // Aceptacion del aviso de "modelos referenciales" del modulo de contratos
   // (punto 4.2.a). Se repite cada 90 dias y cada vez que cambia el texto, asi
   // que a diferencia de termsAccepted* esto NO es una aceptacion unica: se

@@ -124,7 +124,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const datos = descifrarDatos(contrato.datosCifrados);
   const agenteDoc = await prisma.agent.findUnique({
     where: { id: contrato.agentId },
-    select: { fullName: true, idNumber: true, direccion: true, referenciaDireccion: true, ciudad: true, phone: true, email: true },
+    select: { fullName: true, idNumber: true, licenseNumber: true, direccion: true, referenciaDireccion: true, ciudad: true, phone: true, email: true },
   });
   const doc = construirDocumento({
     tipo,
@@ -134,6 +134,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       nombre: agenteDoc?.fullName ?? '—',
       cedula: agenteDoc?.idNumber ?? '—',
       ruc: null,
+      licencia: agenteDoc?.licenseNumber ?? null,
       direccion: [agenteDoc?.direccion, agenteDoc?.referenciaDireccion, agenteDoc?.ciudad].filter(Boolean).join(', ') || 'Quito',
       telefono: agenteDoc?.phone ?? '—',
       correo: agenteDoc?.email ?? '—',

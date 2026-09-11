@@ -22,7 +22,6 @@
 // ===========================================================================
 
 import {
-  AVISO_RESERVA_NO_ES_PROMESA,
   type ContratoTipo,
 } from '../tipos';
 import {
@@ -34,6 +33,11 @@ import {
   type BloqueDocumento,
   type DatosDocumento,
 } from './base';
+
+// Aviso de ESTA version, congelado: la constante compartida se retiro al
+// eliminarse el contrato de reserva, y una version publicada no cambia.
+const AVISO_RESERVA_NO_ES_PROMESA =
+  'Este instrumento constituye una RESERVA y no una promesa de compraventa. Conforme a la legislación ecuatoriana, la promesa de compraventa de bienes inmuebles requiere escritura pública. Las partes deberán elevar a escritura pública el contrato definitivo dentro del plazo pactado.';
 
 export const PLANTILLA_VERSION = 'v1-2026-09';
 
