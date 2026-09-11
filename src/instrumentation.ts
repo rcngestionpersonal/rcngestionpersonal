@@ -29,7 +29,11 @@ const REQUISITOS: Requisito[] = [
     critica: false,
   },
   { nombre: 'RESEND_API_KEY', rompe: 'el envío de correos, incluidos los enlaces de firma', critica: false },
-  { nombre: 'BLOB_READ_WRITE_TOKEN', rompe: 'la subida de fotos y logotipos', critica: false },
+  {
+    nombre: 'BLOB_READ_WRITE_TOKEN',
+    rompe: 'la subida de fotos de inmuebles y de perfil, y la de logotipos',
+    critica: false,
+  },
 ];
 
 export function register(): void {
