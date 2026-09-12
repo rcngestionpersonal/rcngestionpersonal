@@ -55,6 +55,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const bloquesActuales = bloquesDeCarta(carta.bloques);
   const muestrasDeEstilo = await recolectarMuestrasDeEstilo(auth.agentId).catch(() => []);
 
+  // La misma condicion que al crear la carta. Si no se recalculara aqui, un
+  // parrafo rehecho perderia el permiso de invitar al perfil y la carta
+  // quedaria con la mitad de los bloques hablando del perfil y la otra no.
+  const miniSitio = await prisma.miniSitio.findUnique({
+    where: { agentId: auth.agentId },
+    select: { activo: true },
+  });
+
   const resultado = await regenerarBloque({
     datos,
     destinatarioTipo: carta.destinatarioTipo as CartaDestinatarioTipo,
@@ -64,6 +72,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     muestrasDeEstilo,
     bloque,
     bloquesActuales,
+    conPerfilPublico: Boolean(miniSitio?.activo) && carta.incluirMiniSitio,
   });
 
   // Sin proveedor no se cobra cuota ni se registra consumo: no hubo llamada.
