@@ -25,6 +25,9 @@ export type CartaEncabezado = {
   // QR al mini-sitio del agente, para el pie (punto 4.2).
   qrDataUri: string | null;
   urlMiniSitio: string | null;
+  // Solo para el correo: URL absoluta y la imagen sin convertir a data URI.
+  urlMiniSitioAbsoluta: string | null;
+  imagenUrl: string | null;
 };
 
 export type CartaDestinatarioImpreso = {
@@ -223,9 +226,12 @@ export function cartaA4Page({
       >
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', fontSize: 10.5, fontWeight: 700, color: palette.violeta }}>redinmo.io</div>
+          {/* La URL con una frase delante, no suelta: "redinmo.io/a/x" a secas
+              parece un pie de página; con la invitación es una puerta que el
+              destinatario entiende para qué abrir. */}
           {encabezado.urlMiniSitio ? (
             <div style={{ display: 'flex', fontSize: 10, color: palette.text3, marginTop: 2 }}>
-              {encabezado.urlMiniSitio}
+              Conoce mi trabajo en {encabezado.urlMiniSitio}
             </div>
           ) : null}
         </div>

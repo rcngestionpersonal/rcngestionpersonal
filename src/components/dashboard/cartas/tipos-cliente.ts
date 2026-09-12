@@ -41,4 +41,7 @@ export type DatosPantallaCartas = {
     photoUrl: string | null;
     tieneCorreo: boolean;
   };
+  // Decide si el interruptor del enlace tiene sentido y si hay que invitar al
+  // agente a publicar su perfil.
+  miniSitio: { activo: boolean; url: string | null };
 };

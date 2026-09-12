@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { isEmailConfigured, sendEmailNotification } from '@/lib/real-estate/email';
-import { agenteConCartas, bloquesDeCarta, cartaDelAgente, construirEncabezado, nombreArchivo } from '@/lib/real-estate/cartas/servidor';
+import { agenteConCartas, bloquesDeCarta, cartaDelAgente, aplicarPreferenciaMiniSitio, construirEncabezado, nombreArchivoCarta } from '@/lib/real-estate/cartas/servidor';
+import { cuerpoHtmlCarta, cuerpoTextoCarta } from '@/lib/real-estate/cartas/correo';
 import { fechaLarga, renderCarta } from '@/lib/real-estate/cartas/render';
-import { CARTA_DESTINATARIO_CONFIG, bloquesATexto, type CartaDestinatarioTipo, type CartaPaleta } from '@/lib/real-estate/cartas/tipos';
+import { CARTA_DESTINATARIO_CONFIG, type CartaDestinatarioTipo, type CartaPaleta } from '@/lib/real-estate/cartas/tipos';
 
 // Envio de la carta por correo (punto 5.1).
 //
@@ -55,7 +56,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     );
   }
 
-  const encabezado = await construirEncabezado(auth.agentId, carta.imagenTipo);
+  const encabezadoBase = await construirEncabezado(auth.agentId, carta.imagenTipo);
+  const encabezado = encabezadoBase ? aplicarPreferenciaMiniSitio(encabezadoBase, carta.incluirMiniSitio) : null;
   if (!encabezado) return NextResponse.json({ error: 'Agente no encontrado.' }, { status: 404 });
 
   const bloques = bloquesDeCarta(carta.bloques);
@@ -69,27 +71,41 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   });
 
   const asuntoFinal = asunto || CARTA_DESTINATARIO_CONFIG[carta.destinatarioTipo as CartaDestinatarioTipo].asunto;
+
+  // El enlace al perfil solo viaja si el mini-sitio esta publicado Y el agente
+  // dejo el interruptor activo. Si falta cualquiera de las dos, no hay enlace:
+  // ni boton, ni linea vacia, ni URL rota.
+  const urlMiniSitio = carta.incluirMiniSitio ? encabezado.urlMiniSitioAbsoluta : null;
+  const nombreAdjunto = nombreArchivoCarta(agente.fullName, carta.destinatarioNombre);
+
   // La carta va adjunta Y en el cuerpo (punto 5.1): mucha gente no abre
   // adjuntos de remitentes que no conoce, y el texto en el cuerpo hace que la
   // carta se lea igual.
-  const cuerpo = [mensaje?.trim(), bloquesATexto(bloques)].filter(Boolean).join('\n\n');
-  const firma = [agente.fullName, agente.company].filter(Boolean).join(' · ');
+  const datosCorreo = {
+    agente: {
+      nombre: agente.fullName,
+      empresa: agente.company,
+      telefono: encabezado.telefono,
+      correo: agente.email,
+      imagenUrl: encabezado.imagenUrl,
+      verificado: encabezado.verificado,
+    },
+    destinatario: { nombre: carta.destinatarioNombre, cargo: carta.destinatarioCargo },
+    bloques,
+    mensaje: mensaje?.trim() || null,
+    urlMiniSitio,
+    nombreAdjunto,
+  };
 
-  const texto = [
-    cuerpo,
-    '',
-    '—',
-    firma,
-    `Responder a: ${agente.email}`,
-    'Enviado con Redinmo.io',
-  ].join('\n');
-
+  // Multiparte: el HTML es lo que vera casi todo el mundo, el texto plano es el
+  // respaldo y se sostiene solo.
   const resultado = await sendEmailNotification({
     to: para,
     subject: asuntoFinal,
-    text: texto,
+    text: cuerpoTextoCarta(datosCorreo),
+    html: cuerpoHtmlCarta(datosCorreo),
     replyTo: agente.email,
-    attachments: [{ filename: nombreArchivo(carta.destinatarioNombre, 'pdf'), content: pdf.buffer }],
+    attachments: [{ filename: nombreAdjunto, content: pdf.buffer }],
   });
 
   if (!resultado.delivered) {

@@ -970,7 +970,9 @@ function DashboardPage() {
         />
       )}
       {activeTab === 'misitio' && isAgent && <MiSitioTab suscripcion={accesoInput} />}
-      {activeTab === 'cartas' && isAgent && <CartasTab suscripcion={accesoInput} />}
+      {activeTab === 'cartas' && isAgent && (
+        <CartasTab suscripcion={accesoInput} onIrAMiSitio={() => setActiveTab('misitio')} />
+      )}
       {activeTab === 'contratos' && isAgent && <ContratosTab suscripcion={accesoInput} />}
       {activeTab === 'invitar' && isAgent && <InvitarTab myAgentId={user?.agentId} agents={agents} />}
       {activeTab === 'metricas' && isAdmin && <MetricasTab months={churnMonths} />}

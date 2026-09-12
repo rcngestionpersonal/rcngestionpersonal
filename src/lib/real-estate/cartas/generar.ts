@@ -27,6 +27,9 @@ export type EntradaGeneracion = {
   contexto?: string | null;
   // Bloques que el agente reescribio en cartas anteriores (punto 3.3).
   muestrasDeEstilo?: string[];
+  // El agente tiene mini-sitio publicado y dejo el enlace activo: el modelo
+  // puede invitar a visitarlo, sin escribir la URL.
+  conPerfilPublico?: boolean;
 };
 
 export type ResultadoGeneracion = {
@@ -85,7 +88,7 @@ function hechosVerificables(datos: CartaDatosAgente): string {
   return lineas.join('\n');
 }
 
-function instruccionDelSistema(datos: CartaDatosAgente, muestras: string[]): string {
+function instruccionDelSistema(datos: CartaDatosAgente, muestras: string[], conPerfil: boolean): string {
   const escaso = inventarioEsEscaso(datos);
   const partes = [
     'Redactas cartas de presentacion profesionales para agentes inmobiliarios en Ecuador.',
@@ -122,6 +125,19 @@ function instruccionDelSistema(datos: CartaDatosAgente, muestras: string[]): str
       'En el bloque "inventario" habla de que busca lo que el destinatario necesita',
       'y de como trabaja para conseguirlo, sin decir cuanto tiene hoy.',
       'No menciones tampoco el nivel que alcanzo en la plataforma.',
+    );
+  }
+
+  if (conPerfil) {
+    // La URL vive en el pie del PDF y en el QR. Aqui solo se invita: una
+    // direccion web escrita a mitad de un parrafo rompe la lectura y en el
+    // correo se duplicaria con el boton.
+    partes.push(
+      '',
+      'El agente tiene un perfil profesional publico. Puedes invitar a visitarlo en el cierre,',
+      'de forma natural y solo si encaja. NUNCA escribas la direccion web ni un enlace:',
+      'la URL va en el pie del documento. Di algo como "puede visitar mi perfil profesional"',
+      'o "si desea conocer mi inventario y verificar mi credencial". Si no encaja, no lo menciones.',
     );
   }
 
@@ -279,7 +295,7 @@ function correccionTrasAuditoria(hallazgos: string[]): string {
 }
 
 export async function generarCarta(entrada: EntradaGeneracion): Promise<ResultadoGeneracion> {
-  const sistema = instruccionDelSistema(entrada.datos, entrada.muestrasDeEstilo ?? []);
+  const sistema = instruccionDelSistema(entrada.datos, entrada.muestrasDeEstilo ?? [], Boolean(entrada.conPerfilPublico));
   const usuario = instruccionDeUsuario(entrada);
   const respuesta = await llamarModelo(sistema, usuario);
 
@@ -388,7 +404,7 @@ export async function regenerarBloque(
   if (!modeloConfigurado()) {
     return { texto: '', modelo: null, tokensEntrada: null, tokensSalida: null, sinProveedor: true };
   }
-  const sistema = instruccionDelSistema(entrada.datos, entrada.muestrasDeEstilo ?? []);
+  const sistema = instruccionDelSistema(entrada.datos, entrada.muestrasDeEstilo ?? [], Boolean(entrada.conPerfilPublico));
   const contexto = CARTA_BLOQUES.filter((c) => c !== entrada.bloque)
     .map((c) => `${c}: ${entrada.bloquesActuales[c]}`)
     .join('\n');

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { agenteConCartas, bloquesDeCarta, cartaDelAgente, construirEncabezado, nombreArchivo } from '@/lib/real-estate/cartas/servidor';
+import { agenteConCartas, bloquesDeCarta, cartaDelAgente, aplicarPreferenciaMiniSitio, construirEncabezado, nombreArchivo } from '@/lib/real-estate/cartas/servidor';
 import { fechaLarga, renderCarta, type CartaFormato } from '@/lib/real-estate/cartas/render';
 import { CARTA_PALETAS, type CartaPaleta } from '@/lib/real-estate/cartas/tipos';
 
@@ -41,7 +41,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     );
   }
 
-  const encabezado = await construirEncabezado(auth.agentId, carta.imagenTipo);
+  const encabezadoBase = await construirEncabezado(auth.agentId, carta.imagenTipo);
+  const encabezado = encabezadoBase ? aplicarPreferenciaMiniSitio(encabezadoBase, carta.incluirMiniSitio) : null;
   if (!encabezado) return NextResponse.json({ error: 'Agente no encontrado.' }, { status: 404 });
 
   const render = await renderCarta({

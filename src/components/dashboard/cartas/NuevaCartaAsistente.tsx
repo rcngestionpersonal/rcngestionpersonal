@@ -32,6 +32,8 @@ export default function NuevaCartaAsistente({
   const [contexto, setContexto] = useState('');
   const [imagenTipo, setImagenTipo] = useState<CartaImagenTipo>(datos.agente.imagenTipoPreferida);
   const [paleta, setPaleta] = useState<CartaPaleta>('clara');
+  // Activado por defecto, pero solo se ofrece cuando hay mini-sitio publicado.
+  const [incluirMiniSitio, setIncluirMiniSitio] = useState(true);
   const [logoUrl, setLogoUrl] = useState<string | null>(datos.agente.logoUrl);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [subiendoLogo, setSubiendoLogo] = useState(false);
@@ -81,6 +83,7 @@ export default function NuevaCartaAsistente({
           contexto: contexto.trim() || null,
           imagenTipo,
           paleta,
+          incluirMiniSitio,
         }),
       });
       const d = await r.json().catch(() => ({}));
@@ -264,6 +267,26 @@ export default function NuevaCartaAsistente({
               ))}
             </div>
           </div>
+
+          {/* El interruptor solo aparece cuando hay perfil publicado: ofrecer
+              incluir un enlace que no existe sería ofrecer nada. Quien no lo
+              tiene ve la invitación a publicarlo en la pantalla del módulo. */}
+          {datos.miniSitio.activo ? (
+            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-line bg-surface p-4">
+              <input
+                type="checkbox"
+                checked={incluirMiniSitio}
+                onChange={(e) => setIncluirMiniSitio(e.target.checked)}
+                className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--accent)]"
+              />
+              <span>
+                <span className="block text-sm font-bold text-text">{t('cartas.miniSitio.incluir')}</span>
+                <span className="mt-0.5 block text-xs leading-relaxed text-text-2">
+                  {t('cartas.miniSitio.incluir.detalle')} {datos.miniSitio.url}
+                </span>
+              </span>
+            </label>
+          ) : null}
         </section>
       ) : null}
 

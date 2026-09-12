@@ -5,6 +5,7 @@ import { agenteConCartas } from '@/lib/real-estate/cartas/servidor';
 import { recolectarDatosDeAgente, recolectarMuestrasDeEstilo } from '@/lib/real-estate/cartas/datos';
 import { generarCarta } from '@/lib/real-estate/cartas/generar';
 import { estadoDeCuota, quedaCuota, registrarGeneracion } from '@/lib/real-estate/cartas/cuota';
+import { urlMiniSitio } from '@/lib/real-estate/mini-sitio';
 import { CARTA_DESTINATARIOS, CARTA_IMAGEN_TIPOS, CARTA_PALETAS, inventarioEsEscaso } from '@/lib/real-estate/cartas/tipos';
 import type { CartaDestinatario } from '@prisma/client';
 
@@ -20,6 +21,8 @@ const crearSchema = z.object({
   contexto: z.string().trim().max(240).optional().nullable(),
   imagenTipo: z.enum(CARTA_IMAGEN_TIPOS).default('foto'),
   paleta: z.enum(CARTA_PALETAS).default('clara'),
+  // Solo tiene efecto si el mini-sitio esta publicado. Por defecto activado.
+  incluirMiniSitio: z.boolean().default(true),
 });
 
 export async function GET(request: NextRequest) {
@@ -47,7 +50,10 @@ export async function GET(request: NextRequest) {
     recolectarDatosDeAgente(auth.agentId),
     prisma.agent.findUnique({
       where: { id: auth.agentId },
-      select: { cartaImagenTipo: true, cartaLogoUrl: true, photoUrl: true, email: true },
+      select: {
+        cartaImagenTipo: true, cartaLogoUrl: true, photoUrl: true, email: true,
+        miniSitio: { select: { slug: true, activo: true } },
+      },
     }),
   ]);
 
@@ -63,6 +69,12 @@ export async function GET(request: NextRequest) {
       logoUrl: agente?.cartaLogoUrl ?? null,
       photoUrl: agente?.photoUrl ?? null,
       tieneCorreo: Boolean(agente?.email),
+    },
+    // El mini-sitio decide dos cosas en la pantalla: si el interruptor del
+    // enlace tiene sentido, y si hay que invitar al agente a publicarlo.
+    miniSitio: {
+      activo: Boolean(agente?.miniSitio?.activo),
+      url: agente?.miniSitio?.activo ? urlMiniSitio(agente.miniSitio.slug).replace(/^https?:\/\//, '') : null,
     },
   });
 }
@@ -89,6 +101,14 @@ export async function POST(request: NextRequest) {
 
   const muestrasDeEstilo = await recolectarMuestrasDeEstilo(auth.agentId).catch(() => []);
 
+  // El modelo solo puede invitar al perfil si el perfil EXISTE y esta publicado,
+  // y si el agente dejo el interruptor activo. Sin las dos cosas, ni lo menciona.
+  const miniSitio = await prisma.miniSitio.findUnique({
+    where: { agentId: auth.agentId },
+    select: { activo: true },
+  });
+  const conPerfilPublico = Boolean(miniSitio?.activo) && entrada.incluirMiniSitio;
+
   const resultado = await generarCarta({
     datos,
     destinatarioTipo: entrada.destinatarioTipo,
@@ -96,6 +116,7 @@ export async function POST(request: NextRequest) {
     destinatarioCargo: entrada.destinatarioCargo,
     contexto: entrada.contexto,
     muestrasDeEstilo,
+    conPerfilPublico,
   });
 
   const carta = await prisma.carta.create({
@@ -112,6 +133,7 @@ export async function POST(request: NextRequest) {
       datosUsados: datos as unknown as object,
       imagenTipo: entrada.imagenTipo,
       paleta: entrada.paleta,
+      incluirMiniSitio: entrada.incluirMiniSitio,
     },
   });
 

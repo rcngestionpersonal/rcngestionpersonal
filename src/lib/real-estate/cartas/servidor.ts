@@ -91,6 +91,12 @@ export async function construirEncabezado(agentId: string, imagenTipo: string): 
     licencia: agente.licenseNumber,
     qrDataUri,
     urlMiniSitio: url ? url.replace(/^https?:\/\//, '') : null,
+    // Para el CORREO, no para el PDF: la URL absoluta sin recortar el esquema, y
+    // la imagen como URL en vez de data URI. Los clientes de correo no
+    // renderizan data URIs en <img>, y además inflarían el mensaje hasta que
+    // Gmail lo recorte.
+    urlMiniSitioAbsoluta: url,
+    imagenUrl: fuenteImagen ?? null,
   };
 }
 
@@ -118,4 +124,29 @@ export function nombreArchivo(destinatario: string, extension: string): string {
       .replace(/^-+|-+$/g, '')
       .slice(0, 50) || 'destinatario';
   return `carta-${base}.${extension}`;
+}
+
+// Nombre del PDF que llega al correo del destinatario. Descriptivo a proposito:
+// "carta-destinatario.pdf" en la bandeja de alguien que recibe tres cartas al
+// dia no dice nada, y el nombre del agente es lo que hace que se encuentre
+// despues.
+export function nombreArchivoCarta(nombreAgente: string, nombreDestinatario: string): string {
+  const limpiar = (texto: string) =>
+    texto
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^A-Za-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40);
+  const agente = limpiar(nombreAgente) || 'Agente';
+  const destinatario = limpiar(nombreDestinatario) || 'Destinatario';
+  return `Carta-${agente}-${destinatario}.pdf`;
+}
+
+// El interruptor del agente aplica al PDF y al correo por igual. Cuando lo
+// apaga, desaparecen las TRES cosas a la vez: el QR, la URL del pie y el boton
+// del correo. Media presencia del enlace seria peor que ninguna.
+export function aplicarPreferenciaMiniSitio(encabezado: CartaEncabezado, incluir: boolean): CartaEncabezado {
+  if (incluir) return encabezado;
+  return { ...encabezado, qrDataUri: null, urlMiniSitio: null, urlMiniSitioAbsoluta: null };
 }

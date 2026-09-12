@@ -16,7 +16,13 @@ import type { CartaCompleta, CartaResumen, DatosPantallaCartas } from '../cartas
 
 type Vista = { modo: 'lista' } | { modo: 'nueva' } | { modo: 'editor'; carta: CartaCompleta };
 
-export default function CartasTab({ suscripcion }: { suscripcion: AccesoInput | null }) {
+export default function CartasTab({
+  suscripcion,
+  onIrAMiSitio,
+}: {
+  suscripcion: AccesoInput | null;
+  onIrAMiSitio: () => void;
+}) {
   const { t } = useLanguage();
 
   return (
@@ -28,7 +34,7 @@ export default function CartasTab({ suscripcion }: { suscripcion: AccesoInput | 
       />
       {suscripcion ? (
         <RequiereFeature suscripcion={suscripcion} feature="carta_presentacion">
-          <PanelCartas t={t} />
+          <PanelCartas t={t} onIrAMiSitio={onIrAMiSitio} />
         </RequiereFeature>
       ) : (
         <p className="text-sm text-text-2">{t('cartas.cargando')}</p>
@@ -37,7 +43,7 @@ export default function CartasTab({ suscripcion }: { suscripcion: AccesoInput | 
   );
 }
 
-function PanelCartas({ t }: { t: (k: string) => string }) {
+function PanelCartas({ t, onIrAMiSitio }: { t: (k: string) => string; onIrAMiSitio: () => void }) {
   const [datos, setDatos] = useState<DatosPantallaCartas | null>(null);
   const [vista, setVista] = useState<Vista>({ modo: 'lista' });
   const [cargando, setCargando] = useState(true);
@@ -148,6 +154,21 @@ function PanelCartas({ t }: { t: (k: string) => string }) {
         <p className="rounded-2xl border border-line bg-surface-2 px-4 py-3 text-xs leading-relaxed text-text-2">
           {t('cartas.avisoPlantilla')}
         </p>
+      ) : null}
+
+      {/* Sin perfil publicado, la carta se queda sin QR y sin enlace. Se dice
+          aquí, donde el agente está escribiendo cartas, y con la puerta al
+          lado: un aviso que obliga a buscar dónde se arregla no se atiende. */}
+      {!datos.miniSitio.activo ? (
+        <div className="rounded-2xl border border-line bg-surface-2 px-4 py-3">
+          <p className="text-xs leading-relaxed text-text-2">{t('cartas.miniSitio.sinPerfil')}</p>
+          <button
+            onClick={onIrAMiSitio}
+            className="mt-2 min-h-[36px] rounded-lg border border-line-strong px-3 text-xs font-bold text-text transition hover:bg-surface"
+          >
+            {t('cartas.miniSitio.irAlSitio')}
+          </button>
+        </div>
       ) : null}
 
       {/* Tope alcanzado: es informacion, no un fallo. Tono neutro, fecha de

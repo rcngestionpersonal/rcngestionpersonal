@@ -842,6 +842,12 @@ model Carta {
   // 10 cierres mas, esta carta sigue diciendo lo que era cierto ese dia.
   datosUsados Json
 
+  // El agente decide si la carta lleva el enlace a su perfil profesional. Por
+  // defecto si, pero solo tiene efecto cuando el mini-sitio esta publicado: sin
+  // mini-sitio activo no hay enlace que poner, y un enlace roto en una carta de
+  // presentacion es peor que no tener enlace.
+  incluirMiniSitio Boolean @default(true)
+
   imagenTipo String      @default("foto")
   paleta     String      @default("clara")
   estado     CartaEstado @default(BORRADOR)
