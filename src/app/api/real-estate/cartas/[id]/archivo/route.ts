@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { agenteConCartas, bloquesDeCarta, cartaDelAgente, aplicarPreferenciaMiniSitio, construirEncabezado, nombreArchivo } from '@/lib/real-estate/cartas/servidor';
+import { agenteConCartas, bloquesDeCarta, cartaDelAgente, aplicarPreferenciaMiniSitio, construirEncabezado, nombreArchivoCarta } from '@/lib/real-estate/cartas/servidor';
 import { fechaLarga, renderCarta, type CartaFormato } from '@/lib/real-estate/cartas/render';
 import { CARTA_PALETAS, type CartaPaleta } from '@/lib/real-estate/cartas/tipos';
 
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   return new NextResponse(new Uint8Array(render.buffer), {
     headers: {
       'Content-Type': render.contentType,
-      'Content-Disposition': `${esPrevia ? 'inline' : 'attachment'}; filename="${nombreArchivo(carta.destinatarioNombre, render.extension)}"`,
+      'Content-Disposition': `${esPrevia ? 'inline' : 'attachment'}; filename="${nombreArchivoCarta(encabezado.nombre, carta.destinatarioNombre, render.extension)}"`,
       'Cache-Control': 'no-store',
     },
   });

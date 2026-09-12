@@ -114,23 +114,15 @@ export function bloquesDeCarta(valor: unknown): CartaBloques {
   return normalizarBloques(valor);
 }
 
-export function nombreArchivo(destinatario: string, extension: string): string {
-  const base =
-    destinatario
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 50) || 'destinatario';
-  return `carta-${base}.${extension}`;
-}
-
-// Nombre del PDF que llega al correo del destinatario. Descriptivo a proposito:
-// "carta-destinatario.pdf" en la bandeja de alguien que recibe tres cartas al
-// dia no dice nada, y el nombre del agente es lo que hace que se encuentre
-// despues.
-export function nombreArchivoCarta(nombreAgente: string, nombreDestinatario: string): string {
+// Nombre del archivo de la carta: el mismo cuando se descarga y cuando viaja
+// adjunta al correo. Descriptivo a proposito, porque "carta-destinatario.pdf"
+// en la bandeja de alguien que recibe tres cartas al dia no dice nada, y es el
+// nombre del agente lo que hace que se encuentre despues.
+export function nombreArchivoCarta(
+  nombreAgente: string,
+  nombreDestinatario: string,
+  extension = 'pdf',
+): string {
   const limpiar = (texto: string) =>
     texto
       .normalize('NFD')
@@ -140,7 +132,7 @@ export function nombreArchivoCarta(nombreAgente: string, nombreDestinatario: str
       .slice(0, 40);
   const agente = limpiar(nombreAgente) || 'Agente';
   const destinatario = limpiar(nombreDestinatario) || 'Destinatario';
-  return `Carta-${agente}-${destinatario}.pdf`;
+  return `Carta-${agente}-${destinatario}.${extension}`;
 }
 
 // El interruptor del agente aplica al PDF y al correo por igual. Cuando lo
