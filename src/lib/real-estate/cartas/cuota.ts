@@ -71,3 +71,64 @@ export async function registrarGeneracion(input: {
     // igual se queda con su carta.
     .catch(() => {});
 }
+
+// -----------------------------------------------------------------------------
+// Freno de seguridad para "regenerar este parrafo".
+//
+// NO es un limite de uso: regenerar es gratis para el agente y no descuenta del
+// tope mensual, porque pulir el texto es justamente lo que queremos que haga. Es
+// proteccion contra automatizacion accidental, un bucle en la pantalla o un
+// clic que se queda pegado. El numero esta alto a proposito: quien pule una
+// carta de verdad no llega ni cerca.
+// -----------------------------------------------------------------------------
+export const CARTA_REGENERACIONES_POR_HORA = 30;
+
+export async function regeneracionesEnLaUltimaHora(cartaId: string): Promise<number> {
+  const desde = new Date(Date.now() - 60 * 60 * 1000);
+  return prisma.cartaGeneracion.count({
+    where: { cartaId, tipo: 'bloque', createdAt: { gte: desde } },
+  });
+}
+
+export async function puedeRegenerar(cartaId: string): Promise<{ permitido: boolean; usadas: number; limite: number }> {
+  const usadas = await regeneracionesEnLaUltimaHora(cartaId);
+  return { permitido: usadas < CARTA_REGENERACIONES_POR_HORA, usadas, limite: CARTA_REGENERACIONES_POR_HORA };
+}
+
+// -----------------------------------------------------------------------------
+// Consumo agregado del mes, para vigilar el gasto sin depender del panel del
+// proveedor. Solo lo lee el administrador.
+// -----------------------------------------------------------------------------
+export type ConsumoIA = {
+  desde: string;
+  cartas: number;
+  bloques: number;
+  tokensEntrada: number;
+  tokensSalida: number;
+  agentesActivos: number;
+};
+
+export async function consumoDelMes(): Promise<ConsumoIA> {
+  const desde = inicioDelMes();
+  const [cartas, bloques, suma, agentes] = await Promise.all([
+    prisma.cartaGeneracion.count({ where: { tipo: 'carta', createdAt: { gte: desde } } }),
+    prisma.cartaGeneracion.count({ where: { tipo: 'bloque', createdAt: { gte: desde } } }),
+    prisma.cartaGeneracion.aggregate({
+      where: { createdAt: { gte: desde } },
+      _sum: { tokensEntrada: true, tokensSalida: true },
+    }),
+    prisma.cartaGeneracion.findMany({
+      where: { createdAt: { gte: desde } },
+      select: { agentId: true },
+      distinct: ['agentId'],
+    }),
+  ]);
+  return {
+    desde: desde.toISOString(),
+    cartas,
+    bloques,
+    tokensEntrada: suma._sum.tokensEntrada ?? 0,
+    tokensSalida: suma._sum.tokensSalida ?? 0,
+    agentesActivos: agentes.length,
+  };
+}

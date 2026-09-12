@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { agenteConCartas, bloquesDeCarta, cartaDelAgente } from '@/lib/real-estate/cartas/servidor';
 import { recolectarDatosDeAgente, recolectarMuestrasDeEstilo } from '@/lib/real-estate/cartas/datos';
 import { regenerarBloque } from '@/lib/real-estate/cartas/generar';
-import { estadoDeCuota, registrarGeneracion } from '@/lib/real-estate/cartas/cuota';
+import { estadoDeCuota, puedeRegenerar, registrarGeneracion } from '@/lib/real-estate/cartas/cuota';
 import { CARTA_BLOQUES, type CartaDestinatarioTipo } from '@/lib/real-estate/cartas/tipos';
 
 // "Regenerar este párrafo" (punto 3.2): rehace UN bloque sin tocar los otros
@@ -29,6 +29,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   // A proposito NO se consulta la cuota: el tope mensual es de cartas nuevas,
   // no de retoques (ver CARTA_LIMITE_MENSUAL). Un agente con el tope agotado
   // sigue puliendo, descargando y enviando lo que ya genero.
+  //
+  // Lo que si hay es un freno de seguridad por carta y por hora. No limita el
+  // uso legitimo: existe para que un bucle en la pantalla o un clic pegado no
+  // dispare cientos de llamadas sin que nadie lo note.
+  const freno = await puedeRegenerar(carta.id);
+  if (!freno.permitido) {
+    console.error(`[cartas] freno de regeneracion | carta=${carta.id} | ${freno.usadas} en la ultima hora`);
+    return NextResponse.json(
+      {
+        error: 'Has regenerado esta carta muchas veces seguidas. Espera unos minutos y vuelve a intentarlo.',
+        code: 'demasiadas_regeneraciones',
+        cuota: await estadoDeCuota(auth.agentId),
+      },
+      { status: 429 },
+    );
+  }
 
   // Se regenera con los datos de HOY, no con los congelados de datosUsados:
   // si el agente cargo inmuebles desde que creo la carta, el parrafo nuevo

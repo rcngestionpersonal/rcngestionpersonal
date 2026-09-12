@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getPlatformStats, shouldUseMockStore, type AgentStatEntry } from '@/lib/real-estate/mock-store';
+import { consumoDelMes } from '@/lib/real-estate/cartas/cuota';
 
 export async function GET(request: NextRequest) {
   const session = await getSessionFromRequest(request);
@@ -89,6 +90,9 @@ export async function GET(request: NextRequest) {
         masCierres: topBy(closesCount),
         totalClosedDeals,
       },
+      // Consumo del generador de cartas en el mes en curso. Se expone aqui para
+      // poder vigilar el gasto sin depender del panel del proveedor.
+      consumoIA: await consumoDelMes().catch(() => null),
     });
   } catch {
     return NextResponse.json({ stats: getPlatformStats(), fallback: true });

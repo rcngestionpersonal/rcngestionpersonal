@@ -1,5 +1,6 @@
 'use client';
 
+import type { ConsumoIA } from '@/lib/real-estate/cartas/cuota';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardShell from '@/components/dashboard/DashboardShell';
@@ -66,6 +67,7 @@ function DashboardPage() {
   const [listings, setListings] = useState<ListingItem[]>([]);
   const [closedDeals, setClosedDeals] = useState<ClosedDealItem[]>([]);
   const [platformStats, setPlatformStats] = useState<PlatformStats | null>(null);
+  const [consumoIA, setConsumoIA] = useState<ConsumoIA | null>(null);
   const [churnMonths, setChurnMonths] = useState<ChurnMonth[] | null>(null);
   const [pointsRanking, setPointsRanking] = useState<PointsRankingEntry[]>([]);
   const [myPoints, setMyPoints] = useState<PointsSummaryClient | null>(null);
@@ -470,6 +472,7 @@ function DashboardPage() {
         if (statsRes.ok) {
           const statsData = await statsRes.json();
           setPlatformStats(statsData.stats as PlatformStats);
+          setConsumoIA((statsData.consumoIA ?? null) as ConsumoIA | null);
         }
 
         const churnRes = await fetch('/api/real-estate/churn', { cache: 'no-store' });
@@ -871,6 +874,7 @@ function DashboardPage() {
           bootstrapDemo={bootstrapDemo}
           bootstrapping={bootstrapping}
           platformStats={platformStats}
+          consumoIA={consumoIA}
           myPoints={myPoints}
           agentBreakdown={agentBreakdown}
           myAgent={myAgent}

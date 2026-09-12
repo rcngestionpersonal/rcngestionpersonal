@@ -32,7 +32,8 @@ describe('filas del listado de contratos', () => {
     }
   });
 
-// Un tipo retirado sigue teniendo definición, justo para que estas filas se  // dibujen y el contrato archivado se pueda abrir y descargar.
+  // Un tipo retirado sigue teniendo definición, justo para que estas filas se
+  // dibujen y el contrato archivado se pueda abrir y descargar.
   it('el corretaje se muestra normal, no degradado', () => {
     const [fila] = filasTolerantes([contrato({ tipo: 'CORRETAJE' })], () => {});
     expect(fila.tipoConocido).toBe(true);

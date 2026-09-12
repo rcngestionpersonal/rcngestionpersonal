@@ -9,11 +9,12 @@ import {
   type CartaDatosAgente,
   type CartaDestinatarioTipo,
 } from './tipos';
+import { auditarInvencion } from './auditoria';
 
 // Generacion del texto de la carta.
 //
 // Usa el mismo proveedor que ya usa el proyecto para NLP (ver
-// src/lib/real-estate/nlp.ts): OPENAI_API_KEY / OPENAI_MODEL. Sin clave
+// src/lib/real-estate/nlp.ts) con la clave OPENAI_API_KEY. Sin clave
 // configurada NO se rompe la feature: cae a un borrador armado con plantillas
 // sobre los mismos datos reales, que el agente edita igual. Una carta sin IA
 // es peor que una con IA; una pantalla rota es peor que las dos.
@@ -41,10 +42,20 @@ export type ResultadoGeneracion = {
   motivoRespaldo?: MotivoFallo;
 };
 
+// El modelo de las cartas se FIJA aqui y NO se lee de OPENAI_MODEL.
+//
+// Esa variable la comparte nlp.ts, que hace otra cosa y puede querer otro
+// modelo; y ademas estaba puesta en un valor distinto en local que en
+// produccion, de modo que el mismo agente habria recibido cartas escritas por
+// modelos distintos segun donde corriera. El costo de la feature esta calculado
+// sobre este modelo concreto, asi que cambiarlo es una decision, no un efecto
+// colateral de tocar una variable de entorno ajena.
+export const CARTA_MODELO = 'gpt-4.1-mini';
+
 function modeloConfigurado(): { apiKey: string; modelo: string } | null {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
-  return { apiKey, modelo: process.env.OPENAI_MODEL ?? 'gpt-4.1-mini' };
+  return { apiKey, modelo: process.env.OPENAI_MODEL_CARTAS || CARTA_MODELO };
 }
 
 // El bloque de datos que viaja al modelo. Se escribe como hechos numerados y
@@ -89,11 +100,28 @@ function instruccionDelSistema(datos: CartaDatosAgente, muestras: string[]): str
   ];
 
   if (escaso) {
+    // Ejemplos negativos literales. Sin ellos el modelo cumplia la regla a
+    // medias: no inventaba trayectoria, pero escribia "no manejo inmuebles
+    // activos" o "cuento con un cierre registrado", que es exactamente lo que
+    // no debe llegarle al destinatario. Una instruccion abstracta se interpreta;
+    // un ejemplo de lo que NO se escribe, no.
     partes.push(
       '',
-      'ESTE AGENTE TIENE CARTERA CHICA. No menciones cantidad de inmuebles ni de cierres,',
-      'ni siquiera para decir que esta empezando. Construye el texto sobre su especialidad,',
-      'las zonas que conoce, su forma de trabajar y su disposicion profesional.',
+      'ESTE AGENTE TIENE CARTERA CHICA. PROHIBIDO mencionar la cantidad de inmuebles',
+      'o de cierres, en cualquier forma: ni el numero, ni en letras, ni en singular,',
+      'ni en negativo, ni como algo que va a crecer.',
+      '',
+      'NO escribas nunca frases como estas, ni parecidas:',
+      '  "En este momento no manejo inmuebles activos en cartera."',
+      '  "Cuento con un cierre registrado en la plataforma."',
+      '  "Mi cartera esta compuesta por un departamento y una casa."',
+      '  "Estoy comenzando mi trayectoria." / "Estoy en un nivel inicial."',
+      '  "Aun no tengo propiedades, pero..."',
+      '',
+      'En el bloque "experiencia" habla de su especialidad y de las zonas que conoce.',
+      'En el bloque "inventario" habla de que busca lo que el destinatario necesita',
+      'y de como trabaja para conseguirlo, sin decir cuanto tiene hoy.',
+      'No menciones tampoco el nivel que alcanzo en la plataforma.',
     );
   }
 
@@ -150,11 +178,20 @@ type RespuestaChat = {
 // Por eso esta funcion no lanza: devuelve null y quien llama cae a la
 // plantilla. Se distingue el motivo para poder verlo en los logs sin exponerlo
 // en la pantalla.
-export type MotivoFallo = 'sin_clave' | 'http' | 'red' | 'respuesta_vacia';
+export type MotivoFallo = 'sin_clave' | 'http' | 'red' | 'respuesta_vacia' | 'auditoria';
 
-// Un modelo que tarda mas que esto ya arruino la espera del agente: es mejor
-// entregarle el borrador de plantilla al toque que dejarlo mirando un spinner.
-const TIMEOUT_MS = 25_000;
+// Toda caida al borrador de plantilla deja UNA linea en el log, con el motivo.
+// Sirve para ver si el respaldo se esta activando de forma recurrente, que es
+// un problema del proveedor y no del agente. Nunca se registra la clave ni el
+// contenido de la carta.
+function registrarRespaldo(motivo: MotivoFallo, detalle?: string): void {
+  console.error(`[cartas] respaldo a plantilla | motivo=${motivo}${detalle ? ` | ${detalle}` : ''}`);
+}
+
+// 20 segundos. Un modelo que tarda mas que esto ya arruino la espera: el agente
+// esta frente a su cliente y prefiere el borrador de plantilla al toque antes
+// que seguir mirando un spinner.
+const TIMEOUT_MS = 20_000;
 // Un solo reintento, y solo para fallas transitorias (429 y 5xx). Reintentar
 // un 400 o un 401 es quemar tiempo: esos no se arreglan solos.
 const REINTENTOS = 1;
@@ -227,6 +264,20 @@ async function llamarModelo(
   return { ok: false, motivo: ultimoMotivo };
 }
 
+// Segundo intento cuando la auditoría encuentra algo. Se le devuelve al modelo
+// lo que hizo mal, con sus propias frases, en vez de repetirle la regla que ya
+// se saltó una vez.
+function correccionTrasAuditoria(hallazgos: string[]): string {
+  return [
+    '',
+    'TU RESPUESTA ANTERIOR INCUMPLIO LAS REGLAS. Problemas detectados:',
+    ...hallazgos.map((h) => `  - ${h}`),
+    '',
+    'Reescribe la carta COMPLETA corrigiendo exactamente eso. No expliques el',
+    'cambio, no te disculpes: devuelve solo el JSON con los seis bloques.',
+  ].join('\n');
+}
+
 export async function generarCarta(entrada: EntradaGeneracion): Promise<ResultadoGeneracion> {
   const sistema = instruccionDelSistema(entrada.datos, entrada.muestrasDeEstilo ?? []);
   const usuario = instruccionDeUsuario(entrada);
@@ -236,6 +287,7 @@ export async function generarCarta(entrada: EntradaGeneracion): Promise<Resultad
   // igual se lleva un borrador armado con sus datos reales. La carta puede
   // salir mas simple, nunca puede no salir.
   if (!respuesta.ok) {
+    registrarRespaldo(respuesta.motivo);
     return {
       bloques: borradorDePlantilla(entrada),
       modelo: null,
@@ -246,35 +298,81 @@ export async function generarCarta(entrada: EntradaGeneracion): Promise<Resultad
     };
   }
 
+  let entradaTotal = respuesta.entrada;
+  let salidaTotal = respuesta.salida;
+
   try {
-    const bloques = normalizarBloques(JSON.parse(respuesta.contenido));
+    let bloques = normalizarBloques(JSON.parse(respuesta.contenido));
     // Una respuesta a la que le falten bloques es peor que la plantilla: se
     // prefiere un borrador completo y editable antes que una carta con huecos.
     if (CARTA_BLOQUES.some((c) => !bloques[c].trim())) {
-      console.error('[cartas] el generador devolvio bloques incompletos - se usa la plantilla');
+      registrarRespaldo('respuesta_vacia', 'bloques incompletos');
       return {
         bloques: borradorDePlantilla(entrada),
         modelo: respuesta.modelo,
-        tokensEntrada: respuesta.entrada,
-        tokensSalida: respuesta.salida,
+        tokensEntrada: entradaTotal,
+        tokensSalida: salidaTotal,
         usoPlantilla: true,
         motivoRespaldo: 'respuesta_vacia',
       };
     }
+
+    // Red de seguridad del punto 3.4: el prompt pide no inventar, pero eso es
+    // una peticion. Esto lo comprueba. Si algo pasa, se le devuelve al modelo
+    // lo que hizo mal y se le da UNA segunda oportunidad.
+    let hallazgos = auditarInvencion(bloques, entrada.datos);
+    if (hallazgos.length > 0) {
+      console.error(`[cartas] auditoría: ${hallazgos.length} hallazgos en el primer intento - se reintenta`);
+      const segunda = await llamarModelo(sistema, usuario + correccionTrasAuditoria(hallazgos));
+      if (segunda.ok) {
+        entradaTotal = (entradaTotal ?? 0) + (segunda.entrada ?? 0);
+        salidaTotal = (salidaTotal ?? 0) + (segunda.salida ?? 0);
+        try {
+          const corregidos = normalizarBloques(JSON.parse(segunda.contenido));
+          if (!CARTA_BLOQUES.some((c) => !corregidos[c].trim())) {
+            const restantes = auditarInvencion(corregidos, entrada.datos);
+            if (restantes.length === 0) {
+              bloques = corregidos;
+              hallazgos = [];
+            } else {
+              hallazgos = restantes;
+            }
+          }
+        } catch {
+          // Se conserva el diagnostico del primer intento.
+        }
+      }
+    }
+
+    // Sigue inventando tras el reintento: gana la plantilla, que es
+    // determinista y no puede afirmar nada que no venga de los datos. Una carta
+    // mas sobria es infinitamente mejor que una que expone al agente.
+    if (hallazgos.length > 0) {
+      registrarRespaldo('auditoria', hallazgos.join(' ; '));
+      return {
+        bloques: borradorDePlantilla(entrada),
+        modelo: respuesta.modelo,
+        tokensEntrada: entradaTotal,
+        tokensSalida: salidaTotal,
+        usoPlantilla: true,
+        motivoRespaldo: 'auditoria',
+      };
+    }
+
     return {
       bloques,
       modelo: respuesta.modelo,
-      tokensEntrada: respuesta.entrada,
-      tokensSalida: respuesta.salida,
+      tokensEntrada: entradaTotal,
+      tokensSalida: salidaTotal,
       usoPlantilla: false,
     };
   } catch {
-    console.error('[cartas] el generador devolvio un JSON invalido - se usa la plantilla');
+    registrarRespaldo('respuesta_vacia', 'JSON inválido');
     return {
       bloques: borradorDePlantilla(entrada),
       modelo: respuesta.modelo,
-      tokensEntrada: respuesta.entrada,
-      tokensSalida: respuesta.salida,
+      tokensEntrada: entradaTotal,
+      tokensSalida: salidaTotal,
       usoPlantilla: true,
       motivoRespaldo: 'respuesta_vacia',
     };

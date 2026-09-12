@@ -5,6 +5,7 @@ import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import { ProgressRing } from '../CardKit';
 import { IconBell, IconClipboard, IconHouse, IconPhoneCheck, IconStar, IconTarget, IconTrophy } from '../icons';
 import { evaluateNextPlay, type NextPlayInput, type NextPlayState } from '@/lib/real-estate/next-play';
+import type { ConsumoIA } from '@/lib/real-estate/cartas/cuota';
 import { POINT_ACTIONS, levelColorFor, levelForPoints, nextLevelForPoints, progressWithinLevel, type PointActionKey } from '@/lib/real-estate/points';
 import type {
   AgentDashboardBreakdown,
@@ -36,6 +37,7 @@ export default function GestionTab(
     bootstrapDemo: () => void;
     bootstrapping: boolean;
     platformStats?: PlatformStats | null;
+    consumoIA?: ConsumoIA | null;
     myPoints: PointsSummaryClient | null;
     agentBreakdown: AgentDashboardBreakdown;
     pointsRanking: PointsRankingEntry[];
@@ -69,6 +71,7 @@ export default function GestionTab(
       bootstrapDemo={props.bootstrapDemo}
       bootstrapping={props.bootstrapping}
       platformStats={props.platformStats}
+      consumoIA={props.consumoIA}
     />
   );
 }
@@ -507,6 +510,7 @@ function AdminGestionView({
   bootstrapDemo,
   bootstrapping,
   platformStats,
+  consumoIA,
 }: CommonProps & {
   metrics: DashboardMetrics | null;
   topZones: TopZone[];
@@ -514,6 +518,7 @@ function AdminGestionView({
   bootstrapDemo: () => void;
   bootstrapping: boolean;
   platformStats?: PlatformStats | null;
+  consumoIA?: ConsumoIA | null;
 }) {
   const { t, lang } = useLanguage();
 
@@ -539,6 +544,8 @@ function AdminGestionView({
         <KpiCard label={t('kpi.trials.title')} value={String(metrics?.trialAgents ?? 0)} detail={t('kpi.trials.detail')} tone="cyan" />
         <KpiCard label={t('kpi.suscriptores.title')} value={String(metrics?.paidAgents ?? 0)} detail={t('kpi.suscriptores.detail')} tone="pink" />
       </section>
+
+      {consumoIA ? <ConsumoGenerador datos={consumoIA} /> : null}
 
       <RecentAchievements deals={recentClosedDeals} t={t} lang={lang} />
 
@@ -659,5 +666,39 @@ function KpiCard({
       <p className="mt-2 text-2xl font-bold text-text">{value}</p>
       <p className="mt-1 text-xs text-text-2">{detail}</p>
     </article>
+  );
+}
+
+// Consumo del generador de cartas en el mes en curso. Vive en el panel del
+// administrador para poder vigilar el gasto sin entrar al panel del proveedor,
+// que es donde uno se entera tarde.
+function ConsumoGenerador({ datos }: { datos: ConsumoIA }) {
+  const total = datos.cartas + datos.bloques;
+  const porCarta = datos.cartas > 0 ? Math.round(datos.tokensEntrada / datos.cartas) : 0;
+  const desde = new Date(datos.desde).toLocaleDateString('es-EC', { day: 'numeric', month: 'long' });
+  return (
+    <section className="fade-up rounded-3xl border border-line bg-surface p-5" style={{ animationDelay: '100ms' }}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-sm font-bold text-text">Generador de cartas</h2>
+        <p className="text-[11px] text-text-3">desde el {desde}</p>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {[
+          ['Cartas generadas', String(datos.cartas)],
+          ['Párrafos regenerados', String(datos.bloques)],
+          ['Tokens de entrada', datos.tokensEntrada.toLocaleString('es-EC')],
+          ['Tokens de salida', datos.tokensSalida.toLocaleString('es-EC')],
+        ].map(([etiqueta, valor]) => (
+          <div key={etiqueta}>
+            <p className="text-[11px] uppercase tracking-[0.08em] text-text-3">{etiqueta}</p>
+            <p className="mt-0.5 text-lg font-bold text-text">{valor}</p>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-[11.5px] leading-relaxed text-text-2">
+        {total} llamadas de {datos.agentesActivos} agentes
+        {porCarta > 0 ? `, ${porCarta} tokens de entrada por carta` : ''}.
+      </p>
+    </section>
   );
 }
