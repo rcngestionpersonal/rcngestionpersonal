@@ -212,22 +212,30 @@ export default function CartaEditor({
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         {/* ---- Bloques editables (puntos 3.1 y 3.2) ---- */}
         <div className="space-y-3">
-          {CARTA_BLOQUES.map((clave) => (
+          {/* La apertura solo existe si el agente escribio un contexto. Sin el,
+              mostrar un bloque vacio invita a rellenarlo con un encuentro que
+              no ocurrio. Si una carta vieja trae texto ahi, se muestra igual
+              para que el agente pueda verlo y borrarlo. */}
+          {CARTA_BLOQUES.filter((clave) => clave !== 'apertura' || Boolean(carta.contexto?.trim()) || Boolean(bloques.apertura.trim())).map((clave) => (
             <div key={clave} className="rounded-2xl border border-line bg-surface p-4">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex min-h-[36px] items-center justify-between gap-2">
                 <p className="text-xs font-bold uppercase tracking-[0.1em] text-text-2">{t(`cartas.bloque.${clave}`)}</p>
-                <button
-                  onClick={() => void regenerar(clave)}
-                  disabled={regenerando !== null}
-                  className="min-h-[36px] rounded-lg border border-line-strong px-3 text-xs font-semibold text-text-2 transition hover:bg-surface-2 disabled:opacity-50"
-                >
-                  {regenerando === clave ? t('cartas.regenerando') : t('cartas.regenerarParrafo')}
-                </button>
+                {/* El saludo lo arma el sistema con reglas fijas: no hay nada
+                    que "regenerar" con el modelo. */}
+                {clave !== 'saludo' && (clave !== 'apertura' || Boolean(carta.contexto?.trim())) ? (
+                  <button
+                    onClick={() => void regenerar(clave)}
+                    disabled={regenerando !== null}
+                    className="min-h-[36px] rounded-lg border border-line-strong px-3 text-xs font-semibold text-text-2 transition hover:bg-surface-2 disabled:opacity-50"
+                  >
+                    {regenerando === clave ? t('cartas.regenerando') : t('cartas.regenerarParrafo')}
+                  </button>
+                ) : null}
               </div>
               <textarea
                 value={bloques[clave]}
                 onChange={(e) => editarBloque(clave, e.target.value)}
-                rows={clave === 'saludo' || clave === 'cierre' ? 2 : 4}
+                rows={clave === 'saludo' ? 1 : clave === 'apertura' || clave === 'cierre' ? 2 : 4}
                 aria-label={t(`cartas.bloque.${clave}`)}
                 className="mt-2 w-full rounded-xl border border-line-strong bg-surface-2 px-3.5 py-3 text-sm leading-relaxed text-text outline-none transition focus:border-brand"
               />

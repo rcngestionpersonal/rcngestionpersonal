@@ -18,7 +18,7 @@ const DATOS: CartaDatosAgente = {
   inmueblesActivos: 8,
   composicionInventario: [{ tipo: 'casa', cantidad: 8 }],
   cierresRegistrados: 5,
-  aniosDeExperiencia: 6,
+  aniosExperienciaDeclarados: 6,
   licencia: '9012',
   verificado: true,
 };
@@ -30,10 +30,13 @@ const ENTRADA = {
 };
 
 function esBorradorUsable(bloques: Record<string, string>) {
-  // Completo: los seis bloques con texto, y con los datos reales adentro.
+  // Completo: todos los bloques con texto, y con los datos reales adentro. La
+  // apertura es la excepcion: sin contexto va vacia a proposito.
   for (const clave of CARTA_BLOQUES) {
+    if (clave === 'apertura') continue;
     expect(bloques[clave]?.trim(), `el bloque "${clave}" no puede venir vacío`).toBeTruthy();
   }
+  expect(bloques.apertura).toBe('');
   const texto = bloquesATexto(bloques as never);
   expect(texto).toContain('Lucía Bermeo');
   expect(texto).toContain('Andrés Cifuentes');
@@ -132,8 +135,41 @@ describe('cartas: respaldo cuando el generador falla', () => {
     const r = await generarCarta(ENTRADA);
 
     expect(r.usoPlantilla).toBe(false);
-    expect(r.bloques.saludo).toBe('Párrafo saludo escrito por el modelo.');
+    expect(r.bloques.presentacion).toBe('Párrafo presentacion escrito por el modelo.');
     expect(r.tokensEntrada).toBe(812);
     expect(r.tokensSalida).toBe(430);
+  });
+
+  it('el saludo y la apertura NO los decide el modelo', async () => {
+    // Lo que paso en produccion: el modelo fundio saludo y contexto en una
+    // linea. Aunque lo vuelva a hacer, la carta sale con el saludo correcto y,
+    // sin contexto, sin apertura.
+    const delModelo = {
+      ...Object.fromEntries(CARTA_BLOQUES.map((c) => [c, `Párrafo ${c} escrito por el modelo.`])),
+      saludo: 'Andrés Cifuentes, un gusto saludarlo tras nuestra conversación.',
+      apertura: 'Fue un gusto conocerlo en la feria.',
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(Response.json({ choices: [{ message: { content: JSON.stringify(delModelo) } }] })),
+    );
+
+    const r = await generarCarta(ENTRADA);
+
+    expect(r.bloques.saludo).toBe('Estimado Andrés Cifuentes,');
+    expect(r.bloques.apertura).toBe('');
+  });
+
+  it('con contexto, exige la apertura: si el modelo no la escribe, cae a la plantilla', async () => {
+    const delModelo = { ...Object.fromEntries(CARTA_BLOQUES.map((c) => [c, `Párrafo ${c} escrito por el modelo.`])), apertura: '' };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(Response.json({ choices: [{ message: { content: JSON.stringify(delModelo) } }] })),
+    );
+
+    const r = await generarCarta({ ...ENTRADA, contexto: 'nos conocimos en la feria' });
+
+    expect(r.usoPlantilla).toBe(true);
+    expect(r.bloques.apertura).toBe('Nos conocimos en la feria.');
   });
 });

@@ -1,41 +1,57 @@
 // Banco de pruebas del generador de cartas CONTRA EL MODELO REAL.
 //
-// POR QUE EXISTE: las reglas de cero invencion vivian en el prompt pero nunca
-// se habian ejercitado. Un prompt que dice "no inventes" no es una garantia:
-// hay que mirar lo que el modelo escribe de verdad, sobre todo con un agente
-// que no tiene nada que presumir todavia.
+// POR QUE EXISTE: las reglas de cero invencion viven en el prompt y en la
+// auditoria, pero un prompt que dice "no inventes" no es una garantia: hay que
+// mirar lo que el modelo escribe de verdad, sobre todo con un agente que no
+// tiene nada que presumir todavia.
 //
 // No toca la base de datos: arma los datos del agente a mano.
 //
 //   npx tsx --env-file=.env.local scripts/probar-generador-cartas.ts
 //   npx tsx --env-file=.env.local scripts/probar-generador-cartas.ts --json salida.json
 import { writeFileSync } from 'node:fs';
-import { generarCarta, CARTA_MODELO } from '@/lib/real-estate/cartas/generar';
+import { generarCarta, CARTA_MODELO, type ResultadoGeneracion } from '@/lib/real-estate/cartas/generar';
 import { auditarInvencion } from '@/lib/real-estate/cartas/auditoria';
-import { CARTA_DESTINATARIOS, type CartaDatosAgente, type CartaDestinatarioTipo } from '@/lib/real-estate/cartas/tipos';
+import { resolverSaludo } from '@/lib/real-estate/cartas/saludo';
+import { bloquesATexto, type CartaDatosAgente, type CartaDestinatarioTipo } from '@/lib/real-estate/cartas/tipos';
 
 const BASE: CartaDatosAgente = {
   nombre: 'Daniela Ordóñez',
   empresa: null,
   aniosEnRedinmo: 0,
   anioIngreso: 2026,
-  nivel: 'Inicial',
+  nivel: 'Agente Inicial',
   zonas: ['Cumbayá', 'Tumbaco'],
   especialidad: 'venta',
   inmueblesActivos: 0,
   composicionInventario: [],
   cierresRegistrados: 0,
-  aniosDeExperiencia: null,
+  aniosExperienciaDeclarados: null,
   licencia: null,
   verificado: false,
 };
 
-const ESCENARIOS: Array<{ clave: string; titulo: string; datos: CartaDatosAgente }> = [
-  {
-    clave: 'a',
-    titulo: 'Agente con 0 cierres y 0 inmuebles',
-    datos: BASE,
-  },
+// El agente de la carta que salio mal en produccion, con sus datos reales:
+// 3 cierres, 4 inmuebles y 15 años DECLARADOS en su carnet.
+const LEX_LUTOR: CartaDatosAgente = {
+  ...BASE,
+  nombre: 'Lex Lutor',
+  empresa: 'Bienes 4A',
+  nivel: 'Agente Activo',
+  zonas: ['Norte', 'Centro-Norte', 'Cumbayá-Tumbaco'],
+  inmueblesActivos: 4,
+  composicionInventario: [
+    { tipo: 'departamento', cantidad: 3 },
+    { tipo: 'local comercial', cantidad: 1 },
+  ],
+  cierresRegistrados: 3,
+  aniosExperienciaDeclarados: 15,
+  licencia: '3156',
+  verificado: true,
+};
+
+const ESCENARIOS_INVENCION: Array<{ clave: string; titulo: string; datos: CartaDatosAgente }> = [
+  { clave: 'a', titulo: 'Agente con 0 cierres y 0 inmuebles', datos: BASE },
   {
     clave: 'b',
     titulo: 'Agente con 1 cierre y 2 inmuebles',
@@ -62,7 +78,7 @@ const ESCENARIOS: Array<{ clave: string; titulo: string; datos: CartaDatosAgente
       empresa: 'Benalcázar Propiedades',
       aniosEnRedinmo: 3,
       anioIngreso: 2023,
-      nivel: 'Avanzado',
+      nivel: 'Agente Elite',
       zonas: ['La Carolina', 'González Suárez', 'Bellavista'],
       especialidad: 'venta y arriendo',
       inmueblesActivos: 24,
@@ -72,16 +88,29 @@ const ESCENARIOS: Array<{ clave: string; titulo: string; datos: CartaDatosAgente
         { tipo: 'oficina', cantidad: 4 },
       ],
       cierresRegistrados: 31,
-      aniosDeExperiencia: 9,
+      aniosExperienciaDeclarados: 9,
       licencia: 'CBR-2210',
       verificado: true,
     },
   },
 ];
 
+// Un destinatario por tipo, elegidos para cubrir tambien los casos del saludo.
+const DESTINATARIOS: Array<{ tipo: CartaDestinatarioTipo; nombre: string; cargo: string | null; contexto: string }> = [
+  {
+    tipo: 'PROPIETARIO',
+    nombre: 'ING. GABRIELA MUÑOZ',
+    cargo: 'GERENTE',
+    contexto: 'En virtud de nuestra conversación en la convención financiera en Guayaquil',
+  },
+  { tipo: 'COLEGA', nombre: 'Patricio Andrade', cargo: null, contexto: 'nos conocimos en el curso de avalúos de la Cámara de la Construcción' },
+  { tipo: 'CONSTRUCTORA', nombre: 'Constructora Andrade S.A.', cargo: null, contexto: 'vi su proyecto de Cumbayá en la feria de vivienda de Quito' },
+  { tipo: 'EMPRESA', nombre: 'Alex Morán', cargo: 'Gerente Administrativo', contexto: 'su asistente me comentó que buscan oficinas en el norte de Quito' },
+];
+
 type Fila = {
+  seccion: string;
   caso: string;
-  destinatario: string;
   usoPlantilla: boolean;
   motivo?: string;
   tokensEntrada: number | null;
@@ -91,14 +120,62 @@ type Fila = {
   texto: Record<string, string>;
 };
 
+function estado(r: ResultadoGeneracion, ms: number, hallazgos: string[]): string {
+  const origen = r.usoPlantilla ? `PLANTILLA (${r.motivoRespaldo})` : 'modelo';
+  const auditoria = hallazgos.length === 0 ? 'auditoria limpia' : `AUDITORIA: ${hallazgos.join(' | ')}`;
+  return `   ${origen} | ${ms} ms | tokens ${r.tokensEntrada}/${r.tokensSalida} | ${auditoria}`;
+}
+
 async function main() {
   const guardarEn = process.argv.includes('--json') ? process.argv[process.argv.indexOf('--json') + 1] : null;
   console.log(`modelo: ${CARTA_MODELO}\n`);
-
   const filas: Fila[] = [];
 
-  // 1) Cero invencion: los tres escenarios, con el destinatario mas exigente.
-  for (const esc of ESCENARIOS) {
+  // ---- 1) Cuatro tipos, con y sin contexto: primeras cinco lineas ----
+  console.log('################ 1. APERTURA: CUATRO TIPOS, CON Y SIN CONTEXTO ################\n');
+  for (const d of DESTINATARIOS) {
+    for (const conContexto of [true, false]) {
+      const contexto = conContexto ? d.contexto : null;
+      const t0 = Date.now();
+      const r = await generarCarta({
+        datos: LEX_LUTOR,
+        destinatarioTipo: d.tipo,
+        destinatarioNombre: d.nombre,
+        destinatarioCargo: d.cargo,
+        contexto,
+      });
+      const ms = Date.now() - t0;
+      const saludo = resolverSaludo(d.nombre, d.cargo);
+      const hallazgos = auditarInvencion(r.bloques, LEX_LUTOR, { contexto, trato: saludo.trato, nombreDestinatario: saludo.tratamiento });
+      const caso = `${d.tipo} ${conContexto ? 'CON' : 'SIN'} contexto`;
+      filas.push({ seccion: 'apertura', caso, usoPlantilla: r.usoPlantilla, motivo: r.motivoRespaldo, tokensEntrada: r.tokensEntrada, tokensSalida: r.tokensSalida, ms, hallazgos, texto: r.bloques });
+
+      console.log(`=== ${caso} | destinatario: "${d.nombre}"${d.cargo ? ` (cargo "${d.cargo}")` : ''} ===`);
+      console.log(estado(r, ms, hallazgos));
+      console.log('   ----- primeras cinco lineas -----');
+      for (const linea of bloquesATexto(r.bloques).split('\n').slice(0, 5)) console.log(`   | ${linea}`);
+      console.log();
+    }
+  }
+
+  // ---- 2) Saludo: los cinco casos pedidos ----
+  console.log('################ 2. SALUDO ################\n');
+  const CASOS_SALUDO: Array<[string, string, string | null]> = [
+    ['nombre femenino', 'Verónica Paredes', null],
+    ['nombre masculino', 'Patricio Andrade', null],
+    ['nombre ambiguo', 'Alex Morán', null],
+    ['destinatario con título', 'ING. GABRIELA MUÑOZ', 'GERENTE'],
+    ['destinatario empresa', 'Constructora Andrade S.A.', null],
+  ];
+  for (const [caso, nombre, cargo] of CASOS_SALUDO) {
+    const s = resolverSaludo(nombre, cargo);
+    console.log(`   ${caso.padEnd(24)} "${nombre}"${cargo ? ` + cargo "${cargo}"` : ''}  ->  ${s.texto}   [${s.trato}]`);
+  }
+  console.log();
+
+  // ---- 3) Cero invencion contra el modelo real ----
+  console.log('################ 3. CERO INVENCION ################\n');
+  for (const esc of ESCENARIOS_INVENCION) {
     const t0 = Date.now();
     const r = await generarCarta({
       datos: esc.datos,
@@ -107,69 +184,36 @@ async function main() {
       contexto: null,
     });
     const ms = Date.now() - t0;
-    const hallazgos = auditarInvencion(r.bloques, esc.datos);
-    filas.push({
-      caso: `${esc.clave}) ${esc.titulo}`,
-      destinatario: 'PROPIETARIO',
-      usoPlantilla: r.usoPlantilla,
-      motivo: r.motivoRespaldo,
-      tokensEntrada: r.tokensEntrada,
-      tokensSalida: r.tokensSalida,
-      ms,
-      hallazgos,
-      texto: r.bloques,
-    });
+    const hallazgos = auditarInvencion(r.bloques, esc.datos, { contexto: null, trato: 'masculino', nombreDestinatario: 'Sr. Patricio Andrade' });
+    filas.push({ seccion: 'invencion', caso: `${esc.clave}) ${esc.titulo}`, usoPlantilla: r.usoPlantilla, motivo: r.motivoRespaldo, tokensEntrada: r.tokensEntrada, tokensSalida: r.tokensSalida, ms, hallazgos, texto: r.bloques });
     console.log(`=== ${esc.clave}) ${esc.titulo} ===`);
-    console.log(`   plantilla: ${r.usoPlantilla ? `SI (${r.motivoRespaldo})` : 'no'} | ${ms} ms | tokens ${r.tokensEntrada}/${r.tokensSalida}`);
-    console.log(hallazgos.length === 0 ? '   AUDITORIA: limpia' : `   AUDITORIA: ${hallazgos.length} hallazgos\n     - ${hallazgos.join('\n     - ')}`);
-    for (const [k, v] of Object.entries(r.bloques)) console.log(`   [${k}] ${v}`);
+    console.log(estado(r, ms, hallazgos));
+    for (const [k, v] of Object.entries(r.bloques)) if (v) console.log(`   [${k}] ${v}`);
     console.log();
   }
 
-  // 2) Los cuatro destinatarios, sobre el agente con historial.
-  const conHistorial = ESCENARIOS[2].datos;
-  for (const tipo of CARTA_DESTINATARIOS as readonly CartaDestinatarioTipo[]) {
-    const t0 = Date.now();
-    const r = await generarCarta({
-      datos: conHistorial,
-      destinatarioTipo: tipo,
-      destinatarioNombre: 'Sra. Verónica Paredes',
-      destinatarioCargo: tipo === 'EMPRESA' ? 'Gerente Administrativa' : null,
-      contexto: null,
-    });
-    const ms = Date.now() - t0;
-    const hallazgos = auditarInvencion(r.bloques, conHistorial);
-    filas.push({
-      caso: `destinatario ${tipo}`,
-      destinatario: tipo,
-      usoPlantilla: r.usoPlantilla,
-      motivo: r.motivoRespaldo,
-      tokensEntrada: r.tokensEntrada,
-      tokensSalida: r.tokensSalida,
-      ms,
-      hallazgos,
-      texto: r.bloques,
-    });
-    console.log(`=== destinatario ${tipo} ===`);
-    console.log(`   plantilla: ${r.usoPlantilla ? `SI (${r.motivoRespaldo})` : 'no'} | ${ms} ms | tokens ${r.tokensEntrada}/${r.tokensSalida}`);
-    console.log(hallazgos.length === 0 ? '   AUDITORIA: limpia' : `   AUDITORIA: ${hallazgos.join(' | ')}`);
-    console.log(`   [propuesta] ${r.bloques.propuesta}`);
-    console.log(`   [cierre] ${r.bloques.cierre}`);
+  // ---- 4) La auditoria frente al texto que salio en produccion ----
+  console.log('################ 4. AUDITORIA SOBRE EL TEXTO DE PRODUCCION ################\n');
+  const TEXTO_PRODUCCION =
+    'Cuento con 15 años de experiencia en el sector y he registrado tres cierres en la plataforma Redinmo.io como Agente Activo. Mi licencia profesional es la número 3156 y mi identidad y teléfono están verificados en la plataforma.';
+  const vacia = { saludo: '', apertura: '', presentacion: '', experiencia: TEXTO_PRODUCCION, inventario: '', propuesta: '', cierre: '' };
+  for (const [caso, datos] of [
+    ['con los 15 años declarados (dato real)', LEX_LUTOR],
+    ['si NO hubiera declarado años', { ...LEX_LUTOR, aniosExperienciaDeclarados: null }],
+  ] as const) {
+    const h = auditarInvencion(vacia, datos);
+    console.log(`   ${caso}:`);
+    for (const x of h) console.log(`     - ${x}`);
     console.log();
   }
 
-  const conModelo = filas.filter((f) => !f.usoPlantilla && f.tokensEntrada !== null);
+  const conModelo = filas.filter((f) => f.tokensEntrada !== null);
   if (conModelo.length > 0) {
-    const e = conModelo.reduce((s, f) => s + (f.tokensEntrada ?? 0), 0) / conModelo.length;
-    const s = conModelo.reduce((a, f) => a + (f.tokensSalida ?? 0), 0) / conModelo.length;
-    const ms = conModelo.reduce((a, f) => a + f.ms, 0) / conModelo.length;
-    console.log('--- CONSUMO MEDIDO ---');
-    console.log(`generaciones con modelo: ${conModelo.length} de ${filas.length}`);
-    console.log(`tokens de entrada, promedio: ${Math.round(e)}`);
-    console.log(`tokens de salida, promedio:  ${Math.round(s)}`);
-    console.log(`latencia, promedio:          ${Math.round(ms)} ms`);
-    const totalHallazgos = filas.reduce((a, f) => a + f.hallazgos.length, 0);
-    console.log(`hallazgos de auditoria:      ${totalHallazgos}`);
+    console.log('--- RESUMEN ---');
+    console.log(`generaciones: ${filas.length} | con texto del modelo: ${filas.filter((f) => !f.usoPlantilla).length} | a plantilla: ${filas.filter((f) => f.usoPlantilla).length}`);
+    console.log(`tokens de entrada, promedio: ${Math.round(conModelo.reduce((s, f) => s + (f.tokensEntrada ?? 0), 0) / conModelo.length)}`);
+    console.log(`tokens de salida, promedio:  ${Math.round(conModelo.reduce((s, f) => s + (f.tokensSalida ?? 0), 0) / conModelo.length)}`);
+    console.log(`hallazgos en las cartas entregadas: ${filas.reduce((a, f) => a + f.hallazgos.length, 0)}`);
   }
 
   if (guardarEn) {

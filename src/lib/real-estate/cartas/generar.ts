@@ -1,15 +1,18 @@
 import {
   CARTA_BLOQUES,
+  CARTA_BLOQUES_DEL_MODELO,
   CARTA_BLOQUE_INSTRUCCION,
   CARTA_DESTINATARIO_CONFIG,
-  inventarioEsEscaso,
+  cierresMencionables,
+  inventarioMencionable,
   normalizarBloques,
   type CartaBloqueClave,
   type CartaBloques,
   type CartaDatosAgente,
   type CartaDestinatarioTipo,
 } from './tipos';
-import { auditarInvencion } from './auditoria';
+import { auditarInvencion, type ContextoAuditoria } from './auditoria';
+import { resolverSaludo, type SaludoResuelto, type TratoDestinatario } from './saludo';
 
 // Generacion del texto de la carta.
 //
@@ -64,32 +67,68 @@ function modeloConfigurado(): { apiKey: string; modelo: string } | null {
 // El bloque de datos que viaja al modelo. Se escribe como hechos numerados y
 // planos, no como prosa: cuanto menos margen de interpretacion, menos margen
 // para adornar.
+//
+// Una cifra que no alcanza para respaldar al agente NO viaja: el modelo no
+// puede escribir "tres cierres" si nunca supo que eran tres. Es mas firme que
+// pasarle el numero con la orden de no usarlo.
 function hechosVerificables(datos: CartaDatosAgente): string {
-  const escaso = inventarioEsEscaso(datos);
-  const lineas = [
-    `- Nombre: ${datos.nombre}`,
-    `- Empresa: ${datos.empresa ?? 'sin empresa registrada'}`,
+  const conCierres = cierresMencionables(datos);
+  const conInventario = inventarioMencionable(datos);
+  const lineas = [`- Nombre: ${datos.nombre}`];
+  // Sin empresa, la linea no va. Con "sin empresa registrada" el modelo
+  // escribia "sin estar afiliada a ninguna empresa registrada": convertia un
+  // campo vacio en una afirmacion.
+  if (datos.empresa) lineas.push(`- Empresa: ${datos.empresa}`);
+  lineas.push(
     `- Opera en: ${datos.zonas.length > 0 ? datos.zonas.join(', ') : 'Quito'}`,
     `- Especialidad: ${datos.especialidad}`,
-    `- Nivel alcanzado en la plataforma: ${datos.nivel}`,
-    `- Años cumplidos en Redinmo.io: ${datos.aniosEnRedinmo} (se registro en ${datos.anioIngreso})`,
-    `- Inmuebles activos en su cartera: ${datos.inmueblesActivos}`,
-    `- Composicion de la cartera: ${
-      datos.composicionInventario.length > 0
-        ? datos.composicionInventario.map((c) => `${c.cantidad} ${c.tipo}`).join(', ')
-        : 'sin inmuebles activos'
-    }`,
-    `- Cierres registrados en la plataforma: ${datos.cierresRegistrados}`,
-  ];
-  if (datos.aniosDeExperiencia) lineas.push(`- Años de experiencia declarados en el sector: ${datos.aniosDeExperiencia}`);
+  );
+  if (datos.aniosEnRedinmo >= 1) {
+    lineas.push(`- Años cumplidos en Redinmo.io (dato de la plataforma): ${datos.aniosEnRedinmo}, desde ${datos.anioIngreso}`);
+  }
+  if (conInventario) {
+    lineas.push(
+      `- Inmuebles activos en su cartera (dato de la plataforma): ${datos.inmueblesActivos}`,
+      `- Composicion de la cartera: ${datos.composicionInventario.map((c) => `${c.cantidad} ${c.tipo}`).join(', ')}`,
+    );
+  }
+  if (conCierres) {
+    lineas.push(
+      `- Cierres registrados en la plataforma (dato de la plataforma): ${datos.cierresRegistrados}`,
+      `- Nivel alcanzado en la plataforma: ${datos.nivel}`,
+    );
+  }
+  // Origen declarativo, dicho con todas las letras. El modelo tiene que saber
+  // que este numero NO es un dato medido, para no presentarlo como tal ni
+  // mezclarlo con los años en la plataforma.
+  if (datos.aniosExperienciaDeclarados !== null) {
+    lineas.push(
+      `- Años de experiencia en el sector, DECLARADOS por el propio agente (Redinmo no los verifica): ${datos.aniosExperienciaDeclarados}`,
+    );
+  }
   if (datos.licencia) lineas.push(`- Licencia profesional: ${datos.licencia}`);
   if (datos.verificado) lineas.push('- Identidad y telefono verificados en la plataforma: si');
-  lineas.push(`- Cartera considerada escasa para presumir volumen: ${escaso ? 'si' : 'no'}`);
   return lineas.join('\n');
 }
 
-function instruccionDelSistema(datos: CartaDatosAgente, muestras: string[], conPerfil: boolean): string {
-  const escaso = inventarioEsEscaso(datos);
+const TRATO_INSTRUCCION: Record<TratoDestinatario, string> = {
+  femenino: 'Es una mujer: concuerda en femenino ("saludarla", "acompañarla").',
+  masculino: 'Es un hombre: concuerda en masculino ("saludarlo", "acompañarlo").',
+  indeterminado:
+    'No se sabe su genero: usa formas sin genero ("saludarle", "acompañarle", "a usted"). NUNCA "saludarla" ni "saludarlo".',
+  empresa: 'Es una empresa, no una persona: tratala de ustedes ("saludarlos", "su empresa", "ustedes").',
+};
+
+type OpcionesSistema = {
+  datos: CartaDatosAgente;
+  muestras: string[];
+  conPerfil: boolean;
+  trato: TratoDestinatario;
+};
+
+function instruccionDelSistema({ datos, muestras, conPerfil, trato }: OpcionesSistema): string {
+  const conCierres = cierresMencionables(datos);
+  const conInventario = inventarioMencionable(datos);
   const partes = [
     'Redactas cartas de presentacion profesionales para agentes inmobiliarios en Ecuador.',
     '',
@@ -97,36 +136,60 @@ function instruccionDelSistema(datos: CartaDatosAgente, muestras: string[], conP
     'Usa unicamente los datos entregados. No inventes, no infieras, no exageres y no redondees al alza',
     'ninguna cifra, logro ni experiencia. Si un dato no esta en la lista de hechos, no existe.',
     'Prohibido cualquier adjetivo de trayectoria que los numeros no respalden:',
-    '"amplia trayectoria", "anos de experiencia en el mercado", "cientos de clientes", "lider", "referente",',
+    '"amplia trayectoria", "larga experiencia", "cientos de clientes", "lider", "referente",',
     '"reconocido", "el mejor". Prohibido inventar premios, certificaciones, clientes o proyectos.',
     'No menciones datos de clientes ni de inmuebles de terceros: no los tienes.',
+    '',
+    'AÑOS DE EXPERIENCIA:',
+    datos.aniosExperienciaDeclarados !== null
+      ? `El agente declaro ${datos.aniosExperienciaDeclarados} años de experiencia en el sector. Si los mencionas, escribe exactamente ese numero, en primera persona, sin "mas de", "casi" ni redondeos. No los confundas con su tiempo en Redinmo.io.`
+      : 'El agente NO declaro años de experiencia. PROHIBIDO mencionar años de experiencia de cualquier forma: ni con numero, ni en letras, ni "varios años", ni "una decada", ni "años en el sector".',
   ];
 
-  if (escaso) {
-    // Ejemplos negativos literales. Sin ellos el modelo cumplia la regla a
-    // medias: no inventaba trayectoria, pero escribia "no manejo inmuebles
-    // activos" o "cuento con un cierre registrado", que es exactamente lo que
-    // no debe llegarle al destinatario. Una instruccion abstracta se interpreta;
-    // un ejemplo de lo que NO se escribe, no.
+  // Ejemplos negativos literales. Sin ellos el modelo cumplia la regla a
+  // medias: no inventaba trayectoria, pero escribia "no manejo inmuebles
+  // activos" o "cuento con un cierre registrado", que es exactamente lo que no
+  // debe llegarle al destinatario. Una instruccion abstracta se interpreta; un
+  // ejemplo de lo que NO se escribe, no.
+  if (!conCierres) {
     partes.push(
       '',
-      'ESTE AGENTE TIENE CARTERA CHICA. PROHIBIDO mencionar la cantidad de inmuebles',
-      'o de cierres, en cualquier forma: ni el numero, ni en letras, ni en singular,',
-      'ni en negativo, ni como algo que va a crecer.',
-      '',
-      'NO escribas nunca frases como estas, ni parecidas:',
-      '  "En este momento no manejo inmuebles activos en cartera."',
-      '  "Cuento con un cierre registrado en la plataforma."',
-      '  "Mi cartera esta compuesta por un departamento y una casa."',
-      '  "Estoy comenzando mi trayectoria." / "Estoy en un nivel inicial."',
-      '  "Aun no tengo propiedades, pero..."',
-      '',
-      'En el bloque "experiencia" habla de su especialidad y de las zonas que conoce.',
-      'En el bloque "inventario" habla de que busca lo que el destinatario necesita',
-      'y de como trabaja para conseguirlo, sin decir cuanto tiene hoy.',
-      'No menciones tampoco el nivel que alcanzo en la plataforma.',
+      'CIERRES: este agente todavia no tiene cierres suficientes para citarlos. PROHIBIDO mencionar',
+      'cierres, operaciones o ventas realizadas, en cualquier forma: ni el numero, ni en letras,',
+      'ni "varios", ni en negativo. Tampoco menciones el nivel que alcanzo en la plataforma.',
+      'NO escribas frases como: "He registrado tres cierres en la plataforma." /',
+      '"Cuento con un cierre registrado." / "Estoy comenzando mi trayectoria."',
     );
   }
+  if (!conInventario) {
+    partes.push(
+      '',
+      'CARTERA: este agente tiene pocos inmuebles activos. PROHIBIDO mencionar la cantidad o la',
+      'composicion de su cartera, en cualquier forma: ni el numero, ni en letras, ni en singular,',
+      'ni en negativo, ni como algo que va a crecer.',
+      'NO escribas frases como: "En este momento no manejo inmuebles activos en cartera." /',
+      '"Mi cartera esta compuesta por un departamento y una casa." / "Aun no tengo propiedades, pero..."',
+      'En el bloque "inventario" habla de que busca lo que el destinatario necesita y de como',
+      'trabaja para conseguirlo, sin decir cuanto tiene hoy.',
+    );
+  }
+  if (!conCierres && !conInventario) {
+    partes.push('En el bloque "experiencia" habla de su especialidad y de las zonas que conoce.');
+  }
+
+  partes.push(
+    '',
+    'ESTRUCTURA DE LA APERTURA:',
+    'El saludo ("Estimada Ing. ...,") lo pone el sistema en su propia linea: tu NO lo escribes.',
+    'Nunca empieces un bloque con el nombre del destinatario ni con "Estimado". Nunca uses parentesis.',
+    'Si hay contexto de la relacion, el bloque "apertura" lo retoma en una o dos frases completas,',
+    // El ejemplo va con tildes aunque el resto del prompt no las lleve: el
+    // modelo lo copia casi literal, y sin tildes escribia "conversacion".
+    'por ejemplo: "Un gusto saludarla tras nuestra conversación en la convención financiera en Guayaquil."',
+    'No agregues detalles que el contexto no dice (temas, fechas, acuerdos).',
+    'Si NO hay contexto, "apertura" es una cadena vacia y no aludes a ningun encuentro previo.',
+    `Trato del destinatario: ${TRATO_INSTRUCCION[trato]}`,
+  );
 
   if (conPerfil) {
     // La URL vive en el pie del PDF y en el QR. Aqui solo se invita: una
@@ -143,9 +206,14 @@ function instruccionDelSistema(datos: CartaDatosAgente, muestras: string[], conP
 
   partes.push(
     '',
+    // Sin esta linea, con agentes sin datos que citar, el modelo pasaba a
+    // tercera persona ("Daniela Ordóñez se dedica...") en una carta que firma
+    // la propia Daniela.
+    'VOZ: primera persona, SIEMPRE. Escribe el agente que firma: "Soy...", "Me dedico...", "Trabajo...".',
+    'Nunca "Daniela se dedica" ni "Su especialidad es": la carta la firma el agente, no un tercero.',
     'ESTILO: español neutro de Ecuador, tono profesional y directo. Frases claras y cortas.',
     'Sin florituras, sin superlativos, sin signos de exclamacion, sin emojis.',
-    'Trata al destinatario de usted. No firmes: la firma la pone el documento.',
+    'Trata al destinatario de usted, o de ustedes si es una empresa. No firmes: la firma la pone el documento.',
     'Extension total de media pagina a una pagina.',
   );
 
@@ -161,12 +229,15 @@ function instruccionDelSistema(datos: CartaDatosAgente, muestras: string[], conP
   return partes.join('\n');
 }
 
-function instruccionDeUsuario(entrada: EntradaGeneracion): string {
+function instruccionDeUsuario(entrada: EntradaGeneracion, saludo: SaludoResuelto): string {
   const config = CARTA_DESTINATARIO_CONFIG[entrada.destinatarioTipo];
   const destinatario = [
-    `- Nombre: ${entrada.destinatarioNombre}`,
+    `- Nombre: ${saludo.tratamiento}`,
     entrada.destinatarioCargo ? `- Cargo: ${entrada.destinatarioCargo}` : null,
-    entrada.contexto ? `- Contexto de la relacion: ${entrada.contexto}` : null,
+    `- Saludo que ya lleva la carta: ${saludo.texto}`,
+    entrada.contexto?.trim()
+      ? `- Contexto de la relacion, escrito por el agente: ${entrada.contexto.trim()}`
+      : '- Contexto de la relacion: ninguno. El bloque "apertura" va vacio.',
   ]
     .filter(Boolean)
     .join('\n');
@@ -181,8 +252,31 @@ function instruccionDeUsuario(entrada: EntradaGeneracion): string {
     `ENFOQUE REQUERIDO: ${config.enfoque}`,
     '',
     'Devuelve SOLO un JSON valido con exactamente estas claves de texto plano:',
-    ...CARTA_BLOQUES.map((clave) => `- "${clave}": ${CARTA_BLOQUE_INSTRUCCION[clave]}`),
+    ...CARTA_BLOQUES_DEL_MODELO.map((clave) => `- "${clave}": ${CARTA_BLOQUE_INSTRUCCION[clave]}`),
   ].join('\n');
+}
+
+// Lo que se decide en codigo y no se le deja al modelo: el saludo, y que la
+// apertura exista solo si hay contexto. Se aplica a lo que devuelva el modelo
+// ANTES de auditar, asi que la auditoria ve la carta tal como va a salir.
+function completarEstructura(bloques: CartaBloques, entrada: EntradaGeneracion, saludo: SaludoResuelto): CartaBloques {
+  return {
+    ...bloques,
+    saludo: saludo.texto,
+    apertura: entrada.contexto?.trim() ? bloques.apertura.trim() : '',
+  };
+}
+
+// Bloques que tienen que venir con texto. La apertura solo si hay contexto.
+function bloquesFaltantes(bloques: CartaBloques, entrada: EntradaGeneracion): boolean {
+  return CARTA_BLOQUES_DEL_MODELO.some((c) => {
+    if (c === 'apertura' && !entrada.contexto?.trim()) return false;
+    return !bloques[c].trim();
+  });
+}
+
+function contextoDeAuditoria(entrada: EntradaGeneracion, saludo: SaludoResuelto): ContextoAuditoria {
+  return { contexto: entrada.contexto, trato: saludo.trato, nombreDestinatario: saludo.tratamiento };
 }
 
 type RespuestaChat = {
@@ -289,14 +383,21 @@ function correccionTrasAuditoria(hallazgos: string[]): string {
     'TU RESPUESTA ANTERIOR INCUMPLIO LAS REGLAS. Problemas detectados:',
     ...hallazgos.map((h) => `  - ${h}`),
     '',
-    'Reescribe la carta COMPLETA corrigiendo exactamente eso. No expliques el',
-    'cambio, no te disculpes: devuelve solo el JSON con los seis bloques.',
+    'Corrige exactamente eso. No expliques el cambio, no te disculpes: devuelve',
+    'solo el JSON con las mismas claves que se pidieron.',
   ].join('\n');
 }
 
 export async function generarCarta(entrada: EntradaGeneracion): Promise<ResultadoGeneracion> {
-  const sistema = instruccionDelSistema(entrada.datos, entrada.muestrasDeEstilo ?? [], Boolean(entrada.conPerfilPublico));
-  const usuario = instruccionDeUsuario(entrada);
+  const saludo = resolverSaludo(entrada.destinatarioNombre, entrada.destinatarioCargo);
+  const sistema = instruccionDelSistema({
+    datos: entrada.datos,
+    muestras: entrada.muestrasDeEstilo ?? [],
+    conPerfil: Boolean(entrada.conPerfilPublico),
+    trato: saludo.trato,
+  });
+  const usuario = instruccionDeUsuario(entrada, saludo);
+  const ctxAuditoria = contextoDeAuditoria(entrada, saludo);
   const respuesta = await llamarModelo(sistema, usuario);
 
   // Sin clave, con el proveedor caido o con una respuesta ilegible: el agente
@@ -318,10 +419,10 @@ export async function generarCarta(entrada: EntradaGeneracion): Promise<Resultad
   let salidaTotal = respuesta.salida;
 
   try {
-    let bloques = normalizarBloques(JSON.parse(respuesta.contenido));
+    let bloques = completarEstructura(normalizarBloques(JSON.parse(respuesta.contenido)), entrada, saludo);
     // Una respuesta a la que le falten bloques es peor que la plantilla: se
     // prefiere un borrador completo y editable antes que una carta con huecos.
-    if (CARTA_BLOQUES.some((c) => !bloques[c].trim())) {
+    if (bloquesFaltantes(bloques, entrada)) {
       registrarRespaldo('respuesta_vacia', 'bloques incompletos');
       return {
         bloques: borradorDePlantilla(entrada),
@@ -336,17 +437,20 @@ export async function generarCarta(entrada: EntradaGeneracion): Promise<Resultad
     // Red de seguridad del punto 3.4: el prompt pide no inventar, pero eso es
     // una peticion. Esto lo comprueba. Si algo pasa, se le devuelve al modelo
     // lo que hizo mal y se le da UNA segunda oportunidad.
-    let hallazgos = auditarInvencion(bloques, entrada.datos);
+    let hallazgos = auditarInvencion(bloques, entrada.datos, ctxAuditoria);
     if (hallazgos.length > 0) {
-      console.error(`[cartas] auditoría: ${hallazgos.length} hallazgos en el primer intento - se reintenta`);
+      // Los hallazgos van al log: son frases fijas y cifras del propio agente,
+      // nunca el texto de la carta ni datos del destinatario. Sirven para ver
+      // si una regla dispara de mas y encarece cada carta con un reintento.
+      console.error(`[cartas] auditoría: ${hallazgos.length} hallazgos en el primer intento - se reintenta | ${hallazgos.join(' ; ')}`);
       const segunda = await llamarModelo(sistema, usuario + correccionTrasAuditoria(hallazgos));
       if (segunda.ok) {
         entradaTotal = (entradaTotal ?? 0) + (segunda.entrada ?? 0);
         salidaTotal = (salidaTotal ?? 0) + (segunda.salida ?? 0);
         try {
-          const corregidos = normalizarBloques(JSON.parse(segunda.contenido));
-          if (!CARTA_BLOQUES.some((c) => !corregidos[c].trim())) {
-            const restantes = auditarInvencion(corregidos, entrada.datos);
+          const corregidos = completarEstructura(normalizarBloques(JSON.parse(segunda.contenido)), entrada, saludo);
+          if (!bloquesFaltantes(corregidos, entrada)) {
+            const restantes = auditarInvencion(corregidos, entrada.datos, ctxAuditoria);
             if (restantes.length === 0) {
               bloques = corregidos;
               hallazgos = [];
@@ -395,22 +499,50 @@ export async function generarCarta(entrada: EntradaGeneracion): Promise<Resultad
   }
 }
 
+export type ResultadoRegeneracion = {
+  texto: string;
+  modelo: string | null;
+  tokensEntrada: number | null;
+  tokensSalida: number | null;
+  sinProveedor: boolean;
+  // El modelo propuso un parrafo que la auditoria rechazo dos veces. No se
+  // guarda: el agente conserva el que tenia.
+  rechazado?: boolean;
+};
+
 export async function regenerarBloque(
   entrada: EntradaGeneracion & { bloque: CartaBloqueClave; bloquesActuales: CartaBloques },
-): Promise<{ texto: string; modelo: string | null; tokensEntrada: number | null; tokensSalida: number | null; sinProveedor: boolean }> {
+): Promise<ResultadoRegeneracion> {
+  const saludo = resolverSaludo(entrada.destinatarioNombre, entrada.destinatarioCargo);
+
+  // El saludo no se "regenera" con el modelo: tiene reglas fijas. Pedirlo de
+  // nuevo lo devuelve a su forma correcta si el agente lo habia tocado.
+  if (entrada.bloque === 'saludo') {
+    return { texto: saludo.texto, modelo: null, tokensEntrada: null, tokensSalida: null, sinProveedor: false };
+  }
+  // Sin contexto no hay apertura que escribir.
+  if (entrada.bloque === 'apertura' && !entrada.contexto?.trim()) {
+    return { texto: '', modelo: null, tokensEntrada: null, tokensSalida: null, sinProveedor: false };
+  }
+
   // Sin proveedor configurado no tiene sentido "regenerar": la plantilla es
   // determinista y devolveria el mismo parrafo. Se dice con todas las letras
   // en vez de devolver un error generico que suena a falla intermitente.
   if (!modeloConfigurado()) {
     return { texto: '', modelo: null, tokensEntrada: null, tokensSalida: null, sinProveedor: true };
   }
-  const sistema = instruccionDelSistema(entrada.datos, entrada.muestrasDeEstilo ?? [], Boolean(entrada.conPerfilPublico));
+  const sistema = instruccionDelSistema({
+    datos: entrada.datos,
+    muestras: entrada.muestrasDeEstilo ?? [],
+    conPerfil: Boolean(entrada.conPerfilPublico),
+    trato: saludo.trato,
+  });
   const contexto = CARTA_BLOQUES.filter((c) => c !== entrada.bloque)
     .map((c) => `${c}: ${entrada.bloquesActuales[c]}`)
     .join('\n');
 
   const usuario = [
-    instruccionDeUsuario(entrada),
+    instruccionDeUsuario(entrada, saludo),
     '',
     'AHORA SOLO se reescribe UN bloque. El resto de la carta ya esta escrito y no debe repetirse:',
     contexto,
@@ -419,22 +551,51 @@ export async function regenerarBloque(
     `Devuelve SOLO un JSON con la clave "${entrada.bloque}".`,
   ].join('\n');
 
+  // Solo se audita el parrafo nuevo. Los demas pueden traer ediciones del
+  // agente, y lo que el agente escribe con su mano es su palabra, no una
+  // invencion del modelo.
+  const ctxAuditoria = contextoDeAuditoria(entrada, saludo);
+  const auditar = (texto: string) => {
+    const soloEste = Object.fromEntries(CARTA_BLOQUES.map((c) => [c, ''])) as CartaBloques;
+    soloEste[entrada.bloque] = texto;
+    return auditarInvencion(soloEste, entrada.datos, ctxAuditoria);
+  };
+  const leer = (contenido: string) => {
+    try {
+      const valor = (JSON.parse(contenido) as Record<string, unknown>)[entrada.bloque];
+      return typeof valor === 'string' ? valor.trim() : '';
+    } catch {
+      return '';
+    }
+  };
+
   const respuesta = await llamarModelo(sistema, usuario);
   if (!respuesta.ok) return { texto: '', modelo: null, tokensEntrada: null, tokensSalida: null, sinProveedor: false };
 
-  try {
-    const json = JSON.parse(respuesta.contenido) as Record<string, unknown>;
-    const texto = json[entrada.bloque];
-    return {
-      texto: typeof texto === 'string' ? texto.trim() : '',
-      modelo: respuesta.modelo,
-      tokensEntrada: respuesta.entrada,
-      tokensSalida: respuesta.salida,
-      sinProveedor: false,
-    };
-  } catch {
-    return { texto: '', modelo: respuesta.modelo, tokensEntrada: respuesta.entrada, tokensSalida: respuesta.salida, sinProveedor: false };
+  let texto = leer(respuesta.contenido);
+  let tokensEntrada = respuesta.entrada;
+  let tokensSalida = respuesta.salida;
+  let hallazgos = texto ? auditar(texto) : [];
+
+  // Misma regla que la carta completa: una segunda oportunidad con lo que hizo
+  // mal, y si insiste, no se entrega.
+  if (hallazgos.length > 0) {
+    console.error(`[cartas] auditoría de párrafo "${entrada.bloque}": ${hallazgos.length} hallazgos - se reintenta`);
+    const segunda = await llamarModelo(sistema, usuario + correccionTrasAuditoria(hallazgos));
+    if (segunda.ok) {
+      tokensEntrada = (tokensEntrada ?? 0) + (segunda.entrada ?? 0);
+      tokensSalida = (tokensSalida ?? 0) + (segunda.salida ?? 0);
+      texto = leer(segunda.contenido);
+      hallazgos = texto ? auditar(texto) : hallazgos;
+    }
   }
+
+  if (hallazgos.length > 0) {
+    registrarRespaldo('auditoria', `párrafo ${entrada.bloque} rechazado: ${hallazgos.join(' ; ')}`);
+    return { texto: '', modelo: respuesta.modelo, tokensEntrada, tokensSalida, sinProveedor: false, rechazado: true };
+  }
+
+  return { texto, modelo: respuesta.modelo, tokensEntrada, tokensSalida, sinProveedor: false };
 }
 
 // Los tipos de inmueble llegan en singular ("departamento", "local comercial").
@@ -459,41 +620,48 @@ function enumerar(partes: string[]): string {
   return `${partes.slice(0, -1).join(', ')} y ${partes[partes.length - 1]}`;
 }
 
+// El contexto lo escribe el agente como le sale ("nos conocimos en la feria").
+// Sin modelo no se reescribe: se respeta su frase, con mayuscula inicial,
+// punto final y sin parentesis, que en una carta formal parecen una nota
+// provisional.
+export function aperturaDesdeContexto(contexto: string | null | undefined): string {
+  const limpio = (contexto ?? '').replace(/[()]/g, '').replace(/\s+/g, ' ').trim().replace(/[.,;:]+$/, '');
+  if (!limpio) return '';
+  return `${limpio[0].toUpperCase()}${limpio.slice(1)}.`;
+}
+
 export function borradorDePlantilla(entrada: EntradaGeneracion): CartaBloques {
   const { datos } = entrada;
-  const escaso = inventarioEsEscaso(datos);
+  const conCierres = cierresMencionables(datos);
+  const conInventario = inventarioMencionable(datos);
   const config = CARTA_DESTINATARIO_CONFIG[entrada.destinatarioTipo];
   const zonas = enumerar(datos.zonas.length > 0 ? datos.zonas : ['Quito']);
-  // El cargo NO entra en el saludo: 'Estimada Gerente María Jaramillo' no es
-  // castellano. El cargo ya se imprime en el bloque de destinatario del PDF.
-  const tratamiento = entrada.destinatarioNombre;
+  const saludo = resolverSaludo(entrada.destinatarioNombre, entrada.destinatarioCargo);
 
   // Presentacion: nombre, empresa, zonas y especialidad en UNA frase que se
-  // lea como una presentacion y no como cuatro campos pegados. El contexto que
-  // escribio el agente abre la carta, porque es lo unico que el destinatario
-  // reconoce de entrada.
+  // lea como una presentacion y no como cuatro campos pegados.
   const quienSoy = datos.empresa
     ? `Mi nombre es ${datos.nombre} y trabajo como agente inmobiliario en ${datos.empresa}`
     : `Mi nombre es ${datos.nombre} y trabajo como agente inmobiliario independiente`;
-  const presentacion = [
-    entrada.contexto ? `${entrada.contexto}.` : null,
-    `${quienSoy}. Me dedico a ${datos.especialidad} de inmuebles y opero en ${zonas}.`,
-  ]
-    .filter(Boolean)
-    .join(' ');
+  const presentacion = `${quienSoy}. Me dedico a ${datos.especialidad} de inmuebles y opero en ${zonas}.`;
 
-  // Experiencia: los numeros solo si los hay, y redactados como respaldo, no
-  // como planilla. Con cartera chica se habla de oficio, nunca de volumen.
+  // Experiencia: cada cifra solo si respalda, y redactada como respaldo, no
+  // como planilla. Sin cifras, se habla de oficio, nunca de volumen.
   const respaldo: string[] = [];
-  if (!escaso) {
+  if (conInventario) {
+    respaldo.push(`Hoy tengo ${datos.inmueblesActivos} inmuebles activos en cartera.`);
+  }
+  if (conCierres) {
     respaldo.push(
-      `Hoy tengo ${datos.inmueblesActivos} inmuebles activos en cartera y ${datos.cierresRegistrados} cierres registrados en Redinmo.io${
+      `He registrado ${datos.cierresRegistrados} cierres en Redinmo.io${
         datos.aniosEnRedinmo >= 1 ? `, la red donde opero desde ${datos.anioIngreso}` : ''
       }.`,
     );
   }
-  if (datos.aniosDeExperiencia) {
-    respaldo.push(`Llevo ${datos.aniosDeExperiencia} años dedicado a esto.`);
+  // Declarado por el agente: el numero exacto, en su voz, sin adornos. Sin
+  // genero ("dedicado/dedicada"): no se sabe el del agente.
+  if (datos.aniosExperienciaDeclarados !== null) {
+    respaldo.push(`Llevo ${datos.aniosExperienciaDeclarados} años en el sector inmobiliario.`);
   }
   if (datos.licencia) {
     respaldo.push(`Cuento con licencia profesional vigente (${datos.licencia}).`);
@@ -504,19 +672,26 @@ export function borradorDePlantilla(entrada: EntradaGeneracion): CartaBloques {
     );
   }
   if (datos.verificado) {
-    respaldo.push('Mi identidad está verificada en la plataforma y puede comprobarla en el enlace del pie de esta carta.');
+    // "puede comprobarlo en el enlace del pie" solo si el pie lleva enlace: con
+    // el interruptor del perfil apagado no hay nada que comprobar ahi.
+    respaldo.push(
+      entrada.conPerfilPublico
+        ? 'Mi identidad está verificada en la plataforma y puede comprobarla en el enlace del pie de esta carta.'
+        : 'Mi identidad está verificada en la plataforma.',
+    );
   }
 
   // Inventario: complementa a la experiencia, no la repite. Con cartera chica
   // habla de criterio de seleccion, que es cierto y no depende del volumen.
-  const inventario = escaso
-    ? `Si lo que necesita no está entre los inmuebles que represento hoy, lo busco: formo parte de una red de agentes en ${zonas} y muevo el requerimiento hasta dar con lo que corresponde.`
-    : `En este momento represento ${enumerar(
+  const inventario = conInventario
+    ? `En este momento represento ${enumerar(
         datos.composicionInventario.map((c) => `${c.cantidad} ${pluralizar(c.tipo, c.cantidad)}`),
-      )}.`;
+      )}.`
+    : `Si lo que necesita no está entre los inmuebles que represento hoy, lo busco: formo parte de una red de agentes en ${zonas} y muevo el requerimiento hasta dar con lo que corresponde.`;
 
   return {
-    saludo: `Estimado/a ${tratamiento}:`,
+    saludo: saludo.texto,
+    apertura: aperturaDesdeContexto(entrada.contexto),
     presentacion,
     experiencia: respaldo.join(' '),
     inventario,

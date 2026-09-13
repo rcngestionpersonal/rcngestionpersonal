@@ -28,7 +28,9 @@ export const CARTA_DESTINATARIO_CONFIG: Record<
     titulo: 'Propietario',
     descripcion: 'Por qué confiarme la venta de su inmueble.',
     asunto: 'Propuesta para la venta de su inmueble',
-    fraseApertura: 'Le escribo para proponerle acompañarlo en la venta de su inmueble.',
+    // "acompañarle" y no "acompañarlo": el destinatario puede ser una mujer, y
+    // la carta ya la saludo con "Estimada".
+    fraseApertura: 'Le escribo para proponerle acompañarle en la venta de su inmueble.',
     argumento:
       'Trabajo con un número acotado de propiedades a la vez, para poder atender cada una de verdad: fotos y ficha cuidadas, filtro previo de los interesados y un reporte suyo de lo que va pasando. Antes de hablar de precio prefiero ver el inmueble y entender su situación.',
     cierre:
@@ -74,18 +76,31 @@ export const CARTA_DESTINATARIO_CONFIG: Record<
   },
 };
 
-// Los seis bloques del punto 2.4, en orden. El texto se guarda y se edita por
-// bloque para que "regenerar este parrafo" no rehaga la carta entera.
-export const CARTA_BLOQUES = ['saludo', 'presentacion', 'experiencia', 'inventario', 'propuesta', 'cierre'] as const;
+// Los bloques de la carta, en orden. El texto se guarda y se edita por bloque
+// para que "regenerar este parrafo" no rehaga la carta entera.
+//
+// El saludo y la apertura van separados a proposito. Juntos, el modelo los
+// fundia en una linea ("Ing. Gabriela Muñoz, un gusto saludarla tras...") y la
+// carta perdia la formula de tratamiento. Separados, el saludo lo arma el
+// codigo (ver saludo.ts) y la apertura es un parrafo propio que existe solo si
+// el agente escribio un contexto.
+export const CARTA_BLOQUES = ['saludo', 'apertura', 'presentacion', 'experiencia', 'inventario', 'propuesta', 'cierre'] as const;
 export type CartaBloqueClave = (typeof CARTA_BLOQUES)[number];
 
 export type CartaBloques = Record<CartaBloqueClave, string>;
 
+// Los bloques que escribe el modelo. El saludo no esta: tiene reglas fijas y
+// lo resuelve el codigo.
+export const CARTA_BLOQUES_DEL_MODELO = CARTA_BLOQUES.filter((c) => c !== 'saludo');
+
 // Que se le pide a cada bloque. Va al prompt y tambien describe el bloque en
 // la pantalla de edicion, para que el agente sepa que esperar de cada uno.
 export const CARTA_BLOQUE_INSTRUCCION: Record<CartaBloqueClave, string> = {
-  saludo: 'Una sola linea de saludo formal al destinatario por su nombre. Sin "Estimado/a" generico si tienes el nombre.',
-  presentacion: 'Quien es el agente, a que se dedica y en que zonas opera. Dos o tres frases.',
+  saludo: 'Linea de saludo con formula de tratamiento. La arma el sistema, no el modelo.',
+  apertura:
+    'SOLO si hay contexto de la relacion: una o dos frases completas que lo retoman, sin agregar nada que el contexto no diga. Sin parentesis y sin repetir el nombre del destinatario, que ya esta en el saludo. Si NO hay contexto, cadena vacia.',
+  presentacion:
+    'Quien es el agente, a que se dedica y en que zonas opera. Dos o tres frases. Empieza directamente por la presentacion: sin saludo, sin el nombre del destinatario y sin aludir a un encuentro previo.',
   experiencia:
     'El respaldo verificable: solo los numeros que vienen en los datos. Si un dato es bajo o es cero, NO lo menciones y habla de la especialidad. Dos o tres frases.',
   inventario: 'Que tipo de inmuebles maneja hoy, segun la composicion real de su cartera. Dos frases.',
@@ -109,11 +124,17 @@ export type CartaImagenTipo = (typeof CARTA_IMAGEN_TIPOS)[number];
 // CartaGeneracion para poder medir el gasto real.
 export const CARTA_LIMITE_MENSUAL = 10;
 
-// Umbrales por debajo de los cuales la carta NO habla de volumen y la pantalla
-// muestra el aviso del punto 2.3. Son bajos a proposito: el objetivo es que el
-// texto nunca suene a trayectoria inflada, no que el agente se sienta juzgado.
-export const CARTA_UMBRAL_CIERRES = 3;
-export const CARTA_UMBRAL_INMUEBLES = 3;
+// Umbrales a partir de los cuales una cifra de volumen RESPALDA al agente. Por
+// debajo, la carta no la menciona de ninguna forma y la pantalla muestra el
+// aviso del punto 2.3.
+//
+// Antes estaban en 3 y 3, y eso dejo pasar "he registrado tres cierres": para
+// la regla, tres ya no era escaso, pero en una carta de presentacion tres
+// cierres no suman, delatan. La pregunta no es "tiene algo" sino "esta cifra,
+// leida por un desconocido, juega a favor". Se evaluan por separado: quien
+// tiene 20 cierres y 2 inmuebles puede citar los cierres y no la cartera.
+export const CARTA_UMBRAL_CIERRES = 10;
+export const CARTA_UMBRAL_INMUEBLES = 5;
 
 // Los datos REALES con los que se arma el texto. Es exactamente lo que viaja
 // al modelo: si un dato no esta aca, el modelo no puede afirmarlo.
@@ -128,16 +149,33 @@ export type CartaDatosAgente = {
   inmueblesActivos: number;
   composicionInventario: Array<{ tipo: string; cantidad: number }>;
   cierresRegistrados: number;
-  aniosDeExperiencia: number | null;
+  // DECLARADO por el agente en su carnet. Redinmo no lo verifica: solo sabe
+  // cuanto lleva el agente EN LA PLATAFORMA (aniosEnRedinmo). Puede citarse en
+  // la carta porque es la palabra del propio agente, que firma la carta, pero
+  // nunca se deduce, se completa ni se redondea. Vacio = la carta no habla de
+  // años de experiencia de ninguna forma.
+  aniosExperienciaDeclarados: number | null;
   licencia: string | null;
   verificado: boolean;
 };
 
-// Si la cartera todavia es chica, el texto se apoya en especialidad y zonas y
-// no menciona volumen (punto 2.3). Se calcula en un solo lugar para que la
-// pantalla y el prompt no puedan discrepar.
-export function inventarioEsEscaso(datos: Pick<CartaDatosAgente, 'cierresRegistrados' | 'inmueblesActivos'>): boolean {
-  return datos.cierresRegistrados < CARTA_UMBRAL_CIERRES || datos.inmueblesActivos < CARTA_UMBRAL_INMUEBLES;
+type Volumen = Pick<CartaDatosAgente, 'cierresRegistrados' | 'inmueblesActivos'>;
+
+// Cada cifra de volumen se habilita por separado. El prompt, la plantilla y la
+// auditoria leen estas dos funciones: si discreparan, el modelo podria escribir
+// algo que la auditoria deja pasar.
+export function cierresMencionables(datos: Volumen): boolean {
+  return datos.cierresRegistrados >= CARTA_UMBRAL_CIERRES;
+}
+
+export function inventarioMencionable(datos: Volumen): boolean {
+  return datos.inmueblesActivos >= CARTA_UMBRAL_INMUEBLES;
+}
+
+// Aviso de la pantalla (punto 2.3): basta con que una de las dos cifras no
+// alcance para que la carta pierda un argumento, y eso se le dice al agente.
+export function inventarioEsEscaso(datos: Volumen): boolean {
+  return !cierresMencionables(datos) || !inventarioMencionable(datos);
 }
 
 export function esDestinatarioValido(valor: unknown): valor is CartaDestinatarioTipo {
@@ -148,7 +186,7 @@ export function esBloqueValido(valor: unknown): valor is CartaBloqueClave {
   return typeof valor === 'string' && (CARTA_BLOQUES as readonly string[]).includes(valor);
 }
 
-// Normaliza lo que viene de la base (Json) a los seis bloques, sin confiar en
+// Normaliza lo que viene de la base (Json) a todos los bloques, sin confiar en
 // que el registro guardado tenga exactamente las claves esperadas.
 export function normalizarBloques(valor: unknown): CartaBloques {
   const fuente = (valor ?? {}) as Record<string, unknown>;

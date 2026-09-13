@@ -6,9 +6,10 @@ import { recolectarDatosDeAgente, recolectarMuestrasDeEstilo } from '@/lib/real-
 import { regenerarBloque } from '@/lib/real-estate/cartas/generar';
 import { estadoDeCuota, puedeRegenerar, registrarGeneracion } from '@/lib/real-estate/cartas/cuota';
 import { CARTA_BLOQUES, type CartaDestinatarioTipo } from '@/lib/real-estate/cartas/tipos';
+import { resolverSaludo } from '@/lib/real-estate/cartas/saludo';
 
-// "Regenerar este párrafo" (punto 3.2): rehace UN bloque sin tocar los otros
-// cinco ni el trabajo de edicion que el agente ya hizo en ellos.
+// "Regenerar este párrafo" (punto 3.2): rehace UN bloque sin tocar los demas
+// ni el trabajo de edicion que el agente ya hizo en ellos.
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,26 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'Bloque no válido.' }, { status: 400 });
   const { bloque } = parsed.data;
+
+  // El saludo no pasa por el modelo: tiene reglas fijas (ver saludo.ts). No
+  // consume freno ni se registra como generacion, porque no hubo llamada.
+  if (bloque === 'saludo') {
+    const saludo = resolverSaludo(carta.destinatarioNombre, carta.destinatarioCargo);
+    const bloques = { ...bloquesDeCarta(carta.bloques), saludo: saludo.texto };
+    const actualizada = await prisma.carta.update({ where: { id }, data: { bloques, revisadaAt: null } });
+    return NextResponse.json({
+      bloque,
+      texto: saludo.texto,
+      carta: { ...actualizada, bloques: bloquesDeCarta(actualizada.bloques) },
+      cuota: await estadoDeCuota(auth.agentId),
+    });
+  }
+  if (bloque === 'apertura' && !carta.contexto?.trim()) {
+    return NextResponse.json(
+      { error: 'Esta carta no tiene contexto, así que no lleva párrafo de apertura.', cuota: await estadoDeCuota(auth.agentId) },
+      { status: 400 },
+    );
+  }
 
   // A proposito NO se consulta la cuota: el tope mensual es de cartas nuevas,
   // no de retoques (ver CARTA_LIMITE_MENSUAL). Un agente con el tope agotado
@@ -95,6 +116,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     tokensEntrada: resultado.tokensEntrada,
     tokensSalida: resultado.tokensSalida,
   });
+
+  // La auditoria rechazo lo que propuso el modelo, dos veces. El agente conserva
+  // su parrafo: mejor el que tenia que uno que afirma algo que no es cierto.
+  if (resultado.rechazado) {
+    return NextResponse.json(
+      {
+        error: 'El párrafo propuesto afirmaba datos que no están en tu perfil, así que no se aplicó. Intenta de nuevo o edítalo a mano.',
+        code: 'rechazado_por_auditoria',
+        cuota: await estadoDeCuota(auth.agentId),
+      },
+      { status: 422 },
+    );
+  }
 
   if (!resultado.texto) {
     return NextResponse.json(

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { agenteConCartas, bloquesDeCarta, cartaDelAgente } from '@/lib/real-estate/cartas/servidor';
+import { aperturaDesdeContexto } from '@/lib/real-estate/cartas/generar';
+import { resolverSaludo } from '@/lib/real-estate/cartas/saludo';
 
 // Duplicar una carta para un destinatario nuevo (punto 6.2). NO llama al
 // modelo: copia el texto que el agente ya trabajo y solo cambia a quien va
@@ -31,9 +33,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const entrada = parsed.data;
 
   const bloques = bloquesDeCarta(original.bloques);
-  // El saludo nombra al destinatario anterior, asi que se vacia: dejarlo seria
-  // la forma mas facil de mandar una carta con el nombre equivocado.
-  const bloquesNuevos = { ...bloques, saludo: `Estimado/a ${entrada.destinatarioNombre}:` };
+  // El saludo nombra al destinatario anterior: se rehace para el nuevo con las
+  // mismas reglas que al crear. La apertura retoma el contexto del destinatario
+  // ANTERIOR ("tras nuestra conversacion en Guayaquil"), que al nuevo no le
+  // corresponde: se arma desde su propio contexto, o se deja vacia.
+  const bloquesNuevos = {
+    ...bloques,
+    saludo: resolverSaludo(entrada.destinatarioNombre, entrada.destinatarioCargo).texto,
+    apertura: aperturaDesdeContexto(entrada.contexto),
+  };
 
   const copia = await prisma.carta.create({
     data: {
@@ -47,6 +55,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       datosUsados: original.datosUsados ?? {},
       imagenTipo: original.imagenTipo,
       paleta: original.paleta,
+      incluirMiniSitio: original.incluirMiniSitio,
       // Nace como borrador SIN revisar: es una carta distinta, dirigida a otra
       // persona, y tiene que pasar otra vez por la revision (punto 3.5).
     },

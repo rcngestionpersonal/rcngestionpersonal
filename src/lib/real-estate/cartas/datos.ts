@@ -68,7 +68,9 @@ export async function recolectarDatosDeAgente(agentId: string): Promise<CartaDat
     inmueblesActivos: composicion.reduce((total, fila) => total + fila.cantidad, 0),
     composicionInventario: composicion,
     cierresRegistrados: cierres,
-    aniosDeExperiencia: agente.yearsExperience,
+    // Declarado por el agente en su carnet, no verificado por Redinmo (ver el
+    // comentario del tipo). Se pasa tal cual, sin completar ni redondear.
+    aniosExperienciaDeclarados: agente.yearsExperience,
     licencia: agente.licenseNumber,
     verificado: Boolean(agente.idNumber) && Boolean(agente.phoneVerifiedAt),
   };

@@ -22,7 +22,7 @@ const AGENTE_NUEVO: CartaDatosAgente = {
   inmueblesActivos: 1,
   composicionInventario: [{ tipo: 'departamento', cantidad: 1 }],
   cierresRegistrados: 0,
-  aniosDeExperiencia: null,
+  aniosExperienciaDeclarados: null,
   licencia: null,
   verificado: false,
 };
@@ -39,8 +39,8 @@ const AGENTE_CON_CARTERA: CartaDatosAgente = {
     { tipo: 'casa', cantidad: 7 },
     { tipo: 'departamento', cantidad: 5 },
   ],
-  cierresRegistrados: 9,
-  aniosDeExperiencia: 8,
+  cierresRegistrados: 14,
+  aniosExperienciaDeclarados: 8,
   verificado: true,
 };
 
@@ -94,7 +94,7 @@ describe('cartas: cero invención', () => {
     const texto = bloquesATexto(borradorDePlantilla(base(AGENTE_CON_CARTERA))).toLowerCase();
 
     expect(texto).toContain('12 inmuebles activos');
-    expect(texto).toContain('9 cierres');
+    expect(texto).toContain('14 cierres');
     // Aun con cartera, nada de adjetivos de veterania inventados.
     for (const frase of EXAGERACIONES) {
       expect(texto, `no debería decir "${frase}"`).not.toContain(frase);
@@ -108,8 +108,30 @@ describe('cartas: cero invención', () => {
     expect(texto).toContain('Ana Torres');
   });
 
-  it('el saludo usa el nombre del destinatario, no un genérico', () => {
+  it('el saludo lleva fórmula de tratamiento, nombre y coma', () => {
     const bloques = borradorDePlantilla(base(AGENTE_NUEVO));
-    expect(bloques.saludo).toContain('María Jaramillo');
+    expect(bloques.saludo).toBe('Estimada María Jaramillo,');
+  });
+
+  it('con contexto, la apertura es un párrafo propio y la presentación no lo repite', () => {
+    const bloques = borradorDePlantilla({ ...base(AGENTE_NUEVO), contexto: 'nos conocimos en la feria (Quito)' });
+    expect(bloques.apertura).toBe('Nos conocimos en la feria Quito.');
+    expect(bloques.presentacion.startsWith('Mi nombre es')).toBe(true);
+  });
+
+  it('sin contexto no hay apertura: la carta empieza por la presentación', () => {
+    const bloques = borradorDePlantilla(base(AGENTE_NUEVO));
+    expect(bloques.apertura).toBe('');
+    expect(bloques.presentacion.startsWith('Mi nombre es')).toBe(true);
+  });
+
+  it('años declarados: el número exacto; sin declarar: ni una palabra de años', () => {
+    expect(bloquesATexto(borradorDePlantilla(base(AGENTE_CON_CARTERA)))).toContain('Llevo 8 años en el sector inmobiliario.');
+    expect(bloquesATexto(borradorDePlantilla(base(AGENTE_NUEVO))).toLowerCase()).not.toContain('años');
+  });
+
+  it('tres cierres no se mencionan: están por debajo del umbral', () => {
+    const tres = { ...AGENTE_CON_CARTERA, cierresRegistrados: 3 };
+    expect(bloquesATexto(borradorDePlantilla(base(tres))).toLowerCase()).not.toContain('cierres');
   });
 });
