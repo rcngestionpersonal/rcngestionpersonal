@@ -49,13 +49,33 @@ function cifrar(texto: string, clave: Buffer): string {
   return `${iv.toString('hex')}:${c.getAuthTag().toString('hex')}:${ct.toString('hex')}`;
 }
 
+// Bytes crudos: iv (12) | tag (16) | cifrado. Es el formato de las fotos de
+// visitantes (src/lib/real-estate/reportes/cifrado.ts).
+function descifrarBytes(guardado: Buffer, clave: Buffer): Buffer {
+  const d = crypto.createDecipheriv(ALGORITMO, clave, guardado.subarray(0, IV_BYTES));
+  d.setAuthTag(guardado.subarray(IV_BYTES, IV_BYTES + 16));
+  return Buffer.concat([d.update(guardado.subarray(IV_BYTES + 16)), d.final()]);
+}
+
+function cifrarBytes(datos: Buffer, clave: Buffer): Buffer {
+  const iv = crypto.randomBytes(IV_BYTES);
+  const c = crypto.createCipheriv(ALGORITMO, clave, iv);
+  const ct = Buffer.concat([c.update(datos), c.final()]);
+  return Buffer.concat([iv, c.getAuthTag(), ct]);
+}
+
 // Cada columna cifrada del esquema. Si mañana se cifra una columna nueva, se
 // agrega aqui: es el unico sitio que hay que tocar para que entre en la rotacion.
-const COLUMNAS: Array<{ tabla: string; columna: string; obligatoria: boolean }> = [
+const COLUMNAS: Array<{ tabla: string; columna: string; obligatoria: boolean; bytes?: boolean }> = [
   { tabla: 'Contrato', columna: 'datosCifrados', obligatoria: true },
   { tabla: 'ContratoFirmante', columna: 'cedulaCifrada', obligatoria: true },
   { tabla: 'ContratoFirmante', columna: 'evidenciaCifrada', obligatoria: false },
   { tabla: 'PaymentMethod', columna: 'cardTokenEnc', obligatoria: false },
+  // Reportes a clientes (Fase 9): datos del visitante y su foto.
+  { tabla: 'ReporteVisita', columna: 'visitanteNombreCifrado', obligatoria: false },
+  { tabla: 'ReporteVisita', columna: 'visitanteCedulaCifrada', obligatoria: false },
+  { tabla: 'ReporteVisita', columna: 'acompanantesCifrado', obligatoria: false },
+  { tabla: 'ReporteVisitaFoto', columna: 'datosCifrados', obligatoria: false, bytes: true },
 ];
 
 async function main() {
@@ -80,7 +100,7 @@ async function main() {
   try {
     if (!ensayo) await client.query('BEGIN');
 
-    for (const { tabla, columna, obligatoria } of COLUMNAS) {
+    for (const { tabla, columna, obligatoria, bytes } of COLUMNAS) {
       const existe = await client.query(
         `SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = $2`,
         [tabla, columna],
@@ -97,6 +117,31 @@ async function main() {
       totalLeidas += filas.rowCount ?? 0;
 
       let rotadas = 0;
+
+      if (bytes) {
+        for (const fila of filas.rows as Array<{ id: string; valor: Buffer }>) {
+          let claro: Buffer;
+          try {
+            claro = descifrarBytes(fila.valor, kVieja);
+          } catch {
+            fallos.push(`${tabla}.${columna} id=${fila.id}: no descifra con la clave vieja`);
+            continue;
+          }
+          const recifrado = cifrarBytes(claro, kNueva);
+          if (!descifrarBytes(recifrado, kNueva).equals(claro)) {
+            fallos.push(`${tabla}.${columna} id=${fila.id}: el recifrado no coincide con el original`);
+            continue;
+          }
+          if (!ensayo) {
+            await client.query(`UPDATE "${tabla}" SET "${columna}" = $1 WHERE id = $2`, [recifrado, fila.id]);
+          }
+          rotadas += 1;
+        }
+        totalRotadas += rotadas;
+        console.log(`${tabla}.${columna}: ${rotadas}/${filas.rowCount} filas ${ensayo ? 'verificadas' : 'rotadas'}`);
+        continue;
+      }
+
       for (const fila of filas.rows as Array<{ id: string; valor: string }>) {
         let claro: string;
         try {

@@ -39,7 +39,7 @@ export const LEGAL_ENTITY = {
 // esta construido, ver el resumen de la fase de cierre).
 export const LEGAL_VERSIONS = {
   terminos: '2026-09-11',
-  privacidad: '2026-09-02',
+  privacidad: '2026-09-12',
   suscripcion: '2026-09-02',
   cookies: '2026-09-02',
 };

@@ -94,6 +94,10 @@ export async function middleware(request: NextRequest) {
       // Contratos: crear, editar, enviar a firma, reenviar y anular son todas
       // acciones del propio agente sobre sus documentos.
       pathname.startsWith('/api/real-estate/contratos') ||
+      // Reportes a clientes (Fase 9): registrar visitas, generar reportes de
+      // gestion, enviarlos y borrarlos. Sin esta linea la pantalla carga pero
+      // guardar una visita muere en 403 "Permisos insuficientes".
+      pathname.startsWith('/api/real-estate/reportes') ||
       pathname.startsWith('/api/real-estate/points');
 
     if (isMutating && session.role !== 'admin' && !allowAgentMutations) {

@@ -159,6 +159,32 @@ export default function PrivacidadPage() {
               cuenta del agente esté activa.
             </p>
           </section>
+
+          <section>
+            <h2 className="mb-1.5 text-base font-bold text-text">10. Datos de visitantes en los reportes de visita</h2>
+            <p>
+              Cuando un agente registra la visita de una persona a un inmueble, puede anotar su nombre, su número de cédula,
+              quiénes la acompañaron y su reacción a la visita. Esos datos solo los ven el agente que los registró y el
+              propietario del inmueble al que el agente le entrega el reporte. En el reporte que recibe el propietario la
+              cédula aparece enmascarada, con sus últimos cuatro dígitos. El nombre, la cédula y los acompañantes se guardan
+              cifrados.
+            </p>
+            <p className="mt-2">
+              El agente puede tomar una fotografía del visitante en el inmueble solo si el visitante la autoriza, y la
+              autorización tiene dos niveles independientes: su uso como respaldo de la visita, y, por separado y de forma
+              opcional, su publicación en las redes sociales del agente. Sin la primera autorización la fotografía no se
+              guarda. Sin la segunda, la fotografía solo sirve como respaldo y la plataforma no permite descargarla para
+              publicarla. Las fotografías se guardan cifradas, sin ningún enlace público, y solo el agente puede abrirlas.
+            </p>
+            <p className="mt-2">
+              El agente puede eliminar en cualquier momento un reporte de visita, y con él se eliminan los datos del visitante
+              y su fotografía. Un visitante puede pedir el acceso, la rectificación o la eliminación de sus datos escribiendo a{' '}
+              <a href={`mailto:${LEGAL_ENTITY.correoContacto}`} className="font-semibold text-accent hover:underline">
+                {LEGAL_ENTITY.correoContacto}
+              </a>
+              .
+            </p>
+          </section>
         </div>
 
         <LegalCrossLinks current="/legal/privacidad" />

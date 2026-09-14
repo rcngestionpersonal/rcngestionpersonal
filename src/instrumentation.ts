@@ -25,7 +25,7 @@ const REQUISITOS: Requisito[] = [
   { nombre: 'AUTH_SECRET', rompe: 'el inicio de sesión', critica: true },
   {
     nombre: 'ENCRYPTION_KEY',
-    rompe: 'el módulo de contratos y el cifrado de los medios de pago',
+    rompe: 'el módulo de contratos, los reportes de visita y el cifrado de los medios de pago',
     critica: false,
   },
   { nombre: 'RESEND_API_KEY', rompe: 'el envío de correos, incluidos los enlaces de firma', critica: false },

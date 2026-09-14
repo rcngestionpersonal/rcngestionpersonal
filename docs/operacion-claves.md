@@ -5,7 +5,7 @@ el código no se lee el día que hace falta.
 
 ## Qué protege
 
-`ENCRYPTION_KEY` cifra en reposo, con AES-256-GCM, tres cosas:
+`ENCRYPTION_KEY` cifra en reposo, con AES-256-GCM, lo siguiente:
 
 | Dónde | Qué |
 |---|---|
@@ -13,6 +13,8 @@ el código no se lee el día que hace falta.
 | `ContratoFirmante.cedulaCifrada` | La cédula completa de cada firmante |
 | `ContratoFirmante.evidenciaCifrada` | El registro probatorio de cada firma: IP, navegador, si desplazó el documento |
 | `PaymentMethod` | El ctoken de Payphone del medio de pago guardado |
+| `ReporteVisita` | Nombre, cédula y acompañantes de cada visitante |
+| `ReporteVisitaFoto.datosCifrados` | La foto del visitante, en bytes. No existe copia en Vercel Blob ni ninguna URL pública |
 
 Son datos de terceros que nunca aceptaron nuestros términos. Por eso el módulo
 de contratos se niega a operar sin la clave, en vez de guardar cédulas en claro.

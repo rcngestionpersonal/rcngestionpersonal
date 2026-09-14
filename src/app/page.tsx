@@ -16,6 +16,7 @@ import InvitarTab from '@/components/dashboard/tabs/InvitarTab';
 import MiSitioTab from '@/components/dashboard/tabs/MiSitioTab';
 import CartasTab from '@/components/dashboard/tabs/CartasTab';
 import ContratosTab from '@/components/dashboard/tabs/ContratosTab';
+import ReportesTab from '@/components/dashboard/tabs/ReportesTab';
 import MetricasTab from '@/components/dashboard/tabs/MetricasTab';
 import LevelUpCelebrationModal from '@/components/dashboard/LevelUpCelebrationModal';
 import NoEmailBanner from '@/components/dashboard/NoEmailBanner';
@@ -974,6 +975,7 @@ function DashboardPage() {
         <CartasTab suscripcion={accesoInput} onIrAMiSitio={() => setActiveTab('misitio')} />
       )}
       {activeTab === 'contratos' && isAgent && <ContratosTab suscripcion={accesoInput} />}
+      {activeTab === 'reportes' && isAgent && <ReportesTab suscripcion={accesoInput} />}
       {activeTab === 'invitar' && isAgent && <InvitarTab myAgentId={user?.agentId} agents={agents} />}
       {activeTab === 'metricas' && isAdmin && <MetricasTab months={churnMonths} />}
 

@@ -70,6 +70,16 @@ const nextConfig = {
       './node_modules/harfbuzzjs/*.wasm',
       './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
     ],
+    // Reportes a clientes (Fase 9): las rutas que rasterizan los tres reportes,
+    // para descarga y para el adjunto del correo. Misma cadena satori->resvg.
+    '/api/real-estate/reportes/visitas/[id]/archivo': [
+      './node_modules/harfbuzzjs/*.wasm',
+      './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
+    ],
+    '/api/real-estate/reportes/visitas/[id]/enviar': [
+      './node_modules/harfbuzzjs/*.wasm',
+      './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
+    ],
   },
   images: {
     remotePatterns: [

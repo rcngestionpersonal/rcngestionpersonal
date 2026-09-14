@@ -245,3 +245,15 @@ export function IconLock(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+// Reportes a clientes (Fase 9): una hoja con barras. Se distingue de Contratos
+// (hoja con firma) y de Cartas (sobre) de un vistazo en el menu.
+export function IconReport(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
+      <path d="M14 3v5h5" />
+      <path d="M9 17v-3M12 17v-5M15 17v-2" />
+    </svg>
+  );
+}

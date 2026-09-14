@@ -229,10 +229,12 @@ model Agent {
   cartas                Carta[]
   cartaGeneraciones     CartaGeneracion[]
   contratos             Contrato[]
+  reportesVisita        ReporteVisita[]
+  reportesGestion       ReporteGestion[]
 }
 
 model Listing {
-  id                      String         @id @default(cuid())
+  id                      String           @id @default(cuid())
   title                   String
   operationType           OperationType
   propertyType            PropertyType
@@ -240,7 +242,7 @@ model Listing {
   zone                    String?
   address                 String?
   price                   Float
-  currency                String         @default("USD")
+  currency                String           @default("USD")
   areaM2                  Float?
   bedrooms                Int?
   bathrooms               Int?
@@ -299,16 +301,18 @@ model Listing {
   // helper, y NUNCA debe leerse como fuente de verdad de cual es la portada:
   // eso lo decide orden 0.
   coverPhotoUrl           String?
-  commissionSharePercent  Float          @default(0)
-  status                  ListingStatus  @default(ACTIVE)
-  managingAgent           Agent          @relation("ListingManagedBy", fields: [managingAgentId], references: [id], onDelete: Cascade)
+  commissionSharePercent  Float            @default(0)
+  status                  ListingStatus    @default(ACTIVE)
+  managingAgent           Agent            @relation("ListingManagedBy", fields: [managingAgentId], references: [id], onDelete: Cascade)
   managingAgentId         String
-  referredByAgent         Agent?         @relation("ListingReferredBy", fields: [referredByAgentId], references: [id], onDelete: SetNull)
+  referredByAgent         Agent?           @relation("ListingReferredBy", fields: [referredByAgentId], references: [id], onDelete: SetNull)
   referredByAgentId       String?
-  createdAt               DateTime       @default(now())
-  updatedAt               DateTime       @updatedAt
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
   matches                 ListingMatch[]
   photos                  ListingPhoto[]
+  reportesVisita          ReporteVisita[]
+  reportesGestion         ReporteGestion[]
 
   @@index([city, propertyType, operationType])
   @@index([status])
@@ -999,4 +1003,111 @@ model ContratoFirmante {
 
   @@index([contratoId])
   @@index([estado, expiraAt])
+}
+
+// ---------------------------------------------------------------------------
+// Fase 9 - Reportes a clientes (feature Pro "reportes_clientes").
+// ---------------------------------------------------------------------------
+
+// Reporte de visita: lo llena el agente despues de mostrar un inmueble, desde
+// el celular. Es respaldo de su gestion ante el propietario y alimenta el
+// reporte de gestion, asi que nada se registra dos veces.
+//
+// Los datos del visitante son de un TERCERO que no tiene cuenta en Redinmo:
+// nombre, cedula y acompañantes van cifrados en reposo con ENCRYPTION_KEY (ver
+// scripts/rotar-encryption-key.ts, que los recifra al rotar la clave). De la
+// cedula se guardan ademas los ultimos 4 digitos en claro, igual que en los
+// contratos: es lo que se imprime en el reporte que recibe el propietario.
+model ReporteVisita {
+  id        String  @id @default(cuid())
+  agent     Agent   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentId   String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId String
+
+  visitadaAt      DateTime
+  duracionMinutos Int?
+
+  visitanteNombreCifrado String
+  visitanteCedulaCifrada String?
+  visitanteCedulaUlt4    String?
+  acompanantesCifrado    String?
+
+  // MUY_INTERESADO | INTERESADO_CON_REPAROS | NO_INTERESADO
+  reaccion      String
+  observaciones String?
+  objeciones    String?
+  proximoPaso   String?
+
+  paleta    String    @default("clara")
+  enviadoAt DateTime?
+  enviadoA  String?
+
+  foto ReporteVisitaFoto?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agentId, visitadaAt])
+  @@index([listingId, visitadaAt])
+}
+
+// Foto del visitante en el inmueble. Tabla aparte para que listar reportes no
+// arrastre los bytes de la imagen.
+//
+// NO vive en Vercel Blob: el store del proyecto es publico y no admite
+// objetos privados. Se guarda aqui, cifrada (iv de 12 bytes | tag de 16 |
+// JPEG cifrado), y solo sale descifrada por una ruta autenticada del agente.
+// No existe ninguna URL publica de esta imagen.
+//
+// La fila solo existe si el visitante dio el primer consentimiento (respaldo
+// de la visita). El segundo (publicacion en redes) es independiente: sin el,
+// la foto queda como "solo respaldo" y la ruta de descarga para redes la niega.
+model ReporteVisitaFoto {
+  id        String        @id @default(cuid())
+  reporte   ReporteVisita @relation(fields: [reporteId], references: [id], onDelete: Cascade)
+  reporteId String        @unique
+
+  datosCifrados Bytes
+  ancho         Int
+  alto          Int
+
+  consentimientoRespaldo Boolean  @default(true)
+  consentimientoRedes    Boolean  @default(false)
+  consentimientoAt       DateTime @default(now())
+
+  createdAt DateTime @default(now())
+}
+
+// Reporte de gestion al propietario. "datos" congela las cifras automaticas
+// del periodo (actividad en Redinmo, visitas, interesados, comparativo) el dia
+// que se genero: el historial tiene que mostrar lo que el propietario recibio,
+// no lo que diria el sistema si se recalculara hoy.
+model ReporteGestion {
+  id        String  @id @default(cuid())
+  agent     Agent   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentId   String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId String
+
+  // SEMANAL | MENSUAL
+  periodicidad String
+  periodoDesde DateTime
+  periodoHasta DateTime
+
+  // Donde esta publicado el inmueble: [{ canal, nombre, enlace }]. Lo edita el
+  // agente y se precarga en el reporte siguiente.
+  difusion      Json
+  observaciones String?
+  datos         Json
+
+  paleta    String    @default("clara")
+  enviadoAt DateTime?
+  enviadoA  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([listingId, periodoHasta])
+  @@index([agentId, createdAt])
 }
