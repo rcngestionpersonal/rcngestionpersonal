@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { pricePerM2 } from '@/lib/real-estate/closed-deals-config';
 import { actividadBaja, diasEntre, mediana, semanasDeGestion, visitasSinDuplicar } from './estadistica';
 import { fechaCorta, operacionImpresa, sectorImpreso, tipoImpreso } from './servidor';
+import { valoresDeZona, zonaDelMapa } from './zona';
 import {
   CANALES_DIFUSION,
   GESTION_LIMITES,
@@ -118,14 +119,18 @@ export async function calcularDatosGestion(
 
 // Comparativo de mercado (punto 2.2.f): solo con muestra suficiente. De los
 // otros inmuebles solo se leen fechas y conteos, nunca a quien pertenecen.
+//
+// "Sector" es la zona del Mapa de Cierres a la que pertenece el barrio del
+// inmueble: es la unidad con la que se registran los cierres.
 async function compararConSector(listing: Listing, desde: Date, hasta: Date) {
-  if (!listing.zone) return { comparativo: null, promedioConsultasSector: null, similares: 0 };
+  const zona = zonaDelMapa(listing.zone);
+  if (!zona) return { comparativo: null, promedioConsultasSector: null, similares: 0 };
 
   const [similares, cierres] = await Promise.all([
     prisma.listing.findMany({
       where: {
         id: { not: listing.id },
-        zone: listing.zone,
+        zone: { in: valoresDeZona(zona) },
         propertyType: listing.propertyType,
         operationType: listing.operationType,
         status: 'ACTIVE',
@@ -134,7 +139,7 @@ async function compararConSector(listing: Listing, desde: Date, hasta: Date) {
       take: 500,
     }),
     prisma.closedDeal.findMany({
-      where: { zone: listing.zone, propertyType: listing.propertyType, operationType: listing.operationType, declaredAccurate: true },
+      where: { zone: zona.key, propertyType: listing.propertyType, operationType: listing.operationType === 'RENT' ? 'RENT' : 'SALE', declaredAccurate: true },
       select: { propertyType: true, price: true, areaM2: true, landAreaM2: true },
       take: 500,
     }),

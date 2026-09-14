@@ -114,12 +114,12 @@ export function DocumentoReporte({
           borderTop: `2px solid ${palette.violetaLine}`,
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 520 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 520, flexShrink: 1 }}>
           <div style={{ display: 'flex', fontSize: 10.5, fontWeight: 800, letterSpacing: 1.4, color: palette.violeta }}>{etiqueta}</div>
           <div style={{ display: 'flex', fontSize: 20, fontWeight: 800, color: palette.text, marginTop: 4, lineHeight: 1.2 }}>{titulo}</div>
           <div style={{ display: 'flex', fontSize: 12, color: palette.text2, marginTop: 3 }}>{subtitulo}</div>
         </div>
-        <div style={{ display: 'flex', fontSize: 11, color: palette.text3 }}>{fecha}</div>
+        <div style={{ display: 'flex', flexShrink: 0, marginLeft: 16, fontSize: 11, color: palette.text3 }}>{fecha}</div>
       </div>
 
       {/* ---- Cuerpo ---- */}

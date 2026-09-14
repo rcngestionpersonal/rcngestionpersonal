@@ -10,6 +10,7 @@ import VisitaFormulario from '../reportes/VisitaFormulario';
 import VisitaDetalle from '../reportes/VisitaDetalle';
 import GestionFormulario from '../reportes/GestionFormulario';
 import GestionDetalle from '../reportes/GestionDetalle';
+import TasacionPanel from '../reportes/TasacionPanel';
 import type { DatosPantallaReportes, InmuebleReporte } from '../reportes/tipos-cliente';
 
 // Modulo "Reportes" (Fase 9). Pestaña propia al nivel de los modulos de
@@ -21,6 +22,7 @@ type Vista =
   | { modo: 'visita'; id: string }
   | { modo: 'gestion-nueva'; listingId?: string | null }
   | { modo: 'gestion'; id: string }
+  | { modo: 'tasacion'; listingId?: string | null }
   | { modo: 'expediente'; listingId: string };
 
 export default function ReportesTab({ suscripcion }: { suscripcion: AccesoInput | null }) {
@@ -136,6 +138,18 @@ function Panel({ t }: { t: (k: string) => string }) {
     );
   }
 
+  if (vista.modo === 'tasacion') {
+    return (
+      <TasacionPanel
+        inmuebles={datos.inmuebles}
+        inmuebleInicial={vista.listingId}
+        tieneCorreo={datos.tieneCorreo}
+        t={t}
+        onVolver={() => setVista({ modo: 'inicio' })}
+      />
+    );
+  }
+
   if (vista.modo === 'expediente') {
     const inmueble = inmueblePorId.get(vista.listingId);
     return inmueble ? (
@@ -148,6 +162,7 @@ function Panel({ t }: { t: (k: string) => string }) {
         onAbrirGestion={(id) => setVista({ modo: 'gestion', id })}
         onNuevaVisita={() => setVista({ modo: 'visita-nueva', listingId: inmueble.id })}
         onNuevaGestion={() => setVista({ modo: 'gestion-nueva', listingId: inmueble.id })}
+        onTasar={() => setVista({ modo: 'tasacion', listingId: inmueble.id })}
       />
     ) : null;
   }
@@ -168,6 +183,13 @@ function Panel({ t }: { t: (k: string) => string }) {
           detalle={t('reportes.gestion.detalle')}
           accion={t('reportes.gestion.crear')}
           onClick={() => setVista({ modo: 'gestion-nueva' })}
+        />
+        <TarjetaReporte
+          titulo={t('reportes.tasacion.titulo')}
+          detalle={t('reportes.tasacion.detalle')}
+          accion={t('reportes.tasacion.crear')}
+          etiqueta={t('reportes.tasacion.etiquetaConstruccion')}
+          onClick={() => setVista({ modo: 'tasacion' })}
         />
       </div>
 
@@ -217,17 +239,22 @@ function TarjetaReporte({
   detalle,
   accion,
   principal,
+  etiqueta,
   onClick,
 }: {
   titulo: string;
   detalle: string;
   accion: string;
   principal?: boolean;
+  etiqueta?: string;
   onClick: () => void;
 }) {
   return (
     <div className={`flex flex-col rounded-2xl border p-4 ${principal ? 'border-brand-line bg-brand-dim' : 'border-line bg-surface'}`}>
-      <p className="text-sm font-bold text-text">{titulo}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-sm font-bold text-text">{titulo}</p>
+        {etiqueta ? <span className="rounded-full border border-line px-2 py-0.5 text-[10px] font-bold uppercase text-text-3">{etiqueta}</span> : null}
+      </div>
       <p className="mt-1 flex-1 text-xs leading-relaxed text-text-2">{detalle}</p>
       <button
         onClick={onClick}
@@ -250,6 +277,7 @@ function Expediente({
   onAbrirGestion,
   onNuevaVisita,
   onNuevaGestion,
+  onTasar,
 }: {
   inmueble: InmuebleReporte;
   datos: DatosPantallaReportes;
@@ -259,6 +287,7 @@ function Expediente({
   onAbrirGestion: (id: string) => void;
   onNuevaVisita: () => void;
   onNuevaGestion: () => void;
+  onTasar: () => void;
 }) {
   // Linea de tiempo de la gestion del inmueble: visitas y reportes de gestion
   // juntos, del mas reciente al mas antiguo.
@@ -290,12 +319,15 @@ function Expediente({
         </button>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-2 sm:grid-cols-3">
         <button onClick={onNuevaVisita} className="gradient-btn min-h-[48px] rounded-xl text-sm font-bold text-grad-contrast">
           {t('reportes.visita.crear')}
         </button>
         <button onClick={onNuevaGestion} className="min-h-[48px] rounded-xl border border-line-strong text-sm font-bold text-text hover:bg-surface-2">
           {t('reportes.gestion.crear')}
+        </button>
+        <button onClick={onTasar} className="min-h-[48px] rounded-xl border border-line-strong text-sm font-bold text-text hover:bg-surface-2">
+          {t('reportes.tasacion.crear')}
         </button>
       </div>
 
