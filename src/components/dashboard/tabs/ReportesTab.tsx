@@ -8,6 +8,8 @@ import { ModuleHeader } from '../CardKit';
 import { IconReport } from '../icons';
 import VisitaFormulario from '../reportes/VisitaFormulario';
 import VisitaDetalle from '../reportes/VisitaDetalle';
+import GestionFormulario from '../reportes/GestionFormulario';
+import GestionDetalle from '../reportes/GestionDetalle';
 import type { DatosPantallaReportes, InmuebleReporte } from '../reportes/tipos-cliente';
 
 // Modulo "Reportes" (Fase 9). Pestaña propia al nivel de los modulos de
@@ -17,6 +19,8 @@ type Vista =
   | { modo: 'inicio' }
   | { modo: 'visita-nueva'; listingId?: string | null }
   | { modo: 'visita'; id: string }
+  | { modo: 'gestion-nueva'; listingId?: string | null }
+  | { modo: 'gestion'; id: string }
   | { modo: 'expediente'; listingId: string };
 
 export default function ReportesTab({ suscripcion }: { suscripcion: AccesoInput | null }) {
@@ -103,6 +107,35 @@ function Panel({ t }: { t: (k: string) => string }) {
     );
   }
 
+  if (vista.modo === 'gestion-nueva') {
+    return (
+      <GestionFormulario
+        inmuebles={datos.inmuebles}
+        inmuebleInicial={vista.listingId}
+        t={t}
+        onCancelar={() => setVista({ modo: 'inicio' })}
+        onEmitida={(g) => {
+          void cargar();
+          setVista({ modo: 'gestion', id: g.id });
+        }}
+      />
+    );
+  }
+
+  if (vista.modo === 'gestion') {
+    const resumen = datos.gestiones.find((g) => g.id === vista.id);
+    return (
+      <GestionDetalle
+        id={vista.id}
+        inmueble={resumen ? inmueblePorId.get(resumen.listingId) ?? null : null}
+        tieneCorreo={datos.tieneCorreo}
+        t={t}
+        onVolver={volverAlInicio}
+        onEliminada={volverAlInicio}
+      />
+    );
+  }
+
   if (vista.modo === 'expediente') {
     const inmueble = inmueblePorId.get(vista.listingId);
     return inmueble ? (
@@ -112,7 +145,9 @@ function Panel({ t }: { t: (k: string) => string }) {
         t={t}
         onVolver={() => setVista({ modo: 'inicio' })}
         onAbrirVisita={(id) => setVista({ modo: 'visita', id })}
+        onAbrirGestion={(id) => setVista({ modo: 'gestion', id })}
         onNuevaVisita={() => setVista({ modo: 'visita-nueva', listingId: inmueble.id })}
+        onNuevaGestion={() => setVista({ modo: 'gestion-nueva', listingId: inmueble.id })}
       />
     ) : null;
   }
@@ -127,6 +162,12 @@ function Panel({ t }: { t: (k: string) => string }) {
           accion={t('reportes.visita.crear')}
           principal
           onClick={() => setVista({ modo: 'visita-nueva' })}
+        />
+        <TarjetaReporte
+          titulo={t('reportes.gestion.titulo')}
+          detalle={t('reportes.gestion.detalle')}
+          accion={t('reportes.gestion.crear')}
+          onClick={() => setVista({ modo: 'gestion-nueva' })}
         />
       </div>
 
@@ -206,14 +247,18 @@ function Expediente({
   t,
   onVolver,
   onAbrirVisita,
+  onAbrirGestion,
   onNuevaVisita,
+  onNuevaGestion,
 }: {
   inmueble: InmuebleReporte;
   datos: DatosPantallaReportes;
   t: (k: string) => string;
   onVolver: () => void;
   onAbrirVisita: (id: string) => void;
+  onAbrirGestion: (id: string) => void;
   onNuevaVisita: () => void;
+  onNuevaGestion: () => void;
 }) {
   // Linea de tiempo de la gestion del inmueble: visitas y reportes de gestion
   // juntos, del mas reciente al mas antiguo.
@@ -221,6 +266,16 @@ function Expediente({
     ...datos.visitas
       .filter((v) => v.listingId === inmueble.id)
       .map((v) => ({ tipo: 'visita' as const, id: v.id, fecha: v.visitadaAt, titulo: v.visitanteNombre, detalle: t(`reportes.reaccion.${v.reaccion}`), enviado: Boolean(v.enviadoAt) })),
+    ...datos.gestiones
+      .filter((g) => g.listingId === inmueble.id)
+      .map((g) => ({
+        tipo: 'gestion' as const,
+        id: g.id,
+        fecha: g.periodoHasta,
+        titulo: t(`reportes.gestion.periodicidad.${g.periodicidad}`),
+        detalle: `${new Date(g.periodoDesde).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })} – ${new Date(g.periodoHasta).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })}`,
+        enviado: Boolean(g.enviadoAt),
+      })),
   ].sort((a, b) => b.fecha.localeCompare(a.fecha));
 
   return (
@@ -239,6 +294,9 @@ function Expediente({
         <button onClick={onNuevaVisita} className="gradient-btn min-h-[48px] rounded-xl text-sm font-bold text-grad-contrast">
           {t('reportes.visita.crear')}
         </button>
+        <button onClick={onNuevaGestion} className="min-h-[48px] rounded-xl border border-line-strong text-sm font-bold text-text hover:bg-surface-2">
+          {t('reportes.gestion.crear')}
+        </button>
       </div>
 
       {eventos.length === 0 ? (
@@ -248,7 +306,7 @@ function Expediente({
           {eventos.map((e) => (
             <li key={`${e.tipo}-${e.id}`}>
               <button
-                onClick={() => onAbrirVisita(e.id)}
+                onClick={() => (e.tipo === 'visita' ? onAbrirVisita(e.id) : onAbrirGestion(e.id))}
                 className="flex min-h-[60px] w-full items-center gap-3 rounded-2xl border border-line bg-surface p-3 text-left transition hover:bg-surface-2"
               >
                 <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-[10px] font-bold uppercase text-text-2">{t(`reportes.expediente.tipo.${e.tipo}`)}</span>

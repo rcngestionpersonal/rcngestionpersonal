@@ -1,4 +1,4 @@
-import type { Periodicidad, ReaccionVisita } from '@/lib/real-estate/reportes/tipos';
+import type { DatosGestion, EntradaDifusion, Periodicidad, ReaccionVisita } from '@/lib/real-estate/reportes/tipos';
 
 // Formas que viajan entre las rutas de reportes y la pantalla.
 
@@ -55,4 +55,23 @@ export type DatosPantallaReportes = {
   visitas: VisitaResumen[];
   gestiones: GestionResumen[];
   tieneCorreo: boolean;
+};
+
+export type GestionCompleta = GestionResumen & {
+  inmueble: string;
+  difusion: EntradaDifusion[];
+  observaciones: string | null;
+  datos: DatosGestion;
+  paleta: string;
+  createdAt: string;
+};
+
+export type BorradorGestion = {
+  periodicidad: Periodicidad;
+  datos: DatosGestion;
+  // Solo para el agente (punto 2.3): nunca va al documento.
+  senal: { consultasPorSemana: number; promedioSector: number; similares: number } | null;
+  difusion: EntradaDifusion[];
+  observaciones: string;
+  anterior: { id: string; periodoHasta: string } | null;
 };
