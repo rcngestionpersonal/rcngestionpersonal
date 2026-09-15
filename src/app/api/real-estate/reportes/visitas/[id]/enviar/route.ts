@@ -1,24 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { isEmailConfigured, sendEmailNotification } from '@/lib/real-estate/email';
 import { FICHA_PALETTES } from '@/lib/real-estate/ficha/palettes';
-import { asuntoReporte, cuerpoHtmlReporte, cuerpoTextoReporte } from '@/lib/real-estate/reportes/correo';
+import { nombreArchivoVisita } from '@/lib/real-estate/reportes/archivo';
+import { correoVisita } from '@/lib/real-estate/reportes/correos/visita';
+import { documentoGuardado, guardarDocumento, limitePdfBytes } from '@/lib/real-estate/reportes/documento';
+import { entregarReporte } from '@/lib/real-estate/reportes/entrega';
+import { adjuntos, agenteParaCorreo, barrioDe, entregaParaCorreo, envioSchema, inmuebleParaCorreo, respuestaDeEntrega } from '@/lib/real-estate/reportes/envio';
 import { A4, renderReporte } from '@/lib/real-estate/reportes/render';
-import { agenteConReportes, faltaClaveDeCifrado, encabezadoDelAgente, nombreArchivoReporte } from '@/lib/real-estate/reportes/servidor';
-import { esPaleta } from '@/lib/real-estate/reportes/tipos';
+import { agenteConReportes, encabezadoDelAgente, faltaClaveDeCifrado } from '@/lib/real-estate/reportes/servidor';
+import { REACCIONES_VISITA, esPaleta, type ReaccionVisita } from '@/lib/real-estate/reportes/tipos';
 import { reporteVisitaPagina } from '@/lib/real-estate/reportes/visita-plantilla';
-import { visitaDelAgente, visitaImpresa } from '@/lib/real-estate/reportes/visitas';
+import { visitaDelAgente, visitaImpresa, visitaParaAgente } from '@/lib/real-estate/reportes/visitas';
 
-// Envio del reporte de visita al propietario (punto 3.4). Igual que las
-// cartas: sale por el dominio verificado, pero el "responder a" es el agente.
+// Envio del reporte de visita al propietario (punto 3.4).
+//
+// Sale con el NOMBRE del agente como remitente y su correo como "responder a":
+// el propietario le responde a el. El dominio verificado de Redinmo es solo el
+// emisor tecnico. El PDF va siempre adjunto, y el primer envio lo congela.
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-const schema = z.object({
-  para: z.string().trim().email('Correo del propietario no válido.'),
-  mensaje: z.string().trim().max(2000).optional(),
-});
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await agenteConReportes(request);
@@ -30,45 +31,69 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const reporte = await visitaDelAgente(id, auth.agentId);
   if (!reporte) return NextResponse.json({ error: 'Reporte no encontrado.' }, { status: 404 });
 
-  const parsed = schema.safeParse(await request.json().catch(() => null));
+  const parsed = envioSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: 'Datos inválidos.', details: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
+  const envio = parsed.data;
   if (!isEmailConfigured()) return NextResponse.json({ error: 'El envío por correo no está configurado.' }, { status: 503 });
 
-  const agente = await prisma.agent.findUnique({ where: { id: auth.agentId }, select: { fullName: true, email: true, company: true, phone: true } });
-  if (!agente?.email) {
-    return NextResponse.json({ error: 'Necesitas un correo en tu perfil para enviar reportes.', code: 'sin_correo' }, { status: 409 });
-  }
-  const encabezado = await encabezadoDelAgente(auth.agentId);
-  if (!encabezado) return NextResponse.json({ error: 'Agente no encontrado.' }, { status: 404 });
+  const remitente = await agenteParaCorreo(auth.agentId);
+  if ('error' in remitente) return remitente.error;
 
-  const palette = FICHA_PALETTES[esPaleta(reporte.paleta) ? reporte.paleta : 'clara'];
-  const render = await renderReporte(
-    reporteVisitaPagina({ encabezado, visita: await visitaImpresa(reporte), palette, width: A4.width, height: A4.height }),
-    { formato: 'pdf', palette, titulo: 'Reporte de visita - Redinmo.io' },
-  );
-  const nombreAdjunto = nombreArchivoReporte('Visita', reporte.listing.title, reporte.visitadaAt, 'pdf');
+  const listing = await prisma.listing.findUnique({ where: { id: reporte.listingId } });
+  if (!listing) return NextResponse.json({ error: 'Inmueble no encontrado.' }, { status: 404 });
 
-  const datosCorreo = {
-    agente: { nombre: agente.fullName, empresa: agente.company, telefono: agente.phone, correo: agente.email },
-    tipo: 'de visita',
-    inmueble: reporte.listing.title,
-    mensaje: parsed.data.mensaje ?? null,
-    nombreAdjunto,
-  };
-  const resultado = await sendEmailNotification({
-    to: parsed.data.para,
-    subject: asuntoReporte(datosCorreo),
-    text: cuerpoTextoReporte(datosCorreo),
-    html: cuerpoHtmlReporte(datosCorreo),
-    replyTo: agente.email,
-    attachments: [{ filename: nombreAdjunto, content: render.buffer }],
+  const visita = visitaParaAgente(reporte);
+  const paleta = esPaleta(envio.paleta) ? envio.paleta : esPaleta(reporte.paleta) ? reporte.paleta : 'clara';
+
+  const resultado = await entregarReporte({
+    buscarGuardado: () => documentoGuardado('visita', id),
+    generarPdf: async () => {
+      const encabezado = await encabezadoDelAgente(auth.agentId);
+      if (!encabezado) throw new Error('agente sin encabezado');
+      const palette = FICHA_PALETTES[paleta];
+      const render = await renderReporte(
+        reporteVisitaPagina({ encabezado, visita: await visitaImpresa(reporte), palette, width: A4.width, height: A4.height }),
+        { formato: 'pdf', palette, titulo: 'Reporte de visita' },
+      );
+      return { buffer: render.buffer, paleta, nombreArchivo: nombreArchivoVisita(barrioDe(listing), reporte.visitadaAt) };
+    },
+    guardar: (pdf) => guardarDocumento({ tipo: 'visita', reporteId: id, agentId: auth.agentId, ...pdf }),
+    enviar: (documento, modo) => {
+      const correo = correoVisita({
+        agente: remitente.agente,
+        propietario: envio.nombreDestinatario ?? listing.ownerName,
+        inmueble: inmuebleParaCorreo(listing),
+        visitadaAt: reporte.visitadaAt,
+        duracionMinutos: reporte.duracionMinutos,
+        visitante: visita.visitanteNombre,
+        acompanantes: visita.acompanantes,
+        reaccion: (REACCIONES_VISITA as readonly string[]).includes(reporte.reaccion) ? (reporte.reaccion as ReaccionVisita) : 'INTERESADO_CON_REPAROS',
+        observaciones: reporte.observaciones,
+        objeciones: reporte.objeciones,
+        proximoPaso: reporte.proximoPaso,
+        mensaje: envio.mensaje,
+        conFoto: Boolean(reporte.foto),
+        entrega: entregaParaCorreo(documento, modo),
+      });
+      return sendEmailNotification({
+        to: envio.para,
+        subject: correo.asunto,
+        text: correo.texto,
+        html: correo.html,
+        fromName: remitente.agente.nombre,
+        replyTo: remitente.correo,
+        attachments: adjuntos(documento, modo),
+      });
+    },
+    limiteBytes: limitePdfBytes(),
+    modo: envio.modo,
+    registrarError: (m) => console.error(`[reportes] envio de visita ${id}: ${m}`),
   });
-  if (!resultado.delivered) {
-    return NextResponse.json({ error: resultado.error ?? 'No se pudo enviar el correo.' }, { status: 502 });
-  }
 
-  await prisma.reporteVisita.update({ where: { id }, data: { enviadoAt: new Date(), enviadoA: parsed.data.para } });
-  return NextResponse.json({ ok: true });
+  if (resultado.ok) {
+    await prisma.reporteVisita.update({ where: { id }, data: { enviadoAt: new Date(), enviadoA: envio.para, paleta: resultado.documento.paleta } });
+  }
+  return respuestaDeEntrega(resultado);
 }

@@ -10,6 +10,11 @@ type SendEmailInput = {
   // envio lo hace EL AGENTE, no Redinmo (punto 7.2 de la Fase 4), asi que la
   // respuesta del destinatario tiene que llegarle a el y no a nuestro buzon.
   replyTo?: string;
+  // Nombre visible del remitente. Los reportes a clientes salen con el nombre
+  // del AGENTE: es correspondencia suya con su cliente, y el propietario tiene
+  // que reconocer quien le escribe. La direccion sigue siendo la del dominio
+  // verificado, que es la que no cae en spam.
+  fromName?: string;
   attachments?: Array<{ filename: string; content: Buffer }>;
 };
 
@@ -18,6 +23,13 @@ export type SendEmailResult = {
   delivered: boolean;
   error?: string;
 };
+
+// Un nombre con comillas, comas o angulos rompe la cabecera From. Se limpia en
+// vez de rechazar el envio.
+function nombreVisible(nombre: string | undefined): string | null {
+  const limpio = (nombre ?? '').replace(/["<>\r\n,;]/g, ' ').replace(/\s+/g, ' ').trim();
+  return limpio ? limpio.slice(0, 70) : null;
+}
 
 export function isEmailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY);
@@ -39,7 +51,7 @@ export async function sendEmailNotification(input: SendEmailInput): Promise<Send
   try {
     const resend = new Resend(apiKey);
     const { error } = await resend.emails.send({
-      from: `${LEGAL_ENTITY.nombreComercial} <${fromEmail}>`,
+      from: `${nombreVisible(input.fromName) ?? LEGAL_ENTITY.nombreComercial} <${fromEmail}>`,
       replyTo: input.replyTo ?? LEGAL_ENTITY.correoContacto,
       to: input.to,
       subject: input.subject,

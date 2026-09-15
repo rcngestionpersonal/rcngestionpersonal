@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import type { MetaDocumento } from './documento';
 import { diasEntre } from './estadistica';
 import { fechasDeVisitaImpresas } from './gestion-datos';
 import type { GestionImpresa } from './gestion-plantilla';
@@ -10,7 +11,7 @@ import type { DatosGestion, EntradaDifusion, Periodicidad } from './tipos';
 // propietario, no un recalculo.
 
 export async function gestionDelAgente(id: string, agentId: string) {
-  const g = await prisma.reporteGestion.findUnique({ where: { id }, include: { listing: { select: { title: true, ownerPhone: true } } } });
+  const g = await prisma.reporteGestion.findUnique({ where: { id }, include: { listing: { select: { title: true, ownerPhone: true, ownerName: true, zone: true, city: true } } } });
   if (!g || g.agentId !== agentId) return null;
   return g;
 }
@@ -36,7 +37,7 @@ export function gestionImpresa(g: GestionFila): GestionImpresa {
   };
 }
 
-export function gestionParaAgente(g: GestionFila) {
+export function gestionParaAgente(g: GestionFila, documento: MetaDocumento | null = null) {
   return {
     id: g.id,
     listingId: g.listingId,
@@ -50,6 +51,7 @@ export function gestionParaAgente(g: GestionFila) {
     paleta: g.paleta,
     enviadoAt: g.enviadoAt?.toISOString() ?? null,
     enviadoA: g.enviadoA,
+    documento,
     createdAt: g.createdAt.toISOString(),
   };
 }

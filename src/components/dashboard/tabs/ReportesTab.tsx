@@ -11,6 +11,7 @@ import VisitaDetalle from '../reportes/VisitaDetalle';
 import GestionFormulario from '../reportes/GestionFormulario';
 import GestionDetalle from '../reportes/GestionDetalle';
 import TasacionPanel from '../reportes/TasacionPanel';
+import TasacionDetalle from '../reportes/TasacionDetalle';
 import type { DatosPantallaReportes, InmuebleReporte } from '../reportes/tipos-cliente';
 
 // Modulo "Reportes" (Fase 9). Pestaña propia al nivel de los modulos de
@@ -23,6 +24,7 @@ type Vista =
   | { modo: 'gestion-nueva'; listingId?: string | null }
   | { modo: 'gestion'; id: string }
   | { modo: 'tasacion'; listingId?: string | null }
+  | { modo: 'tasacion-guardada'; id: string }
   | { modo: 'expediente'; listingId: string };
 
 export default function ReportesTab({ suscripcion }: { suscripcion: AccesoInput | null }) {
@@ -145,7 +147,24 @@ function Panel({ t }: { t: (k: string) => string }) {
         inmuebleInicial={vista.listingId}
         tieneCorreo={datos.tieneCorreo}
         t={t}
-        onVolver={() => setVista({ modo: 'inicio' })}
+        onVolver={volverAlInicio}
+        onEnviada={() => void cargar()}
+        enviadas={datos.tasaciones}
+        onAbrirEnviada={(id) => setVista({ modo: 'tasacion-guardada', id })}
+      />
+    );
+  }
+
+  if (vista.modo === 'tasacion-guardada') {
+    const resumen = datos.tasaciones.find((x) => x.id === vista.id);
+    return (
+      <TasacionDetalle
+        id={vista.id}
+        inmueble={resumen?.listingId ? inmueblePorId.get(resumen.listingId) ?? null : null}
+        tieneCorreo={datos.tieneCorreo}
+        t={t}
+        onVolver={volverAlInicio}
+        onEliminada={volverAlInicio}
       />
     );
   }
@@ -160,6 +179,7 @@ function Panel({ t }: { t: (k: string) => string }) {
         onVolver={() => setVista({ modo: 'inicio' })}
         onAbrirVisita={(id) => setVista({ modo: 'visita', id })}
         onAbrirGestion={(id) => setVista({ modo: 'gestion', id })}
+        onAbrirTasacion={(id) => setVista({ modo: 'tasacion-guardada', id })}
         onNuevaVisita={() => setVista({ modo: 'visita-nueva', listingId: inmueble.id })}
         onNuevaGestion={() => setVista({ modo: 'gestion-nueva', listingId: inmueble.id })}
         onTasar={() => setVista({ modo: 'tasacion', listingId: inmueble.id })}
@@ -275,6 +295,7 @@ function Expediente({
   onVolver,
   onAbrirVisita,
   onAbrirGestion,
+  onAbrirTasacion,
   onNuevaVisita,
   onNuevaGestion,
   onTasar,
@@ -285,6 +306,7 @@ function Expediente({
   onVolver: () => void;
   onAbrirVisita: (id: string) => void;
   onAbrirGestion: (id: string) => void;
+  onAbrirTasacion: (id: string) => void;
   onNuevaVisita: () => void;
   onNuevaGestion: () => void;
   onTasar: () => void;
@@ -305,6 +327,9 @@ function Expediente({
         detalle: `${new Date(g.periodoDesde).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })} – ${new Date(g.periodoHasta).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })}`,
         enviado: Boolean(g.enviadoAt),
       })),
+    ...datos.tasaciones
+      .filter((x) => x.listingId === inmueble.id)
+      .map((x) => ({ tipo: 'tasacion' as const, id: x.id, fecha: x.createdAt, titulo: t('reportes.tasacion.titulo'), detalle: x.sector, enviado: Boolean(x.enviadoAt) })),
   ].sort((a, b) => b.fecha.localeCompare(a.fecha));
 
   return (
@@ -338,7 +363,7 @@ function Expediente({
           {eventos.map((e) => (
             <li key={`${e.tipo}-${e.id}`}>
               <button
-                onClick={() => (e.tipo === 'visita' ? onAbrirVisita(e.id) : onAbrirGestion(e.id))}
+                onClick={() => (e.tipo === 'visita' ? onAbrirVisita(e.id) : e.tipo === 'gestion' ? onAbrirGestion(e.id) : onAbrirTasacion(e.id))}
                 className="flex min-h-[60px] w-full items-center gap-3 rounded-2xl border border-line bg-surface p-3 text-left transition hover:bg-surface-2"
               >
                 <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-[10px] font-bold uppercase text-text-2">{t(`reportes.expediente.tipo.${e.tipo}`)}</span>

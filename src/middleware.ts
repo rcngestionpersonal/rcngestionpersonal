@@ -30,6 +30,9 @@ function isPublicPath(pathname: string): boolean {
   // Verificacion publica de un documento: solo existencia y estado, nunca
   // contenido.
   if (pathname.startsWith('/c/')) return true;
+  // Reporte descargado por enlace: quien lo abre es el propietario, sin cuenta.
+  // Su credencial es el token firmado que valida la ruta.
+  if (pathname.startsWith('/api/documentos/')) return true;
   if (pathname.startsWith('/api/auth/')) return true;
   if (pathname === '/api/health') return true;
   if (pathname.startsWith('/_next/')) return true;

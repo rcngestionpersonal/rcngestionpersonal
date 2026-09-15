@@ -147,6 +147,8 @@ export default function VisitaDetalle({
             urlArchivo={(formato, paleta, previa) => `${base}/archivo?formato=${formato}&paleta=${paleta}${previa ? '&previa=1' : ''}`}
             urlEnviar={`${base}/enviar`}
             paletaInicial={esPaleta(visita.paleta) ? visita.paleta : 'clara'}
+            documento={visita.documento}
+            nombreDestinatarioInicial={visita.propietario}
             tieneCorreo={tieneCorreo}
             correoInicial={visita.enviadoA}
             telefonoPropietario={inmueble?.ownerPhone}

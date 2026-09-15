@@ -8,7 +8,7 @@ import { QUITO_ZONES } from '@/lib/real-estate/quito-zones';
 import type { DatosTasacion, ResultadoTasacion } from '@/lib/real-estate/reportes/tasacion-datos';
 import { ADVERTENCIA_TASACION } from '@/lib/real-estate/reportes/tipos';
 import CompartirReporte from './CompartirReporte';
-import type { InmuebleReporte } from './tipos-cliente';
+import type { DocumentoEnviado, InmuebleReporte, TasacionResumen } from './tipos-cliente';
 
 // Reporte de tasacion (punto 1). ESTADO: en construccion. La pantalla funciona
 // completa, pero con el volumen actual del Mapa de Cierres casi siempre va a
@@ -23,12 +23,18 @@ export default function TasacionPanel({
   tieneCorreo,
   t,
   onVolver,
+  onEnviada,
+  enviadas = [],
+  onAbrirEnviada,
 }: {
   inmuebles: InmuebleReporte[];
   inmuebleInicial?: string | null;
   tieneCorreo: boolean;
   t: (k: string) => string;
   onVolver: () => void;
+  onEnviada?: () => void;
+  enviadas?: TasacionResumen[];
+  onAbrirEnviada?: (id: string) => void;
 }) {
   const { lang } = useLanguage();
   const [origen, setOrigen] = useState<Origen>(inmuebles.length > 0 ? 'inventario' : 'manual');
@@ -39,6 +45,9 @@ export default function TasacionPanel({
   const [telefono, setTelefono] = useState<string | null>(null);
   const [consulta, setConsulta] = useState<Record<string, string> | null>(null);
   const [error, setError] = useState('');
+  // Tras el primer envio la tasacion queda guardada: desde ahi se descarga y se
+  // reenvia la guardada, no una recalculada.
+  const [guardada, setGuardada] = useState<{ id: string; documento: DocumentoEnviado } | null>(null);
 
   const parametros = useMemo<Record<string, string>>(() => {
     if (origen === 'inventario') return listingId ? { listingId } : {};
@@ -49,6 +58,7 @@ export default function TasacionPanel({
     setAnalizando(true);
     setError('');
     setResultado(null);
+    setGuardada(null);
     try {
       const q = new URLSearchParams(parametros);
       const r = await fetch(`/api/real-estate/reportes/tasacion?${q}`, { cache: 'no-store' });
@@ -186,22 +196,56 @@ export default function TasacionPanel({
           ) : null}
 
           {resultado?.disponible ? <Resumen datos={resultado.datos} t={t} /> : null}
+
+          {/* Las enviadas, incluidas las de inmuebles fuera del inventario, que
+              no tienen expediente donde aparecer. */}
+          {enviadas.length > 0 ? (
+            <div>
+              <p className="text-sm font-bold text-text">{t('reportes.tasacion.enviadas')}</p>
+              <ul className="mt-2 space-y-2">
+                {enviadas.slice(0, 10).map((x) => (
+                  <li key={x.id}>
+                    <button
+                      onClick={() => onAbrirEnviada?.(x.id)}
+                      className="flex min-h-[56px] w-full items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3 py-2 text-left transition hover:bg-surface-2"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-text">{x.titulo}</span>
+                        <span className="block text-xs text-text-2">
+                          {x.sector} · {new Date(x.createdAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                      </span>
+                      <span aria-hidden className="text-text-3">›</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
 
         <div className="lg:sticky lg:top-24 lg:self-start">
           {resultado?.disponible && consulta ? (
             <CompartirReporte
+              key={guardada?.id ?? 'nueva'}
               urlArchivo={(formato, paleta, previa) =>
-                `/api/real-estate/reportes/tasacion/archivo?${new URLSearchParams({ ...consulta, formato, paleta, ...(previa ? { previa: '1' } : {}) })}`
+                guardada
+                  ? `/api/real-estate/reportes/tasacion/${guardada.id}/archivo?formato=${formato}&paleta=${paleta}${previa ? '&previa=1' : ''}`
+                  : `/api/real-estate/reportes/tasacion/archivo?${new URLSearchParams({ ...consulta, formato, paleta, ...(previa ? { previa: '1' } : {}) })}`
               }
-              urlEnviar="/api/real-estate/reportes/tasacion/enviar"
-              cuerpoEnvio={consulta}
+              urlEnviar={guardada ? `/api/real-estate/reportes/tasacion/${guardada.id}/enviar` : '/api/real-estate/reportes/tasacion/enviar'}
+              cuerpoEnvio={guardada ? undefined : consulta}
+              documento={guardada?.documento ?? null}
               paletaInicial="clara"
               tieneCorreo={tieneCorreo}
               telefonoPropietario={telefono}
               textoWhatsapp={t('reportes.tasacion.textoWhatsapp').replace('{inmueble}', resultado.datos.inmueble.titulo)}
               nombreArchivo="Reporte-Tasacion"
               t={t}
+              onEnviado={(_para, respuesta) => {
+                if (respuesta.tasacionId && !guardada) setGuardada({ id: respuesta.tasacionId, documento: respuesta.documento });
+                onEnviada?.();
+              }}
             />
           ) : (
             <div className="rounded-2xl border border-dashed border-line p-5 text-xs leading-relaxed text-text-3">{ADVERTENCIA_TASACION}</div>

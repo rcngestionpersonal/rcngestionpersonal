@@ -4,7 +4,10 @@ import { FICHA_PALETTES } from '@/lib/real-estate/ficha/palettes';
 import { gestionDelAgente, gestionImpresa } from '@/lib/real-estate/reportes/gestion';
 import { reporteGestionPagina } from '@/lib/real-estate/reportes/gestion-plantilla';
 import { A4, renderReporte } from '@/lib/real-estate/reportes/render';
-import { agenteConReportes, encabezadoDelAgente, nombreArchivoReporte } from '@/lib/real-estate/reportes/servidor';
+import { nombreArchivoGestion } from '@/lib/real-estate/reportes/archivo';
+import { documentoGuardado } from '@/lib/real-estate/reportes/documento';
+import { barrioDe } from '@/lib/real-estate/reportes/envio';
+import { agenteConReportes, encabezadoDelAgente } from '@/lib/real-estate/reportes/servidor';
 import { esPaleta } from '@/lib/real-estate/reportes/tipos';
 
 // Descarga del reporte de gestion en PDF o PNG.
@@ -25,6 +28,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const paleta = esPaleta(pedida) ? pedida : esPaleta(g.paleta) ? g.paleta : 'clara';
   const previa = q.get('previa') === '1';
 
+  // Enviado una vez, el PDF es el del envio.
+  if (formato === 'pdf') {
+    const guardado = await documentoGuardado('gestion', id);
+    if (guardado) {
+      return new NextResponse(new Uint8Array(guardado.buffer), {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `${previa ? 'inline' : 'attachment'}; filename="${guardado.nombreArchivo}"`,
+          'Cache-Control': 'private, no-store',
+        },
+      });
+    }
+  }
+
   const encabezado = await encabezadoDelAgente(auth.agentId);
   if (!encabezado) return NextResponse.json({ error: 'Agente no encontrado.' }, { status: 404 });
   if (paleta !== g.paleta) await prisma.reporteGestion.update({ where: { id }, data: { paleta } }).catch(() => {});
@@ -33,7 +50,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const palette = FICHA_PALETTES[paleta];
     const node = reporteGestionPagina({ encabezado, gestion: gestionImpresa(g), palette, width: A4.width, height: A4.height });
     const render = await renderReporte(node, { formato, palette, titulo: 'Reporte de gestión - Redinmo.io' });
-    const nombre = nombreArchivoReporte('Gestion', g.listing.title, g.periodoHasta, render.extension);
+    const nombre = nombreArchivoGestion(barrioDe(g.listing), g.periodoDesde, g.periodoHasta, render.extension);
     return new NextResponse(new Uint8Array(render.buffer), {
       headers: {
         'Content-Type': render.contentType,

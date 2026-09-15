@@ -58,7 +58,7 @@ export function datosCifradosDeVisita(entrada: EntradaVisita) {
 }
 
 const conInmueble = {
-  listing: { select: { id: true, title: true, propertyType: true, operationType: true, city: true, zone: true } },
+  listing: { select: { id: true, title: true, propertyType: true, operationType: true, city: true, zone: true, ownerName: true } },
   foto: { select: { consentimientoRedes: true, ancho: true, alto: true } },
 } as const;
 
@@ -121,6 +121,8 @@ export async function visitaImpresa(r: VisitaConInmueble): Promise<VisitaImpresa
     objeciones: r.objeciones,
     proximoPaso: r.proximoPaso,
     fotoDataUri,
-    generadoEl: fechaImpresa(new Date()),
+    // La fecha de emision es la del reporte, no la del render: el mismo reporte
+    // descargado dos veces tiene que decir lo mismo.
+    generadoEl: fechaImpresa(r.createdAt),
   };
 }

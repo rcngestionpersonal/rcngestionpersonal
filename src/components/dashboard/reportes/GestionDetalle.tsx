@@ -145,6 +145,8 @@ export default function GestionDetalle({
             urlArchivo={(formato, paleta, previa) => `${base}/archivo?formato=${formato}&paleta=${paleta}${previa ? '&previa=1' : ''}`}
             urlEnviar={`${base}/enviar`}
             paletaInicial={esPaleta(gestion.paleta) ? gestion.paleta : 'clara'}
+            documento={gestion.documento}
+            nombreDestinatarioInicial={inmueble?.ownerName}
             tieneCorreo={tieneCorreo}
             correoInicial={gestion.enviadoA}
             telefonoPropietario={inmueble?.ownerPhone}

@@ -15,6 +15,7 @@ el código no se lee el día que hace falta.
 | `PaymentMethod` | El ctoken de Payphone del medio de pago guardado |
 | `ReporteVisita` | Nombre, cédula y acompañantes de cada visitante |
 | `ReporteVisitaFoto.datosCifrados` | La foto del visitante, en bytes. No existe copia en Vercel Blob ni ninguna URL pública |
+| `ReporteDocumento.pdfCifrado` | El PDF de cada reporte tal como se envió al propietario |
 
 Son datos de terceros que nunca aceptaron nuestros términos. Por eso el módulo
 de contratos se niega a operar sin la clave, en vez de guardar cédulas en claro.

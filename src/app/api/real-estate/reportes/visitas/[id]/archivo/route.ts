@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { FICHA_PALETTES } from '@/lib/real-estate/ficha/palettes';
 import { A4, renderReporte } from '@/lib/real-estate/reportes/render';
-import { agenteConReportes, faltaClaveDeCifrado, encabezadoDelAgente, nombreArchivoReporte } from '@/lib/real-estate/reportes/servidor';
+import { nombreArchivoVisita } from '@/lib/real-estate/reportes/archivo';
+import { documentoGuardado } from '@/lib/real-estate/reportes/documento';
+import { barrioDe } from '@/lib/real-estate/reportes/envio';
+import { agenteConReportes, faltaClaveDeCifrado, encabezadoDelAgente } from '@/lib/real-estate/reportes/servidor';
 import { esPaleta } from '@/lib/real-estate/reportes/tipos';
 import { reporteVisitaPagina } from '@/lib/real-estate/reportes/visita-plantilla';
 import { visitaDelAgente, visitaImpresa } from '@/lib/real-estate/reportes/visitas';
@@ -27,6 +30,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const paleta = esPaleta(paletaPedida) ? paletaPedida : esPaleta(reporte.paleta) ? reporte.paleta : 'clara';
   const previa = q.get('previa') === '1';
 
+  // Enviado una vez, el PDF es el del envio: el mismo que archivo el
+  // propietario, sin importar la paleta que se pida ahora.
+  if (formato === 'pdf') {
+    const guardado = await documentoGuardado('visita', id);
+    if (guardado) {
+      return new NextResponse(new Uint8Array(guardado.buffer), {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `${previa ? 'inline' : 'attachment'}; filename="${guardado.nombreArchivo}"`,
+          'Cache-Control': 'private, no-store',
+        },
+      });
+    }
+  }
+
   const encabezado = await encabezadoDelAgente(auth.agentId);
   if (!encabezado) return NextResponse.json({ error: 'Agente no encontrado.' }, { status: 404 });
 
@@ -40,7 +58,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const palette = FICHA_PALETTES[paleta];
     const node = reporteVisitaPagina({ encabezado, visita: await visitaImpresa(reporte), palette, width: A4.width, height: A4.height });
     const render = await renderReporte(node, { formato, palette, titulo: 'Reporte de visita - Redinmo.io' });
-    const nombre = nombreArchivoReporte('Visita', reporte.listing.title, reporte.visitadaAt, render.extension);
+    const nombre = nombreArchivoVisita(barrioDe(reporte.listing), reporte.visitadaAt, render.extension);
     return new NextResponse(new Uint8Array(render.buffer), {
       headers: {
         'Content-Type': render.contentType,

@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const auth = await agenteConReportes(request);
   if (auth.error) return auth.error;
 
-  const [inmuebles, visitas, gestiones, agente] = await Promise.all([
+  const [inmuebles, visitas, gestiones, tasaciones, agente] = await Promise.all([
     prisma.listing.findMany({
       where: { managingAgentId: auth.agentId },
       orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }],
@@ -54,6 +54,13 @@ export async function GET(request: NextRequest) {
       take: 200,
       select: { id: true, listingId: true, periodicidad: true, periodoDesde: true, periodoHasta: true, enviadoAt: true, enviadoA: true },
     }),
+    // Solo las tasaciones enviadas: las que se analizan sin enviar no se guardan.
+    prisma.reporteTasacion.findMany({
+      where: { agentId: auth.agentId },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+      select: { id: true, listingId: true, titulo: true, sector: true, enviadoAt: true, enviadoA: true, createdAt: true },
+    }),
     prisma.agent.findUnique({ where: { id: auth.agentId }, select: { email: true } }),
   ]);
 
@@ -74,6 +81,7 @@ export async function GET(request: NextRequest) {
       periodoHasta: g.periodoHasta.toISOString(),
       enviadoAt: g.enviadoAt?.toISOString() ?? null,
     })),
+    tasaciones: tasaciones.map((t) => ({ ...t, enviadoAt: t.enviadoAt?.toISOString() ?? null, createdAt: t.createdAt.toISOString() })),
     tieneCorreo: Boolean(agente?.email),
   });
 }

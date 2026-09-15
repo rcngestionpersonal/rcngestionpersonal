@@ -92,6 +92,14 @@ const nextConfig = {
       './node_modules/harfbuzzjs/*.wasm',
       './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
     ],
+    '/api/real-estate/reportes/tasacion/[id]/archivo': [
+      './node_modules/harfbuzzjs/*.wasm',
+      './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
+    ],
+    '/api/real-estate/reportes/tasacion/[id]/enviar': [
+      './node_modules/harfbuzzjs/*.wasm',
+      './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
+    ],
     '/api/real-estate/reportes/tasacion/enviar': [
       './node_modules/harfbuzzjs/*.wasm',
       './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',

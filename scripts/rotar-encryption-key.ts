@@ -76,6 +76,8 @@ const COLUMNAS: Array<{ tabla: string; columna: string; obligatoria: boolean; by
   { tabla: 'ReporteVisita', columna: 'visitanteCedulaCifrada', obligatoria: false },
   { tabla: 'ReporteVisita', columna: 'acompanantesCifrado', obligatoria: false },
   { tabla: 'ReporteVisitaFoto', columna: 'datosCifrados', obligatoria: false, bytes: true },
+  // PDF congelado de cada reporte enviado.
+  { tabla: 'ReporteDocumento', columna: 'pdfCifrado', obligatoria: false, bytes: true },
 ];
 
 async function main() {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { metaDocumento } from '@/lib/real-estate/reportes/documento';
 import { agenteConReportes, faltaClaveDeCifrado } from '@/lib/real-estate/reportes/servidor';
 import { visitaDelAgente, visitaParaAgente } from '@/lib/real-estate/reportes/visitas';
 
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params;
   const reporte = await visitaDelAgente(id, auth.agentId);
   if (!reporte) return NextResponse.json({ error: 'Reporte no encontrado.' }, { status: 404 });
-  return NextResponse.json({ visita: visitaParaAgente(reporte) });
+  return NextResponse.json({ visita: { ...visitaParaAgente(reporte), documento: await metaDocumento('visita', id), propietario: reporte.listing.ownerName } });
 }
 
 // Punto 5.4: el agente puede borrar el reporte y todo lo asociado. La foto se

@@ -231,10 +231,12 @@ model Agent {
   contratos             Contrato[]
   reportesVisita        ReporteVisita[]
   reportesGestion       ReporteGestion[]
+  reportesTasacion      ReporteTasacion[]
+  reportesDocumentos    ReporteDocumento[]
 }
 
 model Listing {
-  id                      String           @id @default(cuid())
+  id                      String            @id @default(cuid())
   title                   String
   operationType           OperationType
   propertyType            PropertyType
@@ -242,7 +244,7 @@ model Listing {
   zone                    String?
   address                 String?
   price                   Float
-  currency                String           @default("USD")
+  currency                String            @default("USD")
   areaM2                  Float?
   bedrooms                Int?
   bathrooms               Int?
@@ -301,18 +303,19 @@ model Listing {
   // helper, y NUNCA debe leerse como fuente de verdad de cual es la portada:
   // eso lo decide orden 0.
   coverPhotoUrl           String?
-  commissionSharePercent  Float            @default(0)
-  status                  ListingStatus    @default(ACTIVE)
-  managingAgent           Agent            @relation("ListingManagedBy", fields: [managingAgentId], references: [id], onDelete: Cascade)
+  commissionSharePercent  Float             @default(0)
+  status                  ListingStatus     @default(ACTIVE)
+  managingAgent           Agent             @relation("ListingManagedBy", fields: [managingAgentId], references: [id], onDelete: Cascade)
   managingAgentId         String
-  referredByAgent         Agent?           @relation("ListingReferredBy", fields: [referredByAgentId], references: [id], onDelete: SetNull)
+  referredByAgent         Agent?            @relation("ListingReferredBy", fields: [referredByAgentId], references: [id], onDelete: SetNull)
   referredByAgentId       String?
-  createdAt               DateTime         @default(now())
-  updatedAt               DateTime         @updatedAt
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
   matches                 ListingMatch[]
   photos                  ListingPhoto[]
   reportesVisita          ReporteVisita[]
   reportesGestion         ReporteGestion[]
+  reportesTasacion        ReporteTasacion[]
 
   @@index([city, propertyType, operationType])
   @@index([status])
@@ -1043,7 +1046,8 @@ model ReporteVisita {
   enviadoAt DateTime?
   enviadoA  String?
 
-  foto ReporteVisitaFoto?
+  foto      ReporteVisitaFoto?
+  documento ReporteDocumento?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1105,9 +1109,68 @@ model ReporteGestion {
   enviadoAt DateTime?
   enviadoA  String?
 
+  documento ReporteDocumento?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([listingId, periodoHasta])
   @@index([agentId, createdAt])
+}
+
+// Tasacion enviada al propietario. La tasacion se calcula en vivo mientras el
+// agente la prepara; recien al enviarse por correo queda guardada, con las
+// cifras y el PDF de ese dia, para poder reenviarla identica. Puede no tener
+// inmueble: el agente puede tasar uno que todavia no esta en su inventario.
+model ReporteTasacion {
+  id        String   @id @default(cuid())
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentId   String
+  listing   Listing? @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId String?
+
+  titulo  String
+  sector  String
+  entrada Json
+  datos   Json
+
+  paleta    String    @default("clara")
+  enviadoAt DateTime?
+  enviadoA  String?
+
+  documento ReporteDocumento?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agentId, createdAt])
+  @@index([listingId, createdAt])
+}
+
+// El PDF tal como lo recibio el propietario (puntos 5.2 y 5.3 del pedido de
+// adjuntos). Se congela en el PRIMER envio por correo: desde ahi, cada reenvio y
+// cada descarga en PDF entregan estos mismos bytes, nunca uno regenerado. Si
+// el agente cambiara su foto o su empresa, el documento que el propietario ya
+// archivo no puede cambiar.
+//
+// Va cifrado: el de una visita lleva el nombre del visitante y su foto. Pertenece
+// a exactamente un reporte; se borra con el (Cascade).
+model ReporteDocumento {
+  id      String @id @default(cuid())
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentId String
+
+  reporteVisita     ReporteVisita?   @relation(fields: [reporteVisitaId], references: [id], onDelete: Cascade)
+  reporteVisitaId   String?          @unique
+  reporteGestion    ReporteGestion?  @relation(fields: [reporteGestionId], references: [id], onDelete: Cascade)
+  reporteGestionId  String?          @unique
+  reporteTasacion   ReporteTasacion? @relation(fields: [reporteTasacionId], references: [id], onDelete: Cascade)
+  reporteTasacionId String?          @unique
+
+  nombreArchivo String
+  paleta        String
+  bytes         Int
+  pdfCifrado    Bytes
+
+  createdAt DateTime @default(now())
 }
