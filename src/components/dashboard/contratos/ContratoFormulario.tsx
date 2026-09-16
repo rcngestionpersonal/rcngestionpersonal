@@ -205,7 +205,7 @@ export default function ContratoFormulario({
       </div>
 
 
-      {/* Advertencia propia del tipo: el arrendamiento la lleva por el 5.7. */}
+      {/* Advertencia propia del tipo, si la definicion la trae. */}
       {definicion.ayuda ? (
         <p className="rounded-2xl border border-line bg-surface-2 px-4 py-3 text-[13px] leading-relaxed text-text-2">
           {definicion.ayuda}

@@ -36,11 +36,6 @@ const CUANDO_SI = [
     detalle:
       'Si en la negociación acordaron una condición particular —una entrega diferida, una reparación previa, una penalidad distinta— eso necesita redacción propia. Un campo del formulario no siempre alcanza.',
   },
-  {
-    titulo: 'Es un arrendamiento',
-    detalle:
-      'El arrendamiento urbano se rige por normas que las partes no pueden cambiar libremente, y en varios cantones el contrato debe registrarse ante la autoridad competente. Es el tipo de documento donde una revisión evita más problemas.',
-  },
 ];
 
 const QUE_PREGUNTAR = [

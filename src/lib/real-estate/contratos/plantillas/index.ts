@@ -12,7 +12,6 @@
 import * as v1 from './v1-2026-09';
 import * as corretajeExclusivoV1 from './corretaje-exclusivo-v1';
 import * as corretajeAbiertoV1 from './corretaje-abierto-v1';
-import * as arrendamientoV2 from './arrendamiento-v2';
 import * as arrendamientoV3 from './arrendamiento-v3';
 import * as corretajeV2 from './corretaje-v2';
 import type { ContratoTipo } from '../tipos';
@@ -61,16 +60,17 @@ const REGISTRO: Record<ContratoTipo, LineaDeVersiones> = {
       [corretajeV2.PLANTILLA_VERSION]: deUnTipo(corretajeV2),
     },
   },
+  // --- RETIRADOS: solo lectura, se conservan para reimprimir ---
+  // El arrendamiento se retiro el 2026-09-15. Se conserva unicamente la v3, que
+  // es la version con la que se genero el contrato que existe en la base; la v2
+  // intermedia se elimino porque ningun contrato la usaba.
   ARRENDAMIENTO: {
     actual: arrendamientoV3.PLANTILLA_VERSION,
     versiones: {
       [v1.PLANTILLA_VERSION]: V1_GLOBAL,
-      [arrendamientoV2.PLANTILLA_VERSION]: deUnTipo(arrendamientoV2),
       [arrendamientoV3.PLANTILLA_VERSION]: deUnTipo(arrendamientoV3),
     },
   },
-
-  // --- RETIRADOS: solo lectura, se conservan para reimprimir ---
   CORRETAJE_EXCLUSIVO: {
     actual: corretajeExclusivoV1.PLANTILLA_VERSION,
     versiones: { [corretajeExclusivoV1.PLANTILLA_VERSION]: deUnTipo(corretajeExclusivoV1) },

@@ -104,8 +104,8 @@ function clausula(tipo: ContratoTipo, titulo: string, extra: Record<string, stri
 const VIVOS = CONTRATO_MENU.map((e) => e.tipo);
 
 describe('plantillas de contrato', () => {
-  it('solo se pueden generar corretaje y arrendamiento', () => {
-    expect(VIVOS).toEqual(['CORRETAJE', 'ARRENDAMIENTO']);
+  it('solo se puede generar el corretaje', () => {
+    expect(VIVOS).toEqual(['CORRETAJE']);
     for (const tipo of VIVOS) expect(esTipoArchivado(tipo), tipo).toBe(false);
   });
 
@@ -153,7 +153,7 @@ describe('plantillas de contrato', () => {
 
     it('no se listan como plantillas vigentes del módulo', () => {
       const ofrecidas = plantillasVigentes().filter((p) => !CONTRATO_TIPOS_LEGADO.includes(p.tipo));
-      expect(ofrecidas.map((p) => p.tipo).sort()).toEqual(['ARRENDAMIENTO', 'CORRETAJE']);
+      expect(ofrecidas.map((p) => p.tipo)).toEqual(['CORRETAJE']);
     });
   });
 
@@ -341,7 +341,9 @@ describe('plantillas de contrato', () => {
     });
 
     it('un contrato viejo sigue resolviendo la versión con la que se firmó', () => {
-      expect(obtenerPlantilla('ARRENDAMIENTO', 'arrendamiento-v2-2026-09').version).toBe('arrendamiento-v2-2026-09');
+      // La v2 intermedia se elimino al retirar el tipo: un contrato que la pidiera
+      // cae a la v3, que es la unica que quedo en la base.
+      expect(obtenerPlantilla('ARRENDAMIENTO', 'arrendamiento-v2-2026-09').version).toBe('arrendamiento-v3-2026-09');
       expect(obtenerPlantilla('CORRETAJE_EXCLUSIVO', 'corretaje-exclusivo-v1-2026-09').version).toBe(
         'corretaje-exclusivo-v1-2026-09',
       );

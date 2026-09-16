@@ -165,7 +165,199 @@ function facultadesCorretaje(): SeccionDefinicion {
 }
 
 
+// ---------------------------------------------------------------------------
+// ARRENDAMIENTO (retirado el 2026-09-15)
+//
+// Se dejó de ofrecer: no formaba parte del alcance del módulo. Su definición se
+// congela aquí, con AYUDANTES PROPIOS, por la misma razón que las anteriores:
+// hay un contrato de este tipo en la base y tiene que seguir abriéndose e
+// imprimiéndose con las mismas etiquetas del día en que se generó.
+// ---------------------------------------------------------------------------
+
+// Copia congelada de parte() de ./tipos en la forma exacta en que el
+// arrendamiento la llamaba: { profesion: true, parroquia: true }.
+function parteArrendamiento(rol: string, titulo: string): SeccionDefinicion {
+  return {
+    clave: rol,
+    titulo,
+    campos: [
+      { clave: `${rol}_nombre`, etiqueta: 'Nombre completo', tipo: 'texto', obligatorio: true, rolFirmante: rol },
+      { clave: `${rol}_cedula`, etiqueta: 'Cédula', tipo: 'cedula', obligatorio: true, rolFirmante: rol },
+      {
+        clave: `${rol}_correo`,
+        etiqueta: 'Correo electrónico',
+        tipo: 'correo',
+        obligatorio: true,
+        rolFirmante: rol,
+        ayuda: 'Es el canal por el que recibirá el documento para firmarlo.',
+      },
+      { clave: `${rol}_telefono`, etiqueta: 'Teléfono', tipo: 'telefono', obligatorio: true },
+      { clave: `${rol}_profesion`, etiqueta: 'Profesión', tipo: 'texto' },
+      { clave: `${rol}_direccion`, etiqueta: 'Domicilio', tipo: 'texto', obligatorio: true },
+      { clave: `${rol}_parroquia`, etiqueta: 'Parroquia', tipo: 'texto' },
+      { clave: `${rol}_ciudad`, etiqueta: 'Ciudad', tipo: 'texto' },
+    ],
+  };
+}
+
+// Copia congelada de JURISDICCION de ./tipos.
+const JURISDICCION_ARRENDAMIENTO: CampoDefinicion = {
+  clave: 'ciudadJurisdiccion',
+  etiqueta: 'Ciudad de los jueces competentes',
+  tipo: 'texto',
+  ayuda: 'Si lo dejas vacío, se usa la ciudad de tu perfil.',
+};
+
+
 export const DEFINICIONES_LEGADO: Record<string, TipoDefinicion> = {
+  ARRENDAMIENTO: {
+    titulo: 'Contrato de arrendamiento',
+    descripcion: 'Arriendo de vivienda, oficina, local comercial, bodega o taller.',
+    ayuda:
+      'Este contrato tiene reglas legales que no dependen de lo que las partes acuerden. Recomendamos especialmente la revisión de un abogado.',
+    nombreDocumento: 'CONTRATO DE ARRENDAMIENTO',
+    requiereInmueble: true,
+    secciones: [
+      parteArrendamiento('arrendador', 'Datos del arrendador'),
+      parteArrendamiento('arrendatario', 'Datos del arrendatario'),
+      {
+        clave: 'inmueble',
+        titulo: 'Identificación del inmueble',
+        campos: [
+          { clave: 'inmuebleDireccion', etiqueta: 'Dirección', tipo: 'texto', obligatorio: true },
+          { clave: 'inmuebleParroquia', etiqueta: 'Parroquia', tipo: 'texto' },
+          { clave: 'inmuebleCanton', etiqueta: 'Cantón', tipo: 'texto', obligatorio: true },
+          { clave: 'inmuebleProvincia', etiqueta: 'Provincia', tipo: 'texto', obligatorio: true },
+        ],
+      },
+      {
+        clave: 'titulo',
+        titulo: 'Título de propiedad',
+        descripcion: 'Lo que dejes vacío sale marcado como pendiente en el documento.',
+        campos: [
+          { clave: 'tituloFecha', etiqueta: 'Fecha de la escritura', tipo: 'fecha' },
+          { clave: 'tituloNotaria', etiqueta: 'Notaría', tipo: 'texto' },
+          { clave: 'tituloCanton', etiqueta: 'Cantón de la notaría', tipo: 'texto' },
+          { clave: 'tituloInscripcion', etiqueta: 'Inscripción en el Registro de la Propiedad', tipo: 'texto' },
+        ],
+      },
+      {
+        clave: 'caracteristicas',
+        titulo: 'Características del inmueble',
+        campos: [
+          { clave: 'espacios', etiqueta: 'Espacios que lo componen', tipo: 'area', obligatorio: true },
+          { clave: 'estadoMantenimiento', etiqueta: 'Estado de mantenimiento a la entrega', tipo: 'area' },
+          { clave: 'servicios', etiqueta: 'Servicios con que cuenta', tipo: 'area' },
+          { clave: 'areasComunales', etiqueta: 'Áreas comunales de uso permitido', tipo: 'area' },
+          { clave: 'equipos', etiqueta: 'Equipos que se entregan y su estado', tipo: 'area', ayuda: 'Calefón, aire acondicionado, electrodomésticos.' },
+          { clave: 'inventario', etiqueta: 'Inventario, si se entrega amoblado', tipo: 'area', ayuda: 'Se anexa al contrato.' },
+        ],
+      },
+      {
+        clave: 'uso',
+        titulo: 'Destino y uso',
+        campos: [
+          {
+            clave: 'destino',
+            etiqueta: 'Destino del inmueble',
+            tipo: 'opcion',
+            obligatorio: true,
+            porDefecto: 'VIVIENDA',
+            opciones: [
+              { valor: 'VIVIENDA', etiqueta: 'vivienda' },
+              { valor: 'OFICINA', etiqueta: 'oficina' },
+              { valor: 'LOCAL_COMERCIAL', etiqueta: 'local comercial' },
+              { valor: 'BODEGA', etiqueta: 'bodega' },
+              { valor: 'TALLER', etiqueta: 'taller' },
+            ],
+          },
+          { clave: 'numeroOcupantes', etiqueta: 'Número de ocupantes', tipo: 'numero', obligatorio: true },
+          {
+            clave: 'visitaAvisoHoras',
+            etiqueta: 'Aviso previo para visitas del arrendador (horas)',
+            tipo: 'numero',
+            obligatorio: true,
+            porDefecto: '24',
+          },
+        ],
+      },
+      {
+        clave: 'plazo',
+        titulo: 'Plazo',
+        campos: [
+          { clave: 'plazoMeses', etiqueta: 'Plazo (meses)', tipo: 'numero', obligatorio: true, porDefecto: '12' },
+          { clave: 'fechaInicio', etiqueta: 'Fecha de inicio', tipo: 'fecha', obligatorio: true },
+          { clave: 'numeroLlaves', etiqueta: 'Juegos de llaves que se entregan', tipo: 'numero', obligatorio: true, porDefecto: '2' },
+        ],
+      },
+      {
+        clave: 'canon',
+        titulo: 'Canon',
+        campos: [
+          { clave: 'canonMonto', etiqueta: 'Canon mensual', tipo: 'dinero', obligatorio: true },
+          { clave: 'canonDiaPago', etiqueta: 'Día de pago de cada mes', tipo: 'numero', obligatorio: true, porDefecto: '5' },
+          {
+            clave: 'canonIncluyeAlicuotas',
+            etiqueta: '¿El canon incluye las alícuotas?',
+            tipo: 'opcion',
+            obligatorio: true,
+            porDefecto: 'NO',
+            opciones: SI_NO,
+          },
+          {
+            clave: 'formaPago',
+            etiqueta: 'Forma de pago',
+            tipo: 'opcion',
+            obligatorio: true,
+            porDefecto: 'TRANSFERENCIA',
+            opciones: [
+              { valor: 'TRANSFERENCIA', etiqueta: 'transferencia bancaria' },
+              { valor: 'DEPOSITO', etiqueta: 'depósito' },
+              { valor: 'EFECTIVO', etiqueta: 'efectivo' },
+              { valor: 'CHEQUE', etiqueta: 'cheque' },
+            ],
+          },
+          {
+            clave: 'cuentaBancaria',
+            etiqueta: 'Cuenta para transferencia o depósito',
+            tipo: 'texto',
+            ayuda: 'Se imprime en el contrato, que circula por correo entre las partes. Déjalo vacío si prefieres pasar estos datos por otro canal.',
+          },
+          {
+            clave: 'declaracionCanon',
+            etiqueta: '¿Incluir la declaración de las partes sobre el canon?',
+            tipo: 'opcion',
+            obligatorio: true,
+            porDefecto: 'SI',
+            opciones: SI_NO,
+            ayuda: 'Ambas partes declaran que el canon se pactó libremente y atendiendo al estado y la ubicación del inmueble.',
+          },
+        ],
+      },
+      {
+        clave: 'garantia',
+        titulo: 'Garantía',
+        campos: [
+          { clave: 'garantiaMonto', etiqueta: 'Monto de la garantía', tipo: 'dinero', obligatorio: true },
+          {
+            clave: 'garantiaDevolucionDias',
+            etiqueta: 'Plazo para devolverla (días hábiles)',
+            tipo: 'numero',
+            obligatorio: true,
+            porDefecto: '15',
+          },
+          { clave: 'valorPinturaM2', etiqueta: 'Pintura (USD por m²)', tipo: 'dinero' },
+          { clave: 'valorPisoM2', etiqueta: 'Piso (USD por m²)', tipo: 'dinero' },
+          { clave: 'valorCerradura', etiqueta: 'Cerradura (USD por unidad)', tipo: 'dinero' },
+          { clave: 'conceptoLibre', etiqueta: 'Otro concepto', tipo: 'texto' },
+          { clave: 'valorLibre', etiqueta: 'Valor de ese concepto (USD)', tipo: 'dinero' },
+          { clave: 'unidadLibre', etiqueta: 'Unidad de ese concepto', tipo: 'texto', ayuda: 'Por ejemplo: unidad, m², juego.' },
+        ],
+      },
+      { clave: 'jurisdiccion', titulo: 'Jurisdicción', campos: [JURISDICCION_ARRENDAMIENTO] },
+    ],
+  },
+
   CORRETAJE_EXCLUSIVO: {
     titulo: 'Corretaje exclusivo',
     descripcion: 'El propietario encarga la gestión únicamente a ti durante el plazo pactado.',
@@ -568,6 +760,10 @@ export const DEFINICIONES_LEGADO: Record<string, TipoDefinicion> = {
 // para que la constancia de un documento archivado siga nombrando a cada parte
 // como lo hacía cuando se firmó.
 export const FIRMANTES_LEGADO: Record<string, Array<{ rol: string; etiqueta: string; esAgente?: boolean }>> = {
+  ARRENDAMIENTO: [
+    { rol: 'arrendador', etiqueta: 'Arrendador' },
+    { rol: 'arrendatario', etiqueta: 'Arrendatario' },
+  ],
   CORRETAJE_EXCLUSIVO: [
     { rol: 'propietario', etiqueta: 'Cliente vendedor' },
     { rol: 'agente', etiqueta: 'Corredor inmobiliario', esAgente: true },
