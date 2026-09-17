@@ -12,7 +12,7 @@
 import crypto from 'node:crypto';
 import { afterEach, describe, expect, it } from 'vitest';
 import { decryptAtRest, encryptAtRest } from '../payments/encryption';
-import { cifrarDatos, descifrarDatos } from './firma';
+import { cifrarDatos, descifrarDatos } from './aprobacion';
 
 const original = process.env.ENCRYPTION_KEY;
 

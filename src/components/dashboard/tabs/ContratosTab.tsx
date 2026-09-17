@@ -14,10 +14,15 @@ import type { ContratoResumen, DatosPantallaContratos } from '../contratos/tipos
 // dibuja degradado en vez de lanzar y dejar al agente sin módulo.
 import { ENLACE_REVISION_ABOGADO, ENLACE_REVISION_ABOGADO_ETIQUETA } from '@/lib/real-estate/contratos/tipos';
 
-// Modulo "Contratos" (punto 4.1). Pestaña propia, feature Pro con bloqueo
-// elegante en Basico.
+// Modulo "Contratos". Pestaña propia, feature Pro con bloqueo elegante en
+// Basico. Genera el documento, lo negocia version por version con aprobacion
+// de las partes y deja el recorrido documentado para la notaria.
 
-type Vista = { modo: 'lista' } | { modo: 'nuevo' } | { modo: 'editar'; id: string } | { modo: 'seguimiento'; id: string };
+type Vista =
+  | { modo: 'lista' }
+  | { modo: 'nuevo' }
+  | { modo: 'editar'; id: string; paso?: 'datos' | 'revisar' }
+  | { modo: 'seguimiento'; id: string };
 
 export default function ContratosTab({ suscripcion }: { suscripcion: AccesoInput | null }) {
   const { t } = useLanguage();
@@ -39,13 +44,7 @@ export default function ContratosTab({ suscripcion }: { suscripcion: AccesoInput
   );
 }
 
-const ETIQUETA_ESTADO: Record<string, string> = {
-  BORRADOR: 'contratos.estado.BORRADOR',
-  PENDIENTE_FIRMA: 'contratos.estado.PENDIENTE_FIRMA',
-  FIRMADO: 'contratos.estado.FIRMADO',
-  RECHAZADO: 'contratos.estado.RECHAZADO',
-  ANULADO: 'contratos.estado.ANULADO',
-};
+const ESTADOS_CONOCIDOS = ['BORRADOR', 'EN_APROBACION', 'APROBADO', 'RECHAZADO', 'ANULADO', 'PENDIENTE_FIRMA', 'FIRMADO'];
 
 // "No se pudo cargar" y "todavía no tienes contratos" son cosas distintas y
 // antes se veían casi igual. Esto guarda POR QUÉ falló, para poder decirlo.
@@ -133,8 +132,10 @@ function Panel({ t }: { t: (k: string) => string }) {
       <ContratoFormulario
         t={t}
         listings={datos.listings}
+        empresaAgente={datos.agente.empresa}
         plantilla={datos.plantilla}
         contratoId={vista.modo === 'editar' ? vista.id : null}
+        pasoInicial={vista.modo === 'editar' ? vista.paso : undefined}
         onCancelar={() => {
           void cargar();
           setVista({ modo: 'lista' });
@@ -156,6 +157,7 @@ function Panel({ t }: { t: (k: string) => string }) {
           void cargar();
           setVista({ modo: 'lista' });
         }}
+        onEditar={(paso) => setVista({ modo: 'editar', id: vista.id, paso })}
       />
     );
   }
@@ -219,43 +221,45 @@ function Fila({
 }) {
   // La etiqueta viene resuelta del servidor. Nada aquí busca en el catálogo,
   // así que un tipo desconocido no puede lanzar y dejar la lista en blanco.
-  const firmados = contrato.firmantes.filter((f) => f.estado === 'FIRMADO').length;
-  const total = contrato.firmantes.length;
+  const partes = contrato.partes ?? [];
+  const decididas = partes.filter((f) => f.estado === (contrato.deFirma ? 'FIRMADO' : 'APROBADO')).length;
+  const total = partes.length;
+  const soloLectura = contrato.archivado || contrato.deFirma || contrato.estado === 'ANULADO';
+  const nuncaEnviado = contrato.estado === 'BORRADOR' && (contrato.versionActual ?? 0) === 0;
+  const estado = ESTADOS_CONOCIDOS.includes(contrato.estado) ? contrato.estado : 'BORRADOR';
 
   return (
     <li className="rounded-2xl border border-line bg-surface p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-text">{contrato.tipoEtiqueta}</p>
-          {contrato.ilegible ? (
-            <p className="mt-0.5 text-[11px] text-text-3">{t('contratos.filaIlegible')}</p>
-          ) : null}
-          {contrato.archivado ? (
-            <p className="mt-0.5 text-[11px] text-text-3">{t('contratos.filaArchivada')}</p>
-          ) : null}
-          <p className="mt-0.5 text-xs text-text-2">
-            {contrato.firmantes.map((f) => f.nombre).join(' · ') || t('contratos.sinPartes')}
-          </p>
+          {contrato.ilegible ? <p className="mt-0.5 text-[11px] text-text-3">{t('contratos.filaIlegible')}</p> : null}
+          {contrato.archivado && !contrato.deFirma ? <p className="mt-0.5 text-[11px] text-text-3">{t('contratos.filaArchivada')}</p> : null}
+          {contrato.deFirma ? <p className="mt-0.5 text-[11px] text-text-3">{t('contratos.filaDeFirma')}</p> : null}
+          <p className="mt-0.5 truncate text-xs text-text-2">{partes.map((f) => f.nombre).join(' · ') || t('contratos.sinPartes')}</p>
           <p className="mt-0.5 text-[11px] text-text-3">
             {new Date(contrato.createdAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' })}
-            {total > 0 ? ` · ${firmados}/${total} ${t('contratos.firmados')}` : ''}
+            {contrato.versionActual > 0 ? ` · ${t('contratos.version').replace('{n}', String(contrato.versionActual))}` : ''}
+            {total > 0 ? ` · ${decididas}/${total} ${t(contrato.deFirma ? 'contratos.firmaron' : 'contratos.aprobaron')}` : ''}
           </p>
         </div>
         <span
           className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold ${
-            contrato.estado === 'FIRMADO'
+            estado === 'APROBADO' || estado === 'FIRMADO'
               ? 'border-accent-line bg-accent-dim text-accent'
-              : contrato.estado === 'PENDIENTE_FIRMA'
+              : estado === 'EN_APROBACION'
                 ? 'border-brand-line bg-brand-dim text-brand'
-                : 'border-line bg-surface-2 text-text-2'
+                : estado === 'RECHAZADO'
+                  ? 'border-danger text-danger'
+                  : 'border-line bg-surface-2 text-text-2'
           }`}
         >
-          {t(ETIQUETA_ESTADO[contrato.estado] ?? 'contratos.estado.BORRADOR')}
+          {t(`contratos.estado.${estado}`)}
         </span>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        {contrato.estado === 'BORRADOR' && !contrato.archivado ? (
+        {nuncaEnviado && !soloLectura ? (
           <>
             <button
               onClick={() => onAbrir({ modo: 'editar', id: contrato.id })}
@@ -271,12 +275,22 @@ function Fila({
             </button>
           </>
         ) : (
-          <button
-            onClick={() => onAbrir({ modo: 'seguimiento', id: contrato.id })}
-            className="min-h-[40px] rounded-lg border border-line-strong px-3 text-xs font-semibold text-text transition hover:bg-surface-2"
-          >
-            {t('contratos.verSeguimiento')}
-          </button>
+          <>
+            <button
+              onClick={() => onAbrir({ modo: 'seguimiento', id: contrato.id })}
+              className="min-h-[40px] rounded-lg border border-line-strong px-3 text-xs font-semibold text-text transition hover:bg-surface-2"
+            >
+              {t('contratos.verSeguimiento')}
+            </button>
+            {!soloLectura ? (
+              <button
+                onClick={() => onAbrir({ modo: 'editar', id: contrato.id })}
+                className="min-h-[40px] rounded-lg border border-line px-3 text-xs font-semibold text-text-2 transition hover:bg-surface-2"
+              >
+                {t('contratos.editar')}
+              </button>
+            ) : null}
+          </>
         )}
         <a
           href={`/api/real-estate/contratos/${contrato.id}/archivo`}

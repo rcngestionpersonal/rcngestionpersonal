@@ -21,8 +21,8 @@ export const CONTRATO_TIPOS = [
 ] as const;
 export type ContratoTipo = (typeof CONTRATO_TIPOS)[number];
 
-// Archivados y de solo lectura: no se ofrecen, no se editan y no se envían a
-// firma. Se conservan sus definiciones en ./tipos-legado para reimprimirlos.
+// Archivados y de solo lectura: no se ofrecen, no se editan y no se envían.
+// Se conservan sus definiciones en ./tipos-legado para reimprimirlos.
 export const CONTRATO_TIPOS_LEGADO: readonly ContratoTipo[] = [
   'CORRETAJE_EXCLUSIVO',
   'ARRENDAMIENTO',
@@ -35,50 +35,85 @@ export function esTipoArchivado(tipo: string): boolean {
   return (CONTRATO_TIPOS_LEGADO as readonly string[]).includes(tipo);
 }
 
-export const CONTRATO_ESTADOS = ['BORRADOR', 'PENDIENTE_FIRMA', 'FIRMADO', 'RECHAZADO', 'ANULADO'] as const;
+// ---------------------------------------------------------------------------
+// ESTADOS
+//
+// El modulo ya no firma: cada envio es una version que las partes aprueban o
+// no. PENDIENTE_FIRMA y FIRMADO quedan solo para los contratos de la etapa de
+// firma electronica, que se conservan tal como se firmaron.
+// ---------------------------------------------------------------------------
+export const CONTRATO_ESTADOS = [
+  'BORRADOR',
+  'EN_APROBACION',
+  'APROBADO',
+  'RECHAZADO',
+  'ANULADO',
+  'PENDIENTE_FIRMA',
+  'FIRMADO',
+] as const;
 export type ContratoEstado = (typeof CONTRATO_ESTADOS)[number];
 
-export const FIRMANTE_ESTADOS = ['ENVIADO', 'ABIERTO', 'FIRMADO', 'RECHAZADO'] as const;
-export type FirmanteEstado = (typeof FIRMANTE_ESTADOS)[number];
+export const PARTE_ESTADOS = ['ENVIADO', 'ABIERTO', 'APROBADO', 'RECHAZADO', 'FIRMADO'] as const;
+export type ParteEstado = (typeof PARTE_ESTADOS)[number];
 
-// Vigencia del enlace de firma. Vencido, el agente reenvia.
-export const FIRMA_VIGENCIA_DIAS = 15;
-export const FIRMA_RECORDATORIO_DIAS = 3;
+export const VERSION_ESTADOS = ['EN_APROBACION', 'APROBADA', 'RECHAZADA', 'REEMPLAZADA', 'ANULADA'] as const;
+export type VersionEstado = (typeof VERSION_ESTADOS)[number];
+
+// Un contrato del flujo de firma retirado: se abre y se descarga, nada más.
+export function esEstadoDeFirmaLegado(estado: string): boolean {
+  return estado === 'PENDIENTE_FIRMA' || estado === 'FIRMADO';
+}
+
+// Vigencia del enlace de revisión. Vencido, el agente lo reenvía.
+export const APROBACION_VIGENCIA_DIAS = 15;
 
 // Lo que se imprime donde un campo opcional quedó sin llenar. Un marcador
 // visible y no un hueco en blanco: un espacio vacío pasa desapercibido al
-// revisar, y aparece en el documento firmado sin que nadie lo note.
+// revisar, y aparece en el documento que se lleva a la notaría sin que nadie
+// lo note.
 export const MARCADOR_SIN_COMPLETAR = '[ POR COMPLETAR ]';
 
 // ---------------------------------------------------------------------------
 // AVISOS
 //
 // Viven aca, en un solo lugar, y NUNCA se exponen como campo editable del
-// formulario. El generador los inserta desde estas constantes y no desde los
-// datos que envia el cliente.
+// formulario. Ninguno se imprime dentro del cuerpo del contrato: el documento
+// es del agente y de sus clientes y no lleva marca de la plataforma. Solo el
+// anexo de constancia identifica el sistema que registró las aprobaciones.
 // ---------------------------------------------------------------------------
 
-// Nota en la app, bajo el selector de contrato. Discreta: las plantillas ya no
-// son redaccion propia improvisada, asi que el aviso informa en vez de advertir.
+// Nota en la app, bajo el selector de contrato.
 export const AVISO_MODULO =
-  'Documento elaborado sobre la base de formatos de uso común entre asociaciones de corredores de bienes raíces del Ecuador. Redinmo no presta servicios legales: verifica los datos y, en operaciones de alto valor o con condiciones especiales, revisa el documento con tu abogado antes de firmar.';
+  'Son modelos que la plataforma te sugiere, elaborados sobre formatos de uso común en el mercado inmobiliario ecuatoriano. El documento es tuyo y de tus clientes: revísalo, ajústalo y, en operaciones de alto valor o con condiciones especiales, consúltalo con un abogado.';
 
-// Pie del PDF: una sola linea, en tamaño reducido, en la primera y la ultima
-// pagina.
-export const NOTA_PIE_PDF = 'Formato referencial. Redinmo no es parte del contrato.';
+// La advertencia que ven las partes al revisar. Obligatoria, visible y con el
+// mismo peso tipográfico que el resto de la página: nunca en letra chica.
+export const AVISO_APROBACION =
+  'Esta aprobación deja constancia de que usted revisó y está de acuerdo con esta versión del documento. NO es una firma. El contrato debe suscribirse personalmente y, cuando corresponda, legalizarse ante notario.';
 
-// Naturaleza de la firma. Se muestra en la pagina de firma, sin letra chica:
-// es un limite real de lo que esta firma es y de lo que no.
-export const AVISO_FIRMA_ELECTRONICA =
-  'La aceptación electrónica de este documento constituye una FIRMA ELECTRÓNICA SIMPLE con respaldo probatorio reforzado, conforme a la Ley de Comercio Electrónico, Firmas Electrónicas y Mensajes de Datos del Ecuador. NO es una firma electrónica certificada emitida por una entidad de certificación acreditada, ni sustituye a la escritura pública en los casos en que la ley la exige.';
+// La casilla que marca la parte. Se guarda literal en su registro: lo que
+// declaró es exactamente esto.
+export const DECLARACION_APROBACION = 'He leído íntegramente esta versión del documento y estoy de acuerdo con su contenido.';
 
-// Lo que ven las PARTES en la pagina de firma: preciso y neutro, informa un
-// derecho del firmante en vez de advertir sobre el documento.
-export const AVISO_PAGINA_FIRMA =
-  'Este documento fue elaborado sobre un modelo contractual de uso habitual en el mercado inmobiliario ecuatoriano. Antes de firmarlo, usted puede descargarlo, consultarlo con un profesional de su confianza o solicitar aclaraciones a quien se lo envió. Redinmo provee la herramienta con la que se generó este documento; no es parte del contrato ni interviene en lo acordado entre ustedes.';
+// Lo que ven las PARTES junto a la decisión: informa un derecho, no advierte
+// sobre el documento.
+export const AVISO_PAGINA_APROBACION =
+  'Antes de aprobar puede descargar esta versión, consultarla con un profesional de su confianza o pedir cambios a quien se la envió. Si no está de acuerdo con algo, no la apruebe: indique qué necesita cambiar y recibirá una versión nueva.';
 
+// Pie del anexo de constancia.
 export const AVISO_REDINMO_NO_ES_PARTE =
-  'Redinmo no es parte de este contrato, no interviene en lo acordado entre las partes y no presta servicios legales. La responsabilidad por el contenido y por su suscripción corresponde exclusivamente a quienes lo suscriben.';
+  'Redinmo.io es la herramienta con la que se registraron estas aprobaciones. No es parte del contrato, no interviene en lo acordado entre las partes y no presta servicios legales.';
+
+export const NOTA_ANEXO_SEPARABLE =
+  'Este anexo no forma parte del contrato. Registra la revisión del borrador por las partes y puede omitirse al imprimir el documento para suscribirlo.';
+
+// Nota que acompaña a toda cláusula opcional que puede no ser válida.
+export const NOTA_CLAUSULA_DISCUTIBLE =
+  'Esta cláusula es de uso frecuente pero su validez puede discutirse. Consúltala con un abogado antes de activarla.';
+
+// Aviso antes de descargar el Word.
+export const AVISO_EXPORTAR_WORD =
+  'Si editas el documento fuera de la plataforma, no podrás enviarlo para aprobación desde aquí.';
 
 // Enlaces de apoyo junto al formulario.
 export const ENLACE_REVISION_ABOGADO = '/legal/revision-abogado';
@@ -103,7 +138,11 @@ export type CampoDefinicion = {
   porDefecto?: string;
   opciones?: CampoOpcion[];
   ayuda?: string;
+  // Legado: los tipos retirados marcaban así los datos de cada firmante.
   rolFirmante?: string;
+  // El campo solo existe si otro campo tiene uno de estos valores. Oculto, no
+  // se pide ni se valida: los datos de una compañía no se exigen a una persona.
+  visibleSi?: { clave: string; valores: string[] };
 };
 
 export type SeccionDefinicion = {
@@ -115,6 +154,7 @@ export type SeccionDefinicion = {
 
 export type TipoDefinicion = {
   titulo: string;
+  // Una línea para el selector: cuándo usarlo, dicho como lo diría un agente.
   descripcion: string;
   nombreDocumento: string;
   requiereInmueble: boolean;
@@ -132,15 +172,31 @@ const TIPO_DOCUMENTO = [
   { valor: 'PASAPORTE', etiqueta: 'Pasaporte' },
 ];
 
-// Parte que comparece. "extras" añade los campos que cada contrato pide de más:
-// el corretaje distingue cédula de pasaporte.
-function parte(
+export const TIPO_PERSONA = [
+  { valor: 'NATURAL', etiqueta: 'Persona natural' },
+  { valor: 'JURIDICA', etiqueta: 'Compañía (persona jurídica)' },
+];
+
+// Parte que comparece: una persona o una compañía con su representante legal.
+// "extras" añade lo que cada contrato pide de más: el corretaje distingue
+// cédula de pasaporte.
+export function parte(
   rol: string,
   titulo: string,
-  extras: { tipoDocumento?: boolean; profesion?: boolean; parroquia?: boolean } = {},
+  extras: { tipoDocumento?: boolean } = {},
 ): SeccionDefinicion {
+  const natural = { clave: `${rol}_tipoPersona`, valores: ['NATURAL'] };
+  const juridica = { clave: `${rol}_tipoPersona`, valores: ['JURIDICA'] };
   const campos: CampoDefinicion[] = [
-    { clave: `${rol}_nombre`, etiqueta: 'Nombre completo', tipo: 'texto', obligatorio: true, rolFirmante: rol },
+    {
+      clave: `${rol}_tipoPersona`,
+      etiqueta: 'Comparece como',
+      tipo: 'opcion',
+      obligatorio: true,
+      porDefecto: 'NATURAL',
+      opciones: TIPO_PERSONA,
+    },
+    { clave: `${rol}_nombre`, etiqueta: 'Nombre completo', tipo: 'texto', obligatorio: true, visibleSi: natural },
   ];
   if (extras.tipoDocumento) {
     campos.push({
@@ -150,29 +206,72 @@ function parte(
       obligatorio: true,
       porDefecto: 'CEDULA',
       opciones: TIPO_DOCUMENTO,
+      visibleSi: natural,
     });
   }
   campos.push(
-    { clave: `${rol}_cedula`, etiqueta: extras.tipoDocumento ? 'Número de documento' : 'Cédula', tipo: 'cedula', obligatorio: true, rolFirmante: rol },
+    {
+      clave: `${rol}_cedula`,
+      etiqueta: extras.tipoDocumento ? 'Número de documento' : 'Cédula',
+      tipo: 'cedula',
+      obligatorio: true,
+      visibleSi: natural,
+    },
+    { clave: `${rol}_razonSocial`, etiqueta: 'Razón social', tipo: 'texto', obligatorio: true, visibleSi: juridica },
+    { clave: `${rol}_ruc`, etiqueta: 'RUC', tipo: 'cedula', obligatorio: true, visibleSi: juridica },
+    {
+      clave: `${rol}_representante`,
+      etiqueta: 'Representante legal',
+      tipo: 'texto',
+      obligatorio: true,
+      visibleSi: juridica,
+      ayuda: 'Nombre completo de quien comparece por la compañía. Es quien revisa y aprueba el documento.',
+    },
+    {
+      clave: `${rol}_representanteCedula`,
+      etiqueta: 'Cédula del representante',
+      tipo: 'cedula',
+      obligatorio: true,
+      visibleSi: juridica,
+    },
     {
       clave: `${rol}_correo`,
       etiqueta: 'Correo electrónico',
       tipo: 'correo',
       obligatorio: true,
-      rolFirmante: rol,
-      ayuda: 'Es el canal por el que recibirá el documento para firmarlo.',
+      ayuda: 'Por aquí recibirá cada versión del documento para revisarla y aprobarla.',
     },
     { clave: `${rol}_telefono`, etiqueta: 'Teléfono', tipo: 'telefono', obligatorio: true },
+    { clave: `${rol}_direccion`, etiqueta: 'Domicilio', tipo: 'texto', obligatorio: true },
   );
-  if (extras.profesion) campos.push({ clave: `${rol}_profesion`, etiqueta: 'Profesión', tipo: 'texto' });
-  campos.push({ clave: `${rol}_direccion`, etiqueta: 'Domicilio', tipo: 'texto', obligatorio: true });
-  if (extras.parroquia) {
-    campos.push(
-      { clave: `${rol}_parroquia`, etiqueta: 'Parroquia', tipo: 'texto' },
-      { clave: `${rol}_ciudad`, etiqueta: 'Ciudad', tipo: 'texto' },
-    );
-  }
   return { clave: rol, titulo, campos };
+}
+
+// El agente también es parte en los documentos donde actúa como corredor, y
+// puede comparecer a su nombre o por su empresa. Su nombre y su cédula salen
+// del perfil; aquí solo se pide lo que el perfil no guarda.
+export function parteAgente(rol: string, titulo: string): SeccionDefinicion {
+  const juridica = { clave: `${rol}_tipoPersona`, valores: ['JURIDICA'] };
+  return {
+    clave: rol,
+    titulo,
+    descripcion: 'Tu nombre, cédula y licencia salen de tu perfil.',
+    campos: [
+      {
+        clave: `${rol}_tipoPersona`,
+        etiqueta: 'Comparezco',
+        tipo: 'opcion',
+        obligatorio: true,
+        porDefecto: 'NATURAL',
+        opciones: [
+          { valor: 'NATURAL', etiqueta: 'A mi nombre' },
+          { valor: 'JURIDICA', etiqueta: 'Por mi empresa (persona jurídica)' },
+        ],
+      },
+      { clave: `${rol}_razonSocial`, etiqueta: 'Razón social de tu empresa', tipo: 'texto', obligatorio: true, visibleSi: juridica },
+      { clave: `${rol}_ruc`, etiqueta: 'RUC de tu empresa', tipo: 'cedula', obligatorio: true, visibleSi: juridica },
+    ],
+  };
 }
 
 const JURISDICCION: CampoDefinicion = {
@@ -188,11 +287,12 @@ const JURISDICCION: CampoDefinicion = {
 const DEFINICIONES_VIVAS: Record<string, TipoDefinicion> = {
   CORRETAJE: {
     titulo: 'Corretaje inmobiliario',
-    descripcion: 'Consignación para la venta de un inmueble, con o sin exclusividad.',
+    descripcion: 'Cuando un propietario te encarga vender su inmueble, con o sin exclusividad.',
     nombreDocumento: 'CONTRATO DE CORRETAJE INMOBILIARIO',
     requiereInmueble: true,
     secciones: [
       parte('propietario', 'Datos del propietario', { tipoDocumento: true }),
+      parteAgente('corredor', 'Tú, como corredor'),
       {
         clave: 'exclusividad',
         titulo: 'Modalidad',
@@ -342,7 +442,12 @@ const DEFINICIONES_VIVAS: Record<string, TipoDefinicion> = {
               },
             ],
           },
-          { clave: 'retencionDetalle', etiqueta: 'Detalle de la retención parcial', tipo: 'texto' },
+          {
+            clave: 'retencionDetalle',
+            etiqueta: 'Detalle de la retención parcial',
+            tipo: 'texto',
+            visibleSi: { clave: 'siDesisteComprador', valores: ['DEVOLUCION_PARCIAL'] },
+          },
           {
             clave: 'devolucionPlazoDias',
             etiqueta: 'Plazo para devolver la señal (días hábiles)',
@@ -385,12 +490,20 @@ export type MenuEntrada = { clase: 'tipo'; tipo: ContratoTipo };
 
 export const CONTRATO_MENU: MenuEntrada[] = [{ clase: 'tipo', tipo: 'CORRETAJE' }];
 
-// Roles firmantes por tipo, en el orden en que aparecen en el documento.
-export const FIRMANTES_POR_TIPO: Record<ContratoTipo, Array<{ rol: string; etiqueta: string; esAgente?: boolean }>> = {
-  ...(FIRMANTES_LEGADO as Record<ContratoTipo, Array<{ rol: string; etiqueta: string; esAgente?: boolean }>>),
+// ---------------------------------------------------------------------------
+// PARTES
+//
+// Quién comparece en cada documento, en el orden de las líneas de firma. Las
+// partes que no son el agente reciben cada versión y la aprueban; el agente no
+// se aprueba a sí mismo: enviar una versión ES su conformidad con ella.
+// ---------------------------------------------------------------------------
+export type ParteDefinicion = { rol: string; etiqueta: string; esAgente?: boolean };
+
+export const PARTES_POR_TIPO: Record<ContratoTipo, ParteDefinicion[]> = {
+  ...(FIRMANTES_LEGADO as Record<ContratoTipo, ParteDefinicion[]>),
   CORRETAJE: [
     { rol: 'propietario', etiqueta: 'Propietario' },
-    { rol: 'agente', etiqueta: 'Corredor', esAgente: true },
+    { rol: 'corredor', etiqueta: 'Corredor', esAgente: true },
   ],
 };
 
@@ -398,28 +511,126 @@ export function esContratoTipo(valor: unknown): valor is ContratoTipo {
   return typeof valor === 'string' && (CONTRATO_TIPOS as readonly string[]).includes(valor);
 }
 
-// Un contrato firmado no se puede editar: solo anular o rehacer. Uno de tipo
-// archivado tampoco, aunque siga en borrador.
+// Se edita mientras la negociación siga abierta, incluso después de enviada o
+// aprobada una versión: los cambios quedan en la copia de trabajo hasta que se
+// envían como versión nueva. Un contrato anulado, uno del flujo de firma o uno
+// de tipo archivado ya no.
 export function esEditable(estado: ContratoEstado, tipo?: string): boolean {
   if (tipo && esTipoArchivado(tipo)) return false;
-  return estado === 'BORRADOR';
+  return estado === 'BORRADOR' || estado === 'EN_APROBACION' || estado === 'APROBADO' || estado === 'RECHAZADO';
 }
 
 export function correoValido(valor: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(valor.trim());
 }
 
+function camposDe(tipo: ContratoTipo): CampoDefinicion[] {
+  return CONTRATO_DEFINICION[tipo].secciones.flatMap((s) => s.campos);
+}
+
+// El valor que cuenta: lo escrito o, si no hay nada, el valor por defecto.
+export function valorEfectivo(tipo: ContratoTipo, datos: Record<string, string>, clave: string): string {
+  const escrito = (datos[clave] ?? '').trim();
+  if (escrito) return escrito;
+  return camposDe(tipo).find((c) => c.clave === clave)?.porDefecto ?? '';
+}
+
+export function campoVisible(tipo: ContratoTipo, campo: CampoDefinicion, datos: Record<string, string>): boolean {
+  if (!campo.visibleSi) return true;
+  return campo.visibleSi.valores.includes(valorEfectivo(tipo, datos, campo.visibleSi.clave));
+}
+
 // Devuelve los campos obligatorios que faltan, para que el formulario y la
-// ruta apliquen exactamente la misma regla.
+// ruta apliquen exactamente la misma regla. Un campo oculto no se exige.
 export function camposFaltantes(tipo: ContratoTipo, datos: Record<string, string>): string[] {
   const faltan: string[] = [];
   for (const seccion of CONTRATO_DEFINICION[tipo].secciones) {
     for (const campo of seccion.campos) {
-      if (!campo.obligatorio) continue;
-      const valor = (datos[campo.clave] ?? '').trim();
+      if (!campo.obligatorio || !campoVisible(tipo, campo, datos)) continue;
+      const valor = valorEfectivo(tipo, datos, campo.clave);
       if (!valor) faltan.push(campo.etiqueta);
       else if (campo.tipo === 'correo' && !correoValido(valor)) faltan.push(`${campo.etiqueta} (formato no válido)`);
     }
   }
   return faltan;
+}
+
+// ---------------------------------------------------------------------------
+// IDENTIDAD DE UNA PARTE
+//
+// Una sola función decide cómo se nombra a una parte, qué documento la
+// identifica y QUIÉN aprueba por ella. En una compañía el que revisa y aprueba
+// es su representante legal, y los últimos 4 dígitos que teclea son los de su
+// cédula, no los del RUC.
+// ---------------------------------------------------------------------------
+export type IdentidadParte = {
+  juridica: boolean;
+  // Cómo figura la parte en el documento: la persona o la razón social.
+  nombre: string;
+  documento: string;
+  tipoDocumento: 'cédula' | 'pasaporte' | 'RUC';
+  representante: { nombre: string; cedula: string } | null;
+  aprobador: { nombre: string; cedula: string };
+  correo: string;
+  telefono: string;
+  domicilio: string;
+};
+
+export function identidadParte(tipo: ContratoTipo, datos: Record<string, string>, rol: string): IdentidadParte {
+  const v = (clave: string) => valorEfectivo(tipo, datos, `${rol}_${clave}`);
+  const contacto = { correo: v('correo'), telefono: v('telefono'), domicilio: v('direccion') };
+  if (v('tipoPersona') === 'JURIDICA') {
+    const representante = { nombre: v('representante'), cedula: v('representanteCedula') };
+    return {
+      juridica: true,
+      nombre: v('razonSocial'),
+      documento: v('ruc'),
+      tipoDocumento: 'RUC',
+      representante,
+      aprobador: representante,
+      ...contacto,
+    };
+  }
+  const persona = { nombre: v('nombre'), cedula: v('cedula') };
+  return {
+    juridica: false,
+    nombre: persona.nombre,
+    documento: persona.cedula,
+    tipoDocumento: v('tipoDocumento') === 'PASAPORTE' ? 'pasaporte' : 'cédula',
+    representante: null,
+    aprobador: persona,
+    ...contacto,
+  };
+}
+
+// El agente como parte: su persona sale del perfil y, si comparece por su
+// empresa, la razón social y el RUC salen del formulario.
+export function identidadAgente(
+  tipo: ContratoTipo,
+  datos: Record<string, string>,
+  rol: string,
+  agente: { nombre: string; cedula: string; correo: string; telefono: string; direccion: string },
+): IdentidadParte {
+  const persona = { nombre: agente.nombre, cedula: agente.cedula };
+  const contacto = { correo: agente.correo, telefono: agente.telefono, domicilio: agente.direccion };
+  if (valorEfectivo(tipo, datos, `${rol}_tipoPersona`) === 'JURIDICA') {
+    return {
+      juridica: true,
+      nombre: valorEfectivo(tipo, datos, `${rol}_razonSocial`),
+      documento: valorEfectivo(tipo, datos, `${rol}_ruc`),
+      tipoDocumento: 'RUC',
+      representante: persona,
+      aprobador: persona,
+      ...contacto,
+    };
+  }
+  return {
+    juridica: false,
+    nombre: persona.nombre,
+    documento: persona.cedula,
+    tipoDocumento: 'cédula',
+    representante: null,
+    aprobador: persona,
+    ...contacto,
+  };
 }

@@ -892,14 +892,25 @@ model CartaGeneracion {
 }
 
 // ---------------------------------------------------------------------------
-// CONTRATOS (feature Pro "contratos") - generacion y firma por aceptacion
-// remota.
+// CONTRATOS (feature Pro "contratos") - generacion y APROBACION DE BORRADOR.
+//
+// El modulo no firma: la firma es presencial y manuscrita, porque los contratos
+// se legalizan en notaria. Lo que registra es la negociacion del texto: cada
+// envio es una VERSION numerada y congelada, y cada parte la aprueba o la
+// rechaza con su motivo. Al llegar a la notaria queda documentado que se
+// acordo, quien lo aprobo y cuando.
+//
+// HISTORIA: hasta el 2026-09-16 el modulo ofrecia firma electronica por
+// aceptacion remota. Los contratos de esa etapa (estados PENDIENTE_FIRMA y
+// FIRMADO, partes sin version) se conservan tal cual: lo que se firmo con esa
+// declaracion no se reescribe como si hubiera sido otra cosa.
 //
 // PRIVACIDAD: un contrato contiene cedulas, direcciones y montos de TERCEROS
 // que nunca aceptaron los terminos de la plataforma. Por eso los datos de las
-// partes y el registro probatorio se guardan CIFRADOS (AES-256-GCM, ver
-// payments/encryption.ts) y solo los ve el agente que los genero. Nunca
-// aparecen en el mini-sitio, el ranking ni ninguna vista publica.
+// partes, el documento congelado de cada version y el registro de cada
+// aprobacion se guardan CIFRADOS (AES-256-GCM, ver payments/encryption.ts) y
+// solo los ve el agente que los genero. Nunca aparecen en el mini-sitio, el
+// ranking ni ninguna vista publica.
 // ---------------------------------------------------------------------------
 
 enum ContratoTipo {
@@ -913,17 +924,33 @@ enum ContratoTipo {
 
 enum ContratoEstado {
   BORRADOR
+  // Legado: flujo de firma electronica, retirado. No se crean nuevos.
   PENDIENTE_FIRMA
   FIRMADO
   RECHAZADO
   ANULADO
+  EN_APROBACION
+  APROBADO
 }
 
-enum FirmanteEstado {
+enum ParteEstado {
   ENVIADO
   ABIERTO
+  // Legado: firma electronica, retirada. Una parte nueva aprueba, no firma.
   FIRMADO
   RECHAZADO
+  APROBADO
+
+  @@map("FirmanteEstado")
+}
+
+enum ContratoVersionEstado {
+  EN_APROBACION
+  APROBADA
+  RECHAZADA
+  // Se envio una version posterior antes de que esta se resolviera.
+  REEMPLAZADA
+  ANULADA
 }
 
 model Contrato {
@@ -935,22 +962,23 @@ model Contrato {
 
   // Inmueble del inventario del agente. Se guarda ademas una foto de sus datos
   // en "datosCifrados": si el inmueble se edita o se borra despues, el
-  // contrato firmado tiene que seguir diciendo lo que decia el dia que se
-  // firmo.
+  // contrato tiene que seguir diciendo lo que decia.
   listingId String?
 
-  // Version de la plantilla usada. Si mañana cambia el texto legal, los
-  // contratos ya firmados conservan el suyo (punto 5.2).
+  // Version de la plantilla de la COPIA DE TRABAJO. Cada version enviada
+  // guarda la suya aparte.
   plantillaVersion String
 
-  // Todos los campos del formulario, cifrados en reposo: aca viven las cedulas
-  // y direcciones de las partes.
+  // Copia de trabajo: todos los campos del formulario y las ediciones de
+  // clausulas, cifrados en reposo. Lo que se envio vive en ContratoVersion.
   datosCifrados String
 
   estado ContratoEstado @default(BORRADOR)
 
-  // SHA-256 del PDF sellado. Es lo que permite demostrar que el documento no
-  // se altero despues de la firma.
+  // Numero de la ultima version enviada. 0 = nunca se envio.
+  versionActual Int @default(0)
+
+  // Legado: SHA-256 del documento sellado por el flujo de firma retirado.
   hashDocumento String?
 
   // Codigo publico de verificacion (/c/[codigo]). Deliberadamente distinto del
@@ -959,53 +987,94 @@ model Contrato {
 
   anuladoNota String?
 
-  enviadoAt DateTime?
-  firmadoAt DateTime?
-  anuladoAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  enviadoAt  DateTime?
+  // Legado: fecha de la ultima firma del flujo retirado.
+  firmadoAt  DateTime?
+  // Cuando todas las partes aprobaron la version actual.
+  aprobadoAt DateTime?
+  anuladoAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  firmantes ContratoFirmante[]
+  partes    ContratoParte[]
+  versiones ContratoVersion[]
 
   @@index([agentId, createdAt])
   @@index([estado])
 }
 
-model ContratoFirmante {
+// Una version enviada para aprobacion. Congelada: el documento exacto que
+// leyeron las partes (clausulas ya numeradas, datos ya resueltos) se guarda
+// cifrado, y su huella SHA-256 identifica ese texto. La huella NO es un sello:
+// sirve para comprobar que dos textos son la misma version.
+model ContratoVersion {
   id         String   @id @default(cuid())
   contrato   Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
   contratoId String
 
-  // Rol dentro del documento: "propietario", "arrendatario", "comprador"...
-  rol           String
-  nombre        String
-  correo        String
+  numero           Int
+  plantillaVersion String
+  documentoCifrado String
+  huella           String
+
+  estado ContratoVersionEstado @default(EN_APROBACION)
+
+  enviadaAt  DateTime  @default(now())
+  aprobadaAt DateTime?
+  // Cuando se rechazo, se reemplazo o se anulo.
+  cerradaAt  DateTime?
+
+  partes ContratoParte[]
+
+  @@unique([contratoId, numero])
+}
+
+// Una parte llamada a aprobar UNA version. Cada envio crea filas nuevas, asi
+// que el historial dice quien aprobo que version y cuando. Las filas sin
+// version son del flujo de firma retirado.
+model ContratoParte {
+  id         String           @id @default(cuid())
+  contrato   Contrato         @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  contratoId String
+  version    ContratoVersion? @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  versionId  String?
+
+  // Rol dentro del documento: "propietario", "arrendatario"...
+  rol    String
+  // Quien aprueba. En una persona juridica, su representante legal.
+  nombre String
+  correo String
   // Cedula completa cifrada. En claro solo se guardan los ultimos 4 digitos,
-  // que son los que el firmante teclea para identificarse (punto 3.4) - con 4
-  // digitos sueltos no se reconstruye una cedula.
+  // que son los que la parte teclea para identificarse - con 4 digitos sueltos
+  // no se reconstruye una cedula.
   cedulaCifrada String
   cedulaUlt4    String
 
   // Hash del token del enlace, nunca el token: si alguien lee la base de datos
-  // no puede firmar por nadie. El token viaja solo en el correo.
+  // no puede aprobar por nadie. El token viaja solo en el correo.
   tokenHash String   @unique
   expiraAt  DateTime
 
-  estado FirmanteEstado @default(ENVIADO)
+  estado ParteEstado @default(ENVIADO)
 
   enviadoAt      DateTime?
   abiertoAt      DateTime?
+  aprobadoAt     DateTime?
+  // Legado: firma del flujo retirado.
   firmadoAt      DateTime?
   rechazadoAt    DateTime?
   motivoRechazo  String?
   recordatorioAt DateTime?
 
-  // Registro probatorio cifrado (punto 3.5): IP, navegador, dispositivo y
-  // confirmacion de que desplazo el documento completo.
+  // Registro cifrado de la decision: IP, navegador y dispositivo, confirmacion
+  // de que desplazo el documento completo y huella de la version que tenia a
+  // la vista.
   evidenciaCifrada String?
 
   @@index([contratoId])
+  @@index([versionId])
   @@index([estado, expiraAt])
+  @@map("ContratoFirmante")
 }
 
 // ---------------------------------------------------------------------------

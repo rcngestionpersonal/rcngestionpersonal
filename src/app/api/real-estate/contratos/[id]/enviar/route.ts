@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { isEmailConfigured, sendEmailNotification } from '@/lib/real-estate/email';
-import { agenteConContratos, baseUrl, contratoDelAgente } from '@/lib/real-estate/contratos/servidor';
-import { cifrarDatos, descifrarDatos, fechaExpiracion, generarToken, ultimos4 } from '@/lib/real-estate/contratos/firma';
-import { correoSolicitudFirma } from '@/lib/real-estate/contratos/correos';
-import { encryptAtRest } from '@/lib/real-estate/payments/encryption';
 import {
-  CONTRATO_DEFINICION,
-  esTipoArchivado,
-  FIRMANTES_POR_TIPO,
-  camposFaltantes,
-  correoValido,
-  type ContratoTipo,
-} from '@/lib/real-estate/contratos/tipos';
+  agenteConContratos,
+  baseUrl,
+  contratoDelAgente,
+  esContratoDeFirma,
+  logContratos,
+  perfilAgente,
+} from '@/lib/real-estate/contratos/servidor';
+import { crearVersion } from '@/lib/real-estate/contratos/versiones';
+import { correoSolicitudAprobacion } from '@/lib/real-estate/contratos/correos';
+import { fechaLarga } from '@/lib/real-estate/contratos/aprobacion';
 
-// "Enviar para firma" (punto 3.2). Crea un enlace unico por firmante y manda
-// un correo independiente a cada uno.
+// "Enviar para aprobación": congela la copia de trabajo como la versión
+// siguiente y manda a cada parte su propio enlace.
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -26,122 +24,50 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { id } = await params;
   const contrato = await contratoDelAgente(id, auth.agentId);
   if (!contrato) return NextResponse.json({ error: 'Contrato no encontrado.' }, { status: 404 });
-  if (esTipoArchivado(contrato.tipo)) {
+  if (esContratoDeFirma(contrato)) {
     return NextResponse.json(
-      { error: 'Este tipo de contrato fue retirado y ya no se envía a firma.', code: 'tipo_archivado' },
+      { error: 'Este contrato es de la etapa de firma electrónica y ya no admite envíos.', code: 'firma_retirada' },
       { status: 409 },
     );
   }
-  if (contrato.estado !== 'BORRADOR') {
-    return NextResponse.json({ error: 'Este contrato ya fue enviado.', code: 'ya_enviado' }, { status: 409 });
-  }
+  // Sin correo no hay cómo hacer llegar la versión: se comprueba antes de
+  // congelar nada.
   if (!isEmailConfigured()) {
     return NextResponse.json({ error: 'El envío por correo no está configurado.' }, { status: 503 });
   }
 
-  const tipo = contrato.tipo as ContratoTipo;
-  const datos = descifrarDatos(contrato.datosCifrados);
-  const visibles = Object.fromEntries(Object.entries(datos).filter(([k]) => !k.startsWith('__')));
-
-  const faltantes = camposFaltantes(tipo, visibles);
-  if (faltantes.length > 0) {
-    return NextResponse.json({ error: 'Faltan datos obligatorios.', code: 'incompleto', faltantes }, { status: 400 });
-  }
-
-  const agente = await prisma.agent.findUnique({
-    where: { id: auth.agentId },
-    select: { fullName: true, company: true, idNumber: true, email: true },
-  });
-  if (!agente?.idNumber) {
+  const perfil = await perfilAgente(auth.agentId);
+  const resultado = await crearVersion(contrato, perfil);
+  if (!resultado.ok) {
     return NextResponse.json(
-      { error: 'Necesitas tu cédula registrada en el perfil para emitir contratos.', code: 'agente_sin_cedula' },
-      { status: 409 },
+      { error: resultado.error, code: resultado.code, ...(resultado.faltantes ? { faltantes: resultado.faltantes } : {}) },
+      { status: resultado.status },
     );
   }
 
-  // Se arma la lista de firmantes desde la definicion del tipo, no desde lo
-  // que mande el cliente: el navegador no decide quien firma un contrato.
-  const definidos = FIRMANTES_POR_TIPO[tipo];
-  const aCrear: Array<{ rol: string; nombre: string; correo: string; cedula: string }> = [];
-
-  for (const def of definidos) {
-    if (def.esAgente) {
-      if (!agente.email) {
-        return NextResponse.json(
-          { error: 'Necesitas un correo confirmado para firmar como agente.', code: 'agente_sin_correo' },
-          { status: 409 },
-        );
-      }
-      aCrear.push({ rol: def.rol, nombre: agente.fullName, correo: agente.email, cedula: agente.idNumber });
-      continue;
-    }
-    const nombre = (visibles[`${def.rol}_nombre`] ?? '').trim();
-    const correo = (visibles[`${def.rol}_correo`] ?? '').trim();
-    const cedula = (visibles[`${def.rol}_cedula`] ?? '').trim();
-    if (!nombre || !cedula || !correoValido(correo)) {
-      return NextResponse.json(
-        { error: `Faltan datos de ${def.etiqueta.toLowerCase()} o el correo no es válido.`, code: 'firmante_incompleto' },
-        { status: 400 },
-      );
-    }
-    aCrear.push({ rol: def.rol, nombre, correo, cedula });
-  }
-
-  const nombreDocumento = CONTRATO_DEFINICION[tipo].nombreDocumento;
-  const expira = fechaExpiracion();
-  const ahora = new Date();
-
-  // Los tokens en claro solo viven en memoria el tiempo de mandar los correos.
-  const tokens = aCrear.map(() => generarToken());
-
-  await prisma.$transaction([
-    prisma.contratoFirmante.createMany({
-      data: aCrear.map((f, i) => ({
-        contratoId: id,
-        rol: f.rol,
-        nombre: f.nombre,
-        correo: f.correo,
-        cedulaCifrada: encryptAtRest(f.cedula),
-        cedulaUlt4: ultimos4(f.cedula),
-        tokenHash: tokens[i].hash,
-        expiraAt: expira,
-        enviadoAt: ahora,
-      })),
-    }),
-    prisma.contrato.update({
-      where: { id },
-      data: {
-        estado: 'PENDIENTE_FIRMA',
-        enviadoAt: ahora,
-        // Se vuelve a cifrar igual: deja el updatedAt fresco sin tocar datos.
-        datosCifrados: cifrarDatos(datos),
-      },
-    }),
-  ]);
-
-  const venceEl = expira.toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric' });
   const fallidos: string[] = [];
-
-  for (let i = 0; i < aCrear.length; i += 1) {
-    const f = aCrear[i];
-    const url = `${baseUrl()}/firmar/${tokens[i].token}`;
-    const correo = correoSolicitudFirma({
-      nombreFirmante: f.nombre,
-      nombreDocumento,
-      agente: { nombre: agente.fullName, empresa: agente.company },
-      url,
-      venceEl,
+  for (const enlace of resultado.enlaces) {
+    const correo = correoSolicitudAprobacion({
+      nombreParte: enlace.nombre,
+      nombreDocumento: resultado.nombreDocumento,
+      numero: resultado.numero,
+      agente: { nombre: perfil.nombre, empresa: perfil.empresa },
+      url: `${baseUrl()}/aprobar/${enlace.token}`,
+      venceEl: fechaLarga(resultado.expiraAt),
+      cambios: resultado.cambios,
     });
-    const resultado = await sendEmailNotification({
-      to: f.correo,
-      subject: correo.subject,
-      text: correo.text,
-      html: correo.html,
-      // Quien envia es el agente, no Redinmo: la respuesta le llega a el.
-      ...(agente.email ? { replyTo: agente.email } : {}),
+    const envio = await sendEmailNotification({
+      to: enlace.correo,
+      ...correo,
+      fromName: perfil.nombre,
+      // Quien envía es el agente: la respuesta le llega a él.
+      ...(perfil.correo ? { replyTo: perfil.correo } : {}),
     });
-    if (!resultado.delivered) fallidos.push(f.correo);
+    if (!envio.delivered) {
+      fallidos.push(enlace.correo);
+      logContratos(`no se pudo enviar la versión ${resultado.numero} a una parte`, { agentId: auth.agentId, contratoId: id, error: envio.error });
+    }
   }
 
-  return NextResponse.json({ ok: true, enviados: aCrear.length, fallidos });
+  return NextResponse.json({ ok: true, numero: resultado.numero, enviados: resultado.enlaces.length, fallidos });
 }

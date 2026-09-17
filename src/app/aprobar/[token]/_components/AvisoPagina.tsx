@@ -1,8 +1,8 @@
 import Link from 'next/link';
 
-// Pantalla neutra para los estados en los que no hay nada que firmar: enlace
-// vencido, documento cancelado, rechazado o ya firmado (punto 3.9). Siempre
-// explica QUE paso y QUE puede hacer la persona; nunca un 404 seco.
+// Pantalla neutra para los estados en los que no hay nada que decidir: enlace
+// vencido, documento cancelado, versión reemplazada o ya decidida. Siempre
+// explica QUÉ pasó y QUÉ puede hacer la persona; nunca un 404 seco.
 export default function AvisoPagina({
   titulo,
   detalle,

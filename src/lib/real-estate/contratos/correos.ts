@@ -1,7 +1,10 @@
-// Correos del flujo de firma. HTML con tablas y CSS en linea, ancho maximo
-// 600px y fondo claro: las mismas restricciones que el resto de los correos de
-// la plataforma, porque los clientes de correo no soportan hojas de estilo ni
-// flexbox. Siempre con version de texto plano de respaldo.
+import type { CambiosEntreVersiones } from './clausulas';
+import { AVISO_APROBACION } from './tipos';
+
+// Correos del flujo de aprobación de borrador. HTML con tablas y CSS en línea,
+// ancho máximo 600px y fondo claro: las mismas restricciones que el resto de
+// los correos de la plataforma, porque los clientes de correo no soportan hojas
+// de estilo ni flexbox. Siempre con versión de texto plano de respaldo.
 
 const MARCO = (titulo: string, cuerpo: string) => `<!doctype html>
 <html lang="es">
@@ -32,41 +35,75 @@ const BOTON = (url: string, etiqueta: string) => `
   <p style="margin:0 0 6px;font-size:12.5px;color:#635a80;">Si el botón no funciona, copie y pegue este enlace en su navegador:</p>
   <p style="margin:0 0 8px;font-size:12.5px;word-break:break-all;"><a href="${url}" style="color:#0d9488;">${url}</a></p>`;
 
-export function correoSolicitudFirma(input: {
-  nombreFirmante: string;
+const P = 'margin:0 0 10px;font-size:14.5px;line-height:1.6;color:#635a80;';
+const FUERTE = 'color:#1a1330;';
+
+function esc(texto: string): string {
+  return texto.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// La advertencia viaja también en el correo, con el mismo peso que el resto:
+// quien aprueba desde el celular puede no llegar a leer la página entera.
+const AVISO_HTML = `<p style="margin:18px 0 0;padding:12px 14px;background:#fff7e6;border:1px solid #f1d49b;border-radius:8px;font-size:14px;line-height:1.6;color:#6b4406;">${esc(
+  AVISO_APROBACION,
+)}</p>`;
+
+function listaCambios(cambios: CambiosEntreVersiones | null): { html: string; texto: string[] } {
+  if (!cambios) return { html: '', texto: [] };
+  const lineas = [
+    ...cambios.modificadas.map((c) => `Modificada: ${c}`),
+    ...cambios.agregadas.map((c) => `Nueva: ${c}`),
+    ...cambios.retiradas.map((c) => `Retirada: ${c}`),
+    ...(cambios.otros ? ['Cambios en los datos de las partes o del inmueble'] : []),
+  ];
+  if (lineas.length === 0) return { html: '', texto: [] };
+  return {
+    html: `<p style="margin:14px 0 6px;font-size:13px;font-weight:700;color:#1a1330;">Cambios respecto de la versión anterior</p>
+      <ul style="margin:0 0 6px;padding-left:20px;font-size:13.5px;line-height:1.6;color:#635a80;">${lineas
+        .map((l) => `<li>${esc(l)}</li>`)
+        .join('')}</ul>`,
+    texto: ['Cambios respecto de la versión anterior:', ...lineas.map((l) => `- ${l}`)],
+  };
+}
+
+export function correoSolicitudAprobacion(input: {
+  nombreParte: string;
   nombreDocumento: string;
+  numero: number;
   agente: { nombre: string; empresa: string | null };
   url: string;
   venceEl: string;
+  cambios: CambiosEntreVersiones | null;
 }): { subject: string; text: string; html: string } {
-  const subject = `Para su firma: ${input.nombreDocumento}`;
+  const subject = `Para su revisión: ${input.nombreDocumento} (versión ${input.numero})`;
   const remitente = input.agente.empresa ? `${input.agente.nombre} (${input.agente.empresa})` : input.agente.nombre;
+  const cambios = listaCambios(input.cambios);
 
   const html = MARCO(
-    'Tiene un documento pendiente de firma',
-    `<p style="margin:0 0 10px;font-size:14.5px;line-height:1.6;color:#635a80;">Estimado/a ${input.nombreFirmante}:</p>
-     <p style="margin:0 0 10px;font-size:14.5px;line-height:1.6;color:#635a80;">
-       <strong style="color:#1a1330;">${remitente}</strong> le ha hecho llegar el documento
-       <strong style="color:#1a1330;">${input.nombreDocumento}</strong> para que lo revise y lo suscriba.
+    input.numero > 1 ? 'Hay una versión nueva del documento' : 'Tiene un documento para revisar',
+    `<p style="${P}">Estimado/a ${esc(input.nombreParte)}:</p>
+     <p style="${P}">
+       <strong style="${FUERTE}">${esc(remitente)}</strong> le envía la versión ${input.numero} de
+       <strong style="${FUERTE}">${esc(input.nombreDocumento)}</strong> para que la revise.
+       Si está de acuerdo con el texto, apruébela; si necesita cambios, indíquelos y recibirá una versión nueva.
      </p>
-     <p style="margin:0;font-size:14.5px;line-height:1.6;color:#635a80;">
-       El enlace es personal e intransferible y está disponible hasta el ${input.venceEl}.
-     </p>
-     ${BOTON(input.url, 'Leer y firmar')}
-     <p style="margin:0;font-size:12.5px;line-height:1.6;color:#8b83a6;">
-       Podrá leerlo íntegro antes de decidir, descargarlo en PDF y, si no está de acuerdo, rechazarlo indicando el motivo.
-     </p>`,
+     ${cambios.html}
+     <p style="${P}">El enlace es personal y está disponible hasta el ${esc(input.venceEl)}.</p>
+     ${BOTON(input.url, 'Revisar el documento')}
+     ${AVISO_HTML}`,
   );
 
   const text = [
-    `Estimado/a ${input.nombreFirmante}:`,
+    `Estimado/a ${input.nombreParte}:`,
     '',
-    `${remitente} le ha hecho llegar el documento "${input.nombreDocumento}" para que lo revise y lo suscriba.`,
-    `El enlace es personal e intransferible y está disponible hasta el ${input.venceEl}.`,
+    `${remitente} le envía la versión ${input.numero} de "${input.nombreDocumento}" para que la revise. Si está de acuerdo con el texto, apruébela; si necesita cambios, indíquelos y recibirá una versión nueva.`,
+    ...(cambios.texto.length ? ['', ...cambios.texto] : []),
+    '',
+    `El enlace es personal y está disponible hasta el ${input.venceEl}.`,
     '',
     input.url,
     '',
-    'Podrá leerlo íntegro antes de decidir, descargarlo en PDF y, si no está de acuerdo, rechazarlo indicando el motivo.',
+    AVISO_APROBACION,
     '',
     'Si usted no es el destinatario, contacte con quien se lo envió y no acceda al enlace.',
   ].join('\n');
@@ -74,87 +111,96 @@ export function correoSolicitudFirma(input: {
   return { subject, text, html };
 }
 
-export function correoDocumentoFirmado(input: {
-  nombreFirmante: string;
+export function correoVersionAprobada(input: {
+  nombre: string;
   nombreDocumento: string;
+  numero: number;
+  aprobadaPor: string;
   codigo: string;
   urlVerificacion: string;
 }): { subject: string; text: string; html: string } {
-  const subject = `Ya está firmado: ${input.nombreDocumento}`;
+  const subject = `Versión ${input.numero} aprobada: ${input.nombreDocumento}`;
   const html = MARCO(
-    'El documento quedó firmado por todas las partes',
-    `<p style="margin:0 0 10px;font-size:14.5px;line-height:1.6;color:#635a80;">Estimado/a ${input.nombreFirmante}:</p>
-     <p style="margin:0 0 10px;font-size:14.5px;line-height:1.6;color:#635a80;">
-       Ya suscribieron todas las partes <strong style="color:#1a1330;">${input.nombreDocumento}</strong>.
-       Lo adjuntamos en PDF, con la constancia electrónica al final.
+    `Todas las partes aprobaron la versión ${input.numero}`,
+    `<p style="${P}">Estimado/a ${esc(input.nombre)}:</p>
+     <p style="${P}">
+       La versión ${input.numero} de <strong style="${FUERTE}">${esc(input.nombreDocumento)}</strong> quedó aprobada por
+       ${esc(input.aprobadaPor)}. La adjuntamos en PDF, con la constancia de aprobación como anexo separado.
+     </p>
+     <p style="${P}">
+       Es el texto acordado para llevar a la firma. Si la negociación continúa, puede recibir versiones nuevas.
      </p>
      <p style="margin:0 0 4px;font-size:13px;color:#635a80;">Identificador:</p>
-     <p style="margin:0 0 14px;font-size:16px;font-weight:700;color:#1a1330;letter-spacing:0.08em;">${input.codigo}</p>
+     <p style="margin:0 0 14px;font-size:16px;font-weight:700;color:#1a1330;letter-spacing:0.08em;">${esc(input.codigo)}</p>
      <p style="margin:0;font-size:13px;line-height:1.6;color:#635a80;">
-       Cualquiera puede comprobar su existencia y su fecha en
-       <a href="${input.urlVerificacion}" style="color:#0d9488;">${input.urlVerificacion}</a>.
-       Esa página nunca muestra el contenido.
-     </p>`,
+       El registro de aprobaciones puede consultarse en
+       <a href="${input.urlVerificacion}" style="color:#0d9488;">${input.urlVerificacion}</a>. Esa página nunca muestra el contenido.
+     </p>
+     ${AVISO_HTML}`,
   );
   const text = [
-    `Estimado/a ${input.nombreFirmante}:`,
+    `Estimado/a ${input.nombre}:`,
     '',
-    `Ya suscribieron todas las partes "${input.nombreDocumento}". Lo adjuntamos en PDF, con la constancia electrónica al final.`,
+    `La versión ${input.numero} de "${input.nombreDocumento}" quedó aprobada por ${input.aprobadaPor}. La adjuntamos en PDF, con la constancia de aprobación como anexo separado.`,
+    'Es el texto acordado para llevar a la firma. Si la negociación continúa, puede recibir versiones nuevas.',
     '',
     `Identificador: ${input.codigo}`,
-    `Verificación: ${input.urlVerificacion}`,
+    `Registro de aprobaciones: ${input.urlVerificacion}`,
     '',
-    'La página de verificación nunca muestra el contenido.',
+    AVISO_APROBACION,
   ].join('\n');
   return { subject, text, html };
 }
 
-export function correoRechazo(input: {
+export function correoVersionNoAprobada(input: {
   nombreAgente: string;
   nombreDocumento: string;
-  quienRechazo: string;
+  numero: number;
+  quien: string;
   motivo: string;
 }): { subject: string; text: string; html: string } {
-  const subject = `Rechazado: ${input.nombreDocumento}`;
+  const subject = `Piden cambios en la versión ${input.numero}: ${input.nombreDocumento}`;
   const html = MARCO(
-    'Una de las partes no aceptó el documento',
-    `<p style="margin:0 0 10px;font-size:14.5px;line-height:1.6;color:#635a80;">Hola ${input.nombreAgente}:</p>
-     <p style="margin:0 0 10px;font-size:14.5px;line-height:1.6;color:#635a80;">
-       <strong style="color:#1a1330;">${input.quienRechazo}</strong> rechazó
-       <strong style="color:#1a1330;">${input.nombreDocumento}</strong>. El proceso quedó detenido y
-       los enlaces de las demás partes dejaron de estar activos.
+    'Una de las partes no aprobó la versión',
+    `<p style="${P}">Hola ${esc(input.nombreAgente)}:</p>
+     <p style="${P}">
+       <strong style="${FUERTE}">${esc(input.quien)}</strong> no aprobó la versión ${input.numero} de
+       <strong style="${FUERTE}">${esc(input.nombreDocumento)}</strong>. Los enlaces de esa versión dejaron de estar activos.
      </p>
-     <p style="margin:0 0 4px;font-size:13px;color:#635a80;">Motivo indicado:</p>
-     <p style="margin:0;padding:12px 14px;background:#f5f3fa;border-radius:8px;font-size:14px;line-height:1.6;color:#1a1330;">${input.motivo}</p>`,
+     <p style="margin:0 0 4px;font-size:13px;color:#635a80;">Lo que indicó:</p>
+     <p style="margin:0 0 14px;padding:12px 14px;background:#f5f3fa;border-radius:8px;font-size:14px;line-height:1.6;color:#1a1330;">${esc(input.motivo)}</p>
+     <p style="margin:0;font-size:14px;line-height:1.6;color:#635a80;">Edita el documento y envía la versión ${input.numero + 1}: el historial conserva lo que pidió cada parte.</p>`,
   );
   const text = [
     `Hola ${input.nombreAgente}:`,
     '',
-    `${input.quienRechazo} rechazó "${input.nombreDocumento}". El proceso quedó detenido y los enlaces de las demás partes dejaron de estar activos.`,
+    `${input.quien} no aprobó la versión ${input.numero} de "${input.nombreDocumento}". Los enlaces de esa versión dejaron de estar activos.`,
     '',
-    `Motivo: ${input.motivo}`,
+    `Lo que indicó: ${input.motivo}`,
+    '',
+    `Edita el documento y envía la versión ${input.numero + 1}: el historial conserva lo que pidió cada parte.`,
   ].join('\n');
   return { subject, text, html };
 }
 
-export function correoCancelado(input: { nombreFirmante: string; nombreDocumento: string }): {
+export function correoCancelado(input: { nombreParte: string; nombreDocumento: string }): {
   subject: string;
   text: string;
   html: string;
 } {
   const subject = `Cancelado: ${input.nombreDocumento}`;
   const html = MARCO(
-    'Ya no hace falta firmar',
-    `<p style="margin:0 0 10px;font-size:14.5px;line-height:1.6;color:#635a80;">Estimado/a ${input.nombreFirmante}:</p>
+    'Ya no hace falta revisar este documento',
+    `<p style="${P}">Estimado/a ${esc(input.nombreParte)}:</p>
      <p style="margin:0;font-size:14.5px;line-height:1.6;color:#635a80;">
-       Quien le hizo llegar <strong style="color:#1a1330;">${input.nombreDocumento}</strong> canceló el proceso
-       de firma. El enlace que recibió ya no está activo y no se requiere ninguna acción de su parte.
+       Quien le hizo llegar <strong style="${FUERTE}">${esc(input.nombreDocumento)}</strong> canceló el proceso.
+       El enlace que recibió ya no está activo y no se requiere ninguna acción de su parte.
      </p>`,
   );
   const text = [
-    `Estimado/a ${input.nombreFirmante}:`,
+    `Estimado/a ${input.nombreParte}:`,
     '',
-    `Quien le hizo llegar "${input.nombreDocumento}" canceló el proceso de firma. El enlace ya no está activo y no se requiere ninguna acción de su parte.`,
+    `Quien le hizo llegar "${input.nombreDocumento}" canceló el proceso. El enlace ya no está activo y no se requiere ninguna acción de su parte.`,
   ].join('\n');
   return { subject, text, html };
 }

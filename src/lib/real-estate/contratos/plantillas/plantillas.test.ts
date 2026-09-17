@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bloquesATextoPlano, construirDocumento } from '../documento';
+import { construirDocumento, prepararDocumento } from '../documento';
 import { obtenerPlantilla, plantillaActual, plantillasVigentes } from './index';
 import {
   AVISO_MODULO,
@@ -8,7 +8,6 @@ import {
   CONTRATO_TIPOS,
   CONTRATO_TIPOS_LEGADO,
   MARCADOR_SIN_COMPLETAR,
-  NOTA_PIE_PDF,
   camposFaltantes,
   esTipoArchivado,
   type ContratoTipo,
@@ -81,19 +80,23 @@ function datosDe(tipo: ContratoTipo): Record<string, string> {
   return datos;
 }
 
-function documentoDe(tipo: ContratoTipo, extra: Record<string, string> = {}) {
-  return construirDocumento({
+function entradaDe(tipo: ContratoTipo, extra: Record<string, string> = {}) {
+  return {
     tipo,
     version: plantillaActual(tipo),
     datos: { ...datosDe(tipo), ...extra },
     agente: AGENTE,
     inmueble: INMUEBLE,
     fecha: new Date('2026-09-11T12:00:00Z'),
-  });
+  };
+}
+
+function documentoDe(tipo: ContratoTipo, extra: Record<string, string> = {}) {
+  return construirDocumento(entradaDe(tipo, extra));
 }
 
 function textoDe(tipo: ContratoTipo, extra: Record<string, string> = {}): string {
-  return bloquesATextoPlano(documentoDe(tipo, extra).bloques);
+  return prepararDocumento(entradaDe(tipo, extra)).texto;
 }
 
 function clausula(tipo: ContratoTipo, titulo: string, extra: Record<string, string> = {}): string {
@@ -115,7 +118,7 @@ describe('plantillas de contrato', () => {
       expect(doc.bloques.filter((b) => b.tipo === 'clausula').length, tipo).toBeGreaterThan(4);
       expect(doc.bloques.some((b) => b.tipo === 'titulo'), tipo).toBe(true);
       expect(doc.bloques.some((b) => b.tipo === 'firmas'), tipo).toBe(true);
-      expect(bloquesATextoPlano(doc.bloques).length, tipo).toBeGreaterThan(1500);
+      expect(textoDe(tipo).length, tipo).toBeGreaterThan(1500);
     }
   });
 
@@ -312,18 +315,19 @@ describe('plantillas de contrato', () => {
     });
   });
 
-  // El disclaimer informa en vez de advertir: las plantillas dejaron de ser
-  // redacción improvisada.
-  describe('disclaimer', () => {
-    it('el pie del PDF es una sola línea y no llama referencial al documento', () => {
-      expect(NOTA_PIE_PDF).toBe('Formato referencial. Redinmo no es parte del contrato.');
-      expect(NOTA_PIE_PDF.split('.').filter(Boolean)).toHaveLength(2);
+  // El contrato es del agente y de sus clientes: la plataforma no firma el
+  // documento con su marca, ni antes ni después de editarlo.
+  describe('sin marca de la plataforma', () => {
+    it('ningún documento, vivo o retirado, nombra a Redinmo', () => {
+      for (const tipo of CONTRATO_TIPOS) {
+        expect(textoDe(tipo).toLowerCase(), tipo).not.toContain('redinmo');
+      }
     });
 
-    it('la nota del módulo nombra la base documental y el límite del servicio', () => {
-      expect(AVISO_MODULO).toContain('formatos de uso común entre asociaciones de corredores de bienes raíces del Ecuador');
-      expect(AVISO_MODULO).toContain('Redinmo no presta servicios legales');
-      expect(AVISO_MODULO).toContain('revisa el documento con tu abogado');
+    it('la nota del módulo presenta los modelos como sugerencia y el documento como del agente', () => {
+      expect(AVISO_MODULO).toContain('modelos que la plataforma te sugiere');
+      expect(AVISO_MODULO).toContain('El documento es tuyo y de tus clientes');
+      expect(AVISO_MODULO).toContain('consúltalo con un abogado');
     });
 
     it('ninguna plantilla viva se marca como pendiente de revisión legal', () => {
@@ -336,7 +340,7 @@ describe('plantillas de contrato', () => {
 
   describe('versionado por tipo', () => {
     it('cada tipo vivo tiene su propia versión actual', () => {
-      expect(plantillaActual('CORRETAJE')).toBe('corretaje-v2-2026-09');
+      expect(plantillaActual('CORRETAJE')).toBe('corretaje-v3-2026-09');
       expect(plantillaActual('ARRENDAMIENTO')).toBe('arrendamiento-v3-2026-09');
     });
 
@@ -347,6 +351,12 @@ describe('plantillas de contrato', () => {
       expect(obtenerPlantilla('CORRETAJE_EXCLUSIVO', 'corretaje-exclusivo-v1-2026-09').version).toBe(
         'corretaje-exclusivo-v1-2026-09',
       );
+    });
+
+    it('la v2 del corretaje sigue registrada: nunca se edita ni se borra una versión publicada', () => {
+      expect(obtenerPlantilla('CORRETAJE', 'corretaje-v2-2026-09').version).toBe('corretaje-v2-2026-09');
+      expect(obtenerPlantilla('CORRETAJE', 'corretaje-v2-2026-09').admiteEdicion).toBe(false);
+      expect(obtenerPlantilla('CORRETAJE', 'corretaje-v3-2026-09').admiteEdicion).toBe(true);
     });
 
     it('una versión desconocida cae a la actual de su tipo en vez de reventar', () => {
@@ -375,7 +385,7 @@ describe('plantillas de contrato', () => {
       }
     });
 
-    it('un contrato sin elegirlas no se puede enviar a firma', () => {
+    it('un contrato sin elegirlas no se puede enviar para aprobación', () => {
       for (const [tipo, clave] of SIN_DEFAULT) {
         const etiqueta = CONTRATO_DEFINICION[tipo].secciones.flatMap((s) => s.campos).find((c) => c.clave === clave)!.etiqueta;
         expect(camposFaltantes(tipo, { ...datosDe(tipo), [clave]: '' }), `${tipo}.${clave}`).toContain(etiqueta);

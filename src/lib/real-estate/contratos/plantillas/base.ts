@@ -11,12 +11,29 @@
 // una version ya publicada. Se agregan helpers nuevos; no se editan los que
 // una version publicada esta usando.
 
+import type { IdentidadParte } from '../tipos';
+
 // Un bloque del documento. "clausula" numera automaticamente; el resto no.
+//
+// Desde las plantillas con editor de clausulas, una clausula lleva ademas:
+//   clave     identificador estable. Es lo que permite editarla, restaurarla y
+//             desactivarla aunque cambie su posicion.
+//   opcional  existe en el modelo pero el agente decide si va. activaPorDefecto
+//             en false para las que pueden no ser validas; nota explica por que.
+//
+// Y su texto admite dos marcas que se resuelven al numerar, despues de aplicar
+// lo que el agente activo o agrego:
+//   {{n}}         el numero de la propia clausula, para subnumerar: "{{n}}.1."
+//   {{ref:clave}} el ordinal de otra clausula: "la cláusula {{ref:plazo}}"
+// Asi una clausula opcional que se activa no deja referencias apuntando a la
+// clausula equivocada.
+export type OpcionClausula = { activaPorDefecto: boolean; nota?: string };
+
 export type BloqueDocumento =
   | { tipo: 'titulo'; texto: string }
   | { tipo: 'subtitulo'; texto: string }
   | { tipo: 'parrafo'; texto: string }
-  | { tipo: 'clausula'; titulo: string; texto: string }
+  | { tipo: 'clausula'; titulo: string; texto: string; clave?: string; opcional?: OpcionClausula }
   | { tipo: 'aviso'; texto: string }
   // Tabla de dos columnas para la ficha resumen de la negociacion: lo que
   // alguien quiere ver de un vistazo antes de leer las clausulas.
@@ -40,6 +57,9 @@ export type DatosDocumento = {
   // Etiqueta legible de un campo de opcion.
   opcion: (clave: string) => string;
   lista: (clave: string) => string[];
+  // Identidad de una parte (persona o compañía con su representante). Para el
+  // rol del agente usa los datos del perfil.
+  parte: (rol: string) => IdentidadParte;
 };
 
 // Las etiquetas de opcion empiezan con articulo ('El comprador'), y al
@@ -193,4 +213,31 @@ export function enMediaFrase(texto: string): string {
 export function opcional(valor: string, marcador = '[ POR COMPLETAR ]'): string {
   const limpio = valor.trim();
   return limpio.length > 0 ? limpio : marcador;
+}
+
+// ---------------------------------------------------------------------------
+// Fragmentos de las plantillas con editor de clausulas.
+// ---------------------------------------------------------------------------
+
+// Comparecencia de una parte, sea persona natural o compania. "denominacion" es
+// el nombre con el que el resto del contrato se refiere a ella. "calificacion"
+// se inserta tras el documento de identidad (la licencia del corredor, por
+// ejemplo). Lo que falte sale marcado, nunca en blanco.
+export function comparecenciaParte(d: DatosDocumento, rol: string, denominacion: string, calificacion = ''): string {
+  const p = d.parte(rol);
+  const contacto = [
+    `con domicilio en ${opcional(p.domicilio)}`,
+    p.correo ? `correo electrónico ${p.correo}` : null,
+    p.telefono ? `teléfono ${p.telefono}` : null,
+  ]
+    .filter(Boolean)
+    .join(', ');
+  const extra = calificacion ? `, ${calificacion}` : '';
+  if (p.juridica && p.representante) {
+    return `la compañía ${opcional(p.nombre)}, con RUC N.º ${opcional(p.documento)}, debidamente representada por ${opcional(
+      p.representante.nombre,
+    )}, portador de la cédula N.º ${opcional(p.representante.cedula)}, en su calidad de representante legal${extra}, ${contacto}, a quien en adelante se denominará "${denominacion}"`;
+  }
+  const documento = p.tipoDocumento === 'pasaporte' ? 'el pasaporte' : 'la cédula';
+  return `${opcional(p.nombre)}, portador de ${documento} N.º ${opcional(p.documento)}${extra}, ${contacto}, a quien en adelante se denominará "${denominacion}"`;
 }

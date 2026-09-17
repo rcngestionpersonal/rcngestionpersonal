@@ -1,5 +1,27 @@
 import { obtenerPlantilla, type BloqueDocumento, type DatosDocumento } from './plantillas';
-import { CONTRATO_DEFINICION, type ContratoTipo } from './tipos';
+import {
+  aplicarEdicion,
+  clausulasParaEditor,
+  documentoFinal,
+  edicionVacia,
+  leerEdicion,
+  textoPlano,
+  type BloqueFinal,
+  type ClausulaEditable,
+  type EstiloNumeracion,
+  type LineaFirma,
+} from './clausulas';
+import {
+  CONTRATO_DEFINICION,
+  PARTES_POR_TIPO,
+  esTipoArchivado,
+  identidadAgente,
+  identidadParte,
+  type ContratoTipo,
+  type IdentidadParte,
+} from './tipos';
+
+export { romano } from './clausulas';
 
 // Ensambla el documento: toma los datos crudos del formulario y produce los
 // bloques que la plantilla define. Aca vive la traduccion de "valores de
@@ -101,14 +123,32 @@ function etiquetaDeOpcion(tipo: ContratoTipo, clave: string, valor: string): str
   return valor;
 }
 
-export function construirDocumento(input: {
+export type EntradaDocumento = {
   tipo: ContratoTipo;
   version: string;
   datos: Record<string, string>;
   agente: DatosAgenteDocumento;
   inmueble: DatosInmuebleDocumento;
   fecha: Date;
-}): { bloques: BloqueDocumento[]; version: string; revisadaPorAbogado: boolean; avisoSinRevisar: string } {
+};
+
+function identidadDe(input: EntradaDocumento, rol: string): IdentidadParte {
+  const esAgente = PARTES_POR_TIPO[input.tipo]?.find((p) => p.rol === rol)?.esAgente;
+  return esAgente
+    ? identidadAgente(input.tipo, input.datos, rol, input.agente)
+    : identidadParte(input.tipo, input.datos, rol);
+}
+
+// Los bloques tal como los escribe la plantilla, antes de las ediciones del
+// agente y de numerar.
+export function construirDocumento(input: EntradaDocumento): {
+  bloques: BloqueDocumento[];
+  version: string;
+  revisadaPorAbogado: boolean;
+  avisoSinRevisar: string;
+  estilo: EstiloNumeracion;
+  admiteEdicion: boolean;
+} {
   const plantilla = obtenerPlantilla(input.tipo, input.version);
 
   const contexto: DatosDocumento = {
@@ -136,6 +176,7 @@ export function construirDocumento(input: {
         .map((v) => v.trim())
         .filter(Boolean)
         .map((v) => etiquetaDeOpcion(input.tipo, clave, v)),
+    parte: (rol) => identidadDe(input, rol),
   };
 
   return {
@@ -143,42 +184,62 @@ export function construirDocumento(input: {
     version: plantilla.version,
     revisadaPorAbogado: plantilla.revisadaPorAbogado,
     avisoSinRevisar: plantilla.avisoSinRevisar,
+    estilo: plantilla.estilo,
+    admiteEdicion: plantilla.admiteEdicion,
   };
 }
 
-// Texto plano del documento completo. Se usa para calcular el hash SHA-256 y
-// para la version de texto de los correos.
-export function bloquesATextoPlano(bloques: BloqueDocumento[]): string {
-  let numero = 0;
-  const partes: string[] = [];
-  for (const bloque of bloques) {
-    if (bloque.tipo === 'titulo' || bloque.tipo === 'subtitulo') partes.push(bloque.texto.toUpperCase());
-    else if (bloque.tipo === 'parrafo' || bloque.tipo === 'aviso') partes.push(bloque.texto);
-    else if (bloque.tipo === 'ficha') {
-      // La ficha entra al texto plano porque el hash SHA-256 se calcula sobre
-      // el documento completo: si el precio de la ficha cambiara y el hash no,
-      // la constancia dejaria de probar lo que las partes leyeron.
-      partes.push(`${bloque.titulo.toUpperCase()}\n${bloque.filas.map((f) => `${f.etiqueta}: ${f.valor}`).join('\n')}`);
-    } else if (bloque.tipo === 'clausula') {
-      numero += 1;
-      partes.push(`${romano(numero)}. ${bloque.titulo}\n${bloque.texto}`);
-    }
-  }
-  return partes.join('\n\n');
+// Líneas de firma manuscrita, en el orden en que comparecen las partes. En una
+// compañía firma su representante, por ella.
+export function lineasDeFirma(input: EntradaDocumento): LineaFirma[] {
+  return (PARTES_POR_TIPO[input.tipo] ?? []).map((definicion) => {
+    const p = identidadDe(input, definicion.rol);
+    const pasaporte = p.tipoDocumento === 'pasaporte';
+    return {
+      calidad: definicion.etiqueta.toUpperCase(),
+      nombre: p.aprobador.nombre || '—',
+      documento: p.aprobador.cedula || '—',
+      tipoDocumento: pasaporte ? 'Pasaporte' : 'C.I.',
+      enRepresentacionDe: p.juridica ? { razonSocial: p.nombre || '—', ruc: p.documento || '—' } : null,
+    };
+  });
 }
 
-export function romano(n: number): string {
-  const tabla: Array<[number, string]> = [
-    [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'],
-    [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
-  ];
-  let resto = n;
-  let salida = '';
-  for (const [valor, simbolo] of tabla) {
-    while (resto >= valor) {
-      salida += simbolo;
-      resto -= valor;
-    }
-  }
-  return salida;
+export type DocumentoPreparado = {
+  bloques: BloqueFinal[];
+  // Todas las cláusulas, activas o no, para el editor.
+  clausulas: ClausulaEditable[];
+  texto: string;
+  nombreDocumento: string;
+  version: string;
+  revisadaPorAbogado: boolean;
+  avisoSinRevisar: string;
+  admiteEdicion: boolean;
+};
+
+// El documento completo, tal como se lee y se imprime: la plantilla con las
+// ediciones del agente aplicadas, numerado y con sus líneas de firma. Es lo
+// que se congela al enviar cada versión.
+//
+// "firmas" permite a los contratos del flujo retirado imprimir sus firmantes y
+// su leyenda de firma electrónica tal como fueron.
+export function prepararDocumento(
+  input: EntradaDocumento,
+  firmas?: { leyenda: string | null; partes: LineaFirma[] },
+): DocumentoPreparado {
+  const base = construirDocumento(input);
+  // Un tipo archivado nunca aplica ediciones: se reimprime como se generó.
+  const edicion = base.admiteEdicion && !esTipoArchivado(input.tipo) ? leerEdicion(input.datos) : edicionVacia();
+  const items = aplicarEdicion(base.bloques, edicion);
+  const bloques = documentoFinal(items, base.estilo, firmas ?? { leyenda: null, partes: lineasDeFirma(input) });
+  return {
+    bloques,
+    clausulas: clausulasParaEditor(items, base.estilo),
+    texto: textoPlano(bloques),
+    nombreDocumento: CONTRATO_DEFINICION[input.tipo].nombreDocumento,
+    version: base.version,
+    revisadaPorAbogado: base.revisadaPorAbogado,
+    avisoSinRevisar: base.avisoSinRevisar,
+    admiteEdicion: base.admiteEdicion && !esTipoArchivado(input.tipo),
+  };
 }

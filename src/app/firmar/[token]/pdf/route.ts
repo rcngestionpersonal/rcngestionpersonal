@@ -1,35 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { hashToken } from '@/lib/real-estate/contratos/firma';
-import { construirPdf, nombreArchivoContrato } from '@/lib/real-estate/contratos/servidor';
+import { hashToken } from '@/lib/real-estate/contratos/aprobacion';
+import { contratoDelAgente, nombreArchivoContrato, pdfDeFirmaLegado } from '@/lib/real-estate/contratos/servidor';
 import type { ContratoTipo } from '@/lib/real-estate/contratos/tipos';
+import { prisma } from '@/lib/prisma';
 
-// PDF del documento para el firmante (punto 3.4: "descargar borrador en PDF"
-// antes de firmar, y descarga del final cuando ya firmo). El token es la
-// credencial: quien tiene el enlace puede ver SU documento y ningun otro.
+// Copia del documento para quien firmó durante la etapa de firma electrónica,
+// retirada el 2026-09-16. Solo para quien firmó: el resto de estos enlaces ya
+// no abre nada.
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-
-  const firmante = await prisma.contratoFirmante.findUnique({
+  const parte = await prisma.contratoParte.findUnique({
     where: { tokenHash: hashToken(token) },
-    include: { contrato: { include: { firmantes: true } } },
+    select: { versionId: true, estado: true, contratoId: true, contrato: { select: { agentId: true, estado: true } } },
   });
-  if (!firmante) return NextResponse.json({ error: 'Enlace no válido.' }, { status: 404 });
-
-  const contrato = firmante.contrato;
-  if (contrato.estado === 'ANULADO') {
-    return NextResponse.json({ error: 'Este documento fue cancelado.' }, { status: 409 });
-  }
-  // Un enlace vencido deja de servir tambien para descargar, salvo que la
-  // persona ya haya firmado: en ese caso tiene derecho a su copia.
-  if (firmante.expiraAt.getTime() < Date.now() && firmante.estado !== 'FIRMADO') {
-    return NextResponse.json({ error: 'El enlace venció.' }, { status: 410 });
+  if (!parte || parte.versionId) return NextResponse.json({ error: 'Enlace no válido.' }, { status: 404 });
+  if (parte.estado !== 'FIRMADO' || parte.contrato.estado === 'ANULADO') {
+    return NextResponse.json({ error: 'Este enlace ya no da acceso al documento.' }, { status: 410 });
   }
 
-  const { buffer } = await construirPdf(contrato);
+  const contrato = await contratoDelAgente(parte.contratoId, parte.contrato.agentId);
+  if (!contrato) return NextResponse.json({ error: 'Enlace no válido.' }, { status: 404 });
+
+  const buffer = await pdfDeFirmaLegado(contrato);
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       'Content-Type': 'application/pdf',

@@ -9,9 +9,10 @@ el código no se lee el día que hace falta.
 
 | Dónde | Qué |
 |---|---|
-| `Contrato.datosCifrados` | Todos los campos del formulario: nombres, cédulas, direcciones y teléfonos de las partes |
-| `ContratoFirmante.cedulaCifrada` | La cédula completa de cada firmante |
-| `ContratoFirmante.evidenciaCifrada` | El registro probatorio de cada firma: IP, navegador, si desplazó el documento |
+| `Contrato.datosCifrados` | Copia de trabajo: todos los campos del formulario (nombres, cédulas, direcciones y teléfonos de las partes) y las ediciones de cláusulas |
+| `ContratoVersion.documentoCifrado` | El texto completo de cada versión tal como se envió para aprobación |
+| `ContratoFirmante.cedulaCifrada` | La cédula completa de cada parte que aprueba (o que firmó, en la etapa de firma electrónica) |
+| `ContratoFirmante.evidenciaCifrada` | El registro de cada aprobación o firma: IP, navegador, si desplazó el documento, huella de la versión |
 | `PaymentMethod` | El ctoken de Payphone del medio de pago guardado |
 | `ReporteVisita` | Nombre, cédula y acompañantes de cada visitante |
 | `ReporteVisitaFoto.datosCifrados` | La foto del visitante, en bytes. No existe copia en Vercel Blob ni ninguna URL pública |

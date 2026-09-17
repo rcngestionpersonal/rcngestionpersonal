@@ -7,7 +7,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: '¿Necesitas que un abogado lo revise? | Redinmo.io',
   description:
-    'Cuándo conviene que un profesional del derecho revise un contrato inmobiliario antes de firmarlo, y qué preguntarle.',
+    'Cuándo conviene que un profesional del derecho revise un contrato inmobiliario antes de enviarlo o de firmarlo, y qué preguntarle.',
 };
 
 const CUANDO_SI = [
@@ -90,8 +90,8 @@ export default function RevisionAbogadoPage() {
             ))}
           </ul>
           <p className="mt-4 text-[13.5px] leading-relaxed text-text-2">
-            Descarga el borrador en PDF desde el módulo de contratos y envíaselo tal cual. Es el mismo texto que van a leer las
-            partes cuando les llegue el enlace de firma.
+            Descarga el borrador en PDF o en Word desde el módulo de contratos y envíaselo tal cual. Es el mismo texto que van a
+            leer las partes cuando les llegue el enlace para aprobarlo.
           </p>
         </section>
 

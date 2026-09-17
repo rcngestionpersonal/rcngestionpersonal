@@ -11,14 +11,14 @@ import {
   generarToken,
   hashToken,
   ultimos4,
-} from './firma';
-import { FIRMA_VIGENCIA_DIAS } from './tipos';
+} from './aprobacion';
+import { APROBACION_VIGENCIA_DIAS } from './tipos';
 
-// La firma remota es la parte del módulo donde un error se paga caro: un token
-// adivinable o una comparación floja de la cédula convertirían la "constancia
-// probatoria" en un adorno. Estas pruebas cubren esos puntos.
+// La aprobación remota es la parte del módulo donde un error se paga caro: un
+// token adivinable o una comparación floja de la cédula convertirían la
+// constancia de quién aprobó qué en un adorno. Estas pruebas cubren esos puntos.
 
-describe('contratos: tokens de firma', () => {
+describe('contratos: tokens de los enlaces de revisión', () => {
   it('genera tokens largos e impredecibles, y nunca dos iguales', () => {
     const vistos = new Set<string>();
     for (let i = 0; i < 500; i += 1) {
@@ -43,7 +43,7 @@ describe('contratos: tokens de firma', () => {
     const desde = new Date('2026-09-01T12:00:00Z');
     const expira = fechaExpiracion(desde);
     const dias = (expira.getTime() - desde.getTime()) / (24 * 60 * 60 * 1000);
-    expect(dias).toBe(FIRMA_VIGENCIA_DIAS);
+    expect(dias).toBe(APROBACION_VIGENCIA_DIAS);
   });
 
   it('el código público no usa caracteres que se confundan al dictarlo', () => {
@@ -56,7 +56,7 @@ describe('contratos: tokens de firma', () => {
   });
 });
 
-describe('contratos: verificación de identidad del firmante', () => {
+describe('contratos: verificación de identidad de quien aprueba', () => {
   it('acepta solo los últimos 4 dígitos correctos', () => {
     expect(coincidenUltimos4('5432', '5432')).toBe(true);
     expect(coincidenUltimos4('0000', '5432')).toBe(false);
@@ -101,15 +101,15 @@ describe('contratos: cifrado en reposo', () => {
     expect(descifrarDatos(cifrado)).toEqual(datos);
   });
 
-  it('el registro probatorio también va cifrado y vuelve completo', () => {
+  it('el registro de cada aprobación también va cifrado y vuelve completo', () => {
     const evidencia = {
       ip: '190.12.44.7',
       userAgent: 'Safari en iOS',
       leyoCompleto: true,
-      hashDocumento: 'a'.repeat(64),
-      aceptoLectura: true,
-      aceptoValorFirma: true,
       zonaHoraria: 'America/Guayaquil',
+      numeroVersion: 2,
+      huella: 'a'.repeat(64),
+      declaracion: 'He leído íntegramente esta versión del documento y estoy de acuerdo con su contenido.',
     };
     const cifrada = cifrarEvidencia(evidencia);
     expect(cifrada).not.toContain('190.12.44.7');

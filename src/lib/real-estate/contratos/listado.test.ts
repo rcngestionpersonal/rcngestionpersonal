@@ -12,7 +12,7 @@ function contrato(extra: Partial<ContratoFila> = {}): ContratoFila {
     tipo: 'CORRETAJE',
     estado: 'BORRADOR',
     codigoVerificacion: 'ABCDE-FGHJK',
-    firmantes: [],
+    partes: [],
     ...extra,
   };
 }
@@ -65,10 +65,10 @@ describe('filas del listado de contratos', () => {
 
   it('la fila degradada trae todos los campos que la pantalla lee', () => {
     const [fila] = filasTolerantes([undefined], () => {});
-    for (const clave of ['id', 'tipo', 'estado', 'codigoVerificacion', 'createdAt', 'firmantes', 'tipoEtiqueta']) {
+    for (const clave of ['id', 'tipo', 'estado', 'codigoVerificacion', 'versionActual', 'createdAt', 'partes', 'tipoEtiqueta']) {
       expect(fila[clave], clave).toBeDefined();
     }
-    expect(Array.isArray(fila.firmantes)).toBe(true);
+    expect(Array.isArray(fila.partes)).toBe(true);
     expect(fila.ilegible).toBe(true);
   });
 
@@ -79,6 +79,14 @@ describe('filas del listado de contratos', () => {
     const [, error] = avisar.mock.calls[0];
     expect(error).toBeInstanceOf(Error);
     expect((error as Error).message).toContain('identificador');
+  });
+
+  it('marca los contratos de la etapa de firma electrónica, y solo esos', () => {
+    const filas = filasTolerantes(
+      [contrato({ estado: 'FIRMADO' }), contrato({ estado: 'PENDIENTE_FIRMA' }), contrato({ estado: 'APROBADO' }), contrato({ estado: 'EN_APROBACION' })],
+      () => {},
+    );
+    expect(filas.map((f) => f.deFirma)).toEqual([true, true, false, false]);
   });
 
   it('una lista vacía es una lista vacía, no un fallo', () => {

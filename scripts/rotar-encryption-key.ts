@@ -70,6 +70,8 @@ const COLUMNAS: Array<{ tabla: string; columna: string; obligatoria: boolean; by
   { tabla: 'Contrato', columna: 'datosCifrados', obligatoria: true },
   { tabla: 'ContratoFirmante', columna: 'cedulaCifrada', obligatoria: true },
   { tabla: 'ContratoFirmante', columna: 'evidenciaCifrada', obligatoria: false },
+  // Documento congelado de cada version enviada para aprobacion.
+  { tabla: 'ContratoVersion', columna: 'documentoCifrado', obligatoria: false },
   { tabla: 'PaymentMethod', columna: 'cardTokenEnc', obligatoria: false },
   // Reportes a clientes (Fase 9): datos del visitante y su foto.
   { tabla: 'ReporteVisita', columna: 'visitanteNombreCifrado', obligatoria: false },

@@ -22,9 +22,13 @@ function isPublicPath(pathname: string): boolean {
   // que devuelve la configuracion y las metricas del agente y debe seguir
   // exigiendo sesion.
   if (/^\/api\/real-estate\/mini-sitio\/[^/]+\/(lead|visita)$/.test(pathname)) return true;
-  // Firma de contratos: la persona que firma NO tiene cuenta. Su credencial
-  // es el token del enlace que le llego por correo, que cada ruta valida por
-  // su cuenta contra el hash guardado.
+  // Aprobacion de borradores: la parte que revisa NO tiene cuenta. Su
+  // credencial es el token del enlace que le llego por correo, que cada ruta
+  // valida por su cuenta contra el hash guardado. /firmar y /api/firma son los
+  // enlaces de la firma electronica retirada: siguen respondiendo para
+  // explicar que paso.
+  if (pathname.startsWith('/aprobar/')) return true;
+  if (pathname.startsWith('/api/aprobacion/')) return true;
   if (pathname.startsWith('/firmar/')) return true;
   if (pathname.startsWith('/api/firma/')) return true;
   // Verificacion publica de un documento: solo existencia y estado, nunca
@@ -94,7 +98,7 @@ export async function middleware(request: NextRequest) {
       // Cartas de presentacion (Fase 4): crear, editar, regenerar un parrafo,
       // duplicar, borrar y enviar son todas acciones del propio agente.
       pathname.startsWith('/api/real-estate/cartas') ||
-      // Contratos: crear, editar, enviar a firma, reenviar y anular son todas
+      // Contratos: crear, editar, enviar para aprobacion, reenviar y anular son todas
       // acciones del propio agente sobre sus documentos.
       pathname.startsWith('/api/real-estate/contratos') ||
       // Reportes a clientes (Fase 9): registrar visitas, generar reportes de

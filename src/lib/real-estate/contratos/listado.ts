@@ -1,4 +1,4 @@
-import { CONTRATO_DEFINICION, esTipoArchivado, type ContratoTipo } from './tipos';
+import { CONTRATO_DEFINICION, esEstadoDeFirmaLegado, esTipoArchivado, type ContratoTipo } from './tipos';
 
 // Preparación de las filas del listado para la pantalla del agente.
 //
@@ -20,6 +20,7 @@ export type FilaListado = Record<string, unknown> & {
   tipoConocido: boolean;
   ilegible?: boolean;
   archivado?: boolean;
+  deFirma?: boolean;
 };
 
 function filaDeContrato(contrato: ContratoFila): FilaListado {
@@ -34,8 +35,10 @@ function filaDeContrato(contrato: ContratoFila): FilaListado {
     tipoEtiqueta: definicion?.titulo ?? 'Documento',
     tipoConocido: Boolean(definicion),
     // Un tipo retirado se sigue abriendo y descargando, pero no se edita ni se
-    // envia a firma: la pantalla oculta esas acciones a partir de aqui.
+    // envia: la pantalla oculta esas acciones a partir de aqui.
     archivado: esTipoArchivado(contrato.tipo),
+    // Contrato de la etapa de firma electronica, que la plataforma ya no ofrece.
+    deFirma: esEstadoDeFirmaLegado(String(contrato.estado ?? '')),
   };
 }
 
@@ -49,12 +52,14 @@ function filaDegradada(contrato: Partial<ContratoFila> | null | undefined, indic
     estado: 'BORRADOR',
     listingId: null,
     codigoVerificacion: '—',
+    versionActual: 0,
     createdAt: new Date(0).toISOString(),
     enviadoAt: null,
+    aprobadoAt: null,
     firmadoAt: null,
     anuladoAt: null,
     anuladoNota: null,
-    firmantes: [],
+    partes: [],
     tipoEtiqueta: 'Documento',
     tipoConocido: false,
     ilegible: true,

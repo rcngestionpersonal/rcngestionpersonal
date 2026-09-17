@@ -4,8 +4,8 @@ import type { Metadata } from 'next';
 //
 // Es material de APOYO COMERCIAL, no legal. No explica derecho: explica cómo
 // hablar. Existe porque un agente que no sabe cómo presentar el documento
-// termina disculpándose por él, y un contrato presentado con disculpas se firma
-// peor que uno presentado con seguridad.
+// termina disculpándose por él, y un contrato presentado con disculpas se
+// negocia peor que uno presentado con seguridad.
 //
 // Por eso aquí no hay advertencias. La orientación sobre cuándo conviene un
 // abogado vive en /legal/revision-abogado, que es otra conversación.
@@ -23,12 +23,12 @@ const PREGUNTAS = [
   {
     pregunta: '"¿No debería verlo un abogado?"',
     respuesta:
-      'Puedes hacerlo y me parece bien. Te paso el PDF ahora mismo para que se lo envíes. No hay prisa por firmar hoy.',
+      'Puedes hacerlo y me parece bien. Te paso el PDF ahora mismo para que se lo envíes. No hay prisa: lo que aprobemos hoy se firma después, en persona.',
   },
   {
-    pregunta: '"¿Firmar por internet vale igual?"',
+    pregunta: '"¿Aprobarlo en el celular es firmarlo?"',
     respuesta:
-      'Sí. La ley ecuatoriana reconoce la firma electrónica, y el documento queda con la constancia de quién firmó, cuándo y desde dónde. Es más rastreable que una firma en papel.',
+      'No. Aprobar deja constancia de que revisaste esta versión y estás de acuerdo con el texto. El contrato se firma personalmente y, si corresponde, en la notaría. Lo que ganamos es que llegamos a firmar con el texto ya acordado y con el registro de qué aprobó cada uno.',
   },
   {
     pregunta: '"¿Y si me arrepiento?"',
@@ -36,9 +36,9 @@ const PREGUNTAS = [
       'Está previsto en el documento. Léelo conmigo, es la cláusula que dice qué pasa si alguna de las partes se retira. La escribimos así justamente para que nadie tenga que averiguarlo después.',
   },
   {
-    pregunta: '"¿Por qué necesito firmar esto ahora?"',
+    pregunta: '"¿Y si quiero cambiar algo?"',
     respuesta:
-      'Porque lo que acordamos de palabra no obliga a nadie. Esto deja por escrito el precio, el plazo y las condiciones, y te protege a ti tanto como a la otra parte.',
+      'Me lo indicas al revisarlo, sin aprobarlo, y te envío una versión nueva con el cambio. Cada versión queda registrada, así que nadie tiene que acordarse de qué se habló por mensajes.',
   },
 ];
 
@@ -49,9 +49,9 @@ const REGLAS = [
       'La diferencia está en la primera frase. "Este es el modelo que usamos" transmite oficio. "Es un formato nomás, pero…" transmite que ni tú confías en él.',
   },
   {
-    titulo: 'Manda el PDF antes de pedir la firma',
+    titulo: 'Envíalo para aprobación antes de citar a firmar',
     detalle:
-      'Que lo lea sin sentir que decide en el momento. Quien firma con calma reclama menos después, y tú te ahorras la conversación incómoda.',
+      'Que lo lea sin sentir que decide en el momento. Quien revisa con calma reclama menos después, y a la notaría se llega con el texto ya acordado y no con una discusión pendiente.',
   },
   {
     titulo: 'Léele las tres cláusulas que importan',
@@ -61,7 +61,7 @@ const REGLAS = [
   {
     titulo: 'Si pide cambios, no mientas ni improvises',
     detalle:
-      'Puedes ajustar las condiciones que el formulario contempla. Lo que no está en el formulario no se cambia sobre la marcha: ahí sí corresponde un abogado, y decirlo con naturalidad suma credibilidad.',
+      'Ajusta los datos o la cláusula que corresponda y envía la versión siguiente: el cambio queda registrado. Si lo que pide va más allá de ajustar una condición —una renuncia de derechos, una garantía especial—, ahí sí corresponde un abogado, y decirlo con naturalidad suma credibilidad.',
   },
 ];
 

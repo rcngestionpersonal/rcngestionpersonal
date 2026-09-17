@@ -14,7 +14,9 @@ import * as corretajeExclusivoV1 from './corretaje-exclusivo-v1';
 import * as corretajeAbiertoV1 from './corretaje-abierto-v1';
 import * as arrendamientoV3 from './arrendamiento-v3';
 import * as corretajeV2 from './corretaje-v2';
+import * as corretajeV3 from './corretaje-v3';
 import type { ContratoTipo } from '../tipos';
+import type { EstiloNumeracion } from '../clausulas';
 import type { BloqueDocumento, DatosDocumento } from './base';
 
 export type { BloqueDocumento, DatosDocumento };
@@ -23,20 +25,30 @@ export type Plantilla = {
   version: string;
   revisadaPorAbogado: boolean;
   avisoSinRevisar: string;
+  // Cómo se encabezan sus cláusulas. Las publicadas antes del editor siguen en
+  // romanos: así se imprimieron.
+  estilo: EstiloNumeracion;
+  // Sus cláusulas tienen clave y admiten el editor. Las anteriores no.
+  admiteEdicion: boolean;
   construirBloques: (tipo: ContratoTipo, datos: DatosDocumento) => BloqueDocumento[];
 };
 
 // Adaptador para las plantillas de un solo documento, que ya no reciben el tipo.
-function deUnTipo(modulo: {
-  PLANTILLA_VERSION: string;
-  PLANTILLA_REVISADA_POR_ABOGADO: boolean;
-  AVISO_PLANTILLA_SIN_REVISAR: string;
-  construirBloques: (d: DatosDocumento) => BloqueDocumento[];
-}): Plantilla {
+function deUnTipo(
+  modulo: {
+    PLANTILLA_VERSION: string;
+    PLANTILLA_REVISADA_POR_ABOGADO: boolean;
+    AVISO_PLANTILLA_SIN_REVISAR: string;
+    construirBloques: (d: DatosDocumento) => BloqueDocumento[];
+  },
+  conEditor = false,
+): Plantilla {
   return {
     version: modulo.PLANTILLA_VERSION,
     revisadaPorAbogado: modulo.PLANTILLA_REVISADA_POR_ABOGADO,
     avisoSinRevisar: modulo.AVISO_PLANTILLA_SIN_REVISAR,
+    estilo: conEditor ? 'ordinal' : 'romano',
+    admiteEdicion: conEditor,
     construirBloques: (_tipo, datos) => modulo.construirBloques(datos),
   };
 }
@@ -47,6 +59,8 @@ const V1_GLOBAL: Plantilla = {
   version: v1.PLANTILLA_VERSION,
   revisadaPorAbogado: v1.PLANTILLA_REVISADA_POR_ABOGADO,
   avisoSinRevisar: v1.AVISO_PLANTILLA_SIN_REVISAR,
+  estilo: 'romano',
+  admiteEdicion: false,
   construirBloques: v1.construirBloques,
 };
 
@@ -54,10 +68,11 @@ type LineaDeVersiones = { actual: string; versiones: Record<string, Plantilla> }
 
 const REGISTRO: Record<ContratoTipo, LineaDeVersiones> = {
   CORRETAJE: {
-    actual: corretajeV2.PLANTILLA_VERSION,
+    actual: corretajeV3.PLANTILLA_VERSION,
     versiones: {
       [v1.PLANTILLA_VERSION]: V1_GLOBAL,
       [corretajeV2.PLANTILLA_VERSION]: deUnTipo(corretajeV2),
+      [corretajeV3.PLANTILLA_VERSION]: deUnTipo(corretajeV3, true),
     },
   },
   // --- RETIRADOS: solo lectura, se conservan para reimprimir ---
