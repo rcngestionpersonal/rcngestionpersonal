@@ -107,8 +107,15 @@ function clausula(tipo: ContratoTipo, titulo: string, extra: Record<string, stri
 const VIVOS = CONTRATO_MENU.map((e) => e.tipo);
 
 describe('plantillas de contrato', () => {
-  it('se generan el corretaje y los tres arrendamientos', () => {
-    expect(VIVOS).toEqual(['CORRETAJE', 'ARRENDAMIENTO_RESIDENCIAL', 'ARRENDAMIENTO_COMERCIAL', 'ARRENDAMIENTO_INDUSTRIAL']);
+  it('se generan el corretaje, las dos reservas y los tres arrendamientos', () => {
+    expect(VIVOS).toEqual([
+      'CORRETAJE',
+      'RESERVA_COMPRAVENTA',
+      'ARRENDAMIENTO_RESIDENCIAL',
+      'ARRENDAMIENTO_COMERCIAL',
+      'ARRENDAMIENTO_INDUSTRIAL',
+      'RESERVA_ARRIENDO',
+    ]);
     for (const tipo of VIVOS) expect(esTipoArchivado(tipo), tipo).toBe(false);
   });
 
@@ -147,16 +154,25 @@ describe('plantillas de contrato', () => {
       }
     });
 
-    it('la reserva ya no se puede generar, pero una archivada se reimprime', () => {
+    it('las reservas volvieron con la v3, y una de la primera etapa se sigue reimprimiendo con la v1', () => {
       for (const tipo of ['RESERVA_COMPRAVENTA', 'RESERVA_ARRIENDO'] as const) {
-        expect(VIVOS).not.toContain(tipo);
+        expect(VIVOS).toContain(tipo);
+        expect(esTipoArchivado(tipo), tipo).toBe(false);
+        expect(plantillaActual(tipo), tipo).toMatch(/-v3-2026-09$/);
         expect(obtenerPlantilla(tipo, 'v1-2026-09').version).toBe('v1-2026-09');
       }
     });
 
     it('no se listan como plantillas vigentes del módulo', () => {
       const ofrecidas = plantillasVigentes().filter((p) => !CONTRATO_TIPOS_LEGADO.includes(p.tipo));
-      expect(ofrecidas.map((p) => p.tipo).sort()).toEqual(['ARRENDAMIENTO_COMERCIAL', 'ARRENDAMIENTO_INDUSTRIAL', 'ARRENDAMIENTO_RESIDENCIAL', 'CORRETAJE']);
+      expect(ofrecidas.map((p) => p.tipo).sort()).toEqual([
+        'ARRENDAMIENTO_COMERCIAL',
+        'ARRENDAMIENTO_INDUSTRIAL',
+        'ARRENDAMIENTO_RESIDENCIAL',
+        'CORRETAJE',
+        'RESERVA_ARRIENDO',
+        'RESERVA_COMPRAVENTA',
+      ]);
     });
   });
 
@@ -330,8 +346,20 @@ describe('plantillas de contrato', () => {
       expect(AVISO_MODULO).toContain('consúltalo con un abogado');
     });
 
-    it('ninguna plantilla viva se marca como pendiente de revisión legal', () => {
-      for (const tipo of VIVOS) {
+    // Las reservas volvieron con el mismo estado que tenían al retirarse:
+    // pendientes de revisión legal, con el aviso arriba del documento.
+    const PENDIENTES_DE_REVISION: ContratoTipo[] = ['RESERVA_COMPRAVENTA', 'RESERVA_ARRIENDO'];
+
+    it('las reservas siguen marcadas como pendientes de revisión legal', () => {
+      for (const tipo of PENDIENTES_DE_REVISION) {
+        const plantilla = obtenerPlantilla(tipo, plantillaActual(tipo));
+        expect(plantilla.revisadaPorAbogado, tipo).toBe(false);
+        expect(plantilla.avisoSinRevisar, tipo).toContain('PLANTILLA EN REVISIÓN');
+      }
+    });
+
+    it('ninguna otra plantilla viva se marca como pendiente de revisión legal', () => {
+      for (const tipo of VIVOS.filter((t) => !PENDIENTES_DE_REVISION.includes(t))) {
         expect(obtenerPlantilla(tipo, plantillaActual(tipo)).revisadaPorAbogado, tipo).toBe(true);
         expect(documentoDe(tipo).bloques.some((b) => b.tipo === 'aviso'), tipo).toBe(false);
       }
@@ -344,6 +372,8 @@ describe('plantillas de contrato', () => {
       expect(plantillaActual('ARRENDAMIENTO_RESIDENCIAL')).toBe('arrendamiento-residencial-v1-2026-09');
       expect(plantillaActual('ARRENDAMIENTO_COMERCIAL')).toBe('arrendamiento-comercial-v1-2026-09');
       expect(plantillaActual('ARRENDAMIENTO_INDUSTRIAL')).toBe('arrendamiento-industrial-v1-2026-09');
+      expect(plantillaActual('RESERVA_COMPRAVENTA')).toBe('reserva-compraventa-v3-2026-09');
+      expect(plantillaActual('RESERVA_ARRIENDO')).toBe('reserva-arriendo-v3-2026-09');
       expect(plantillaActual('ARRENDAMIENTO')).toBe('arrendamiento-v3-2026-09');
     });
 
@@ -373,6 +403,9 @@ describe('plantillas de contrato', () => {
     const SIN_DEFAULT: Array<[ContratoTipo, string]> = [
       ['CORRETAJE', 'exclusividad'],
       ['CORRETAJE', 'siDesisteComprador'],
+      ['RESERVA_COMPRAVENTA', 'siDesisteComprador'],
+      ['RESERVA_COMPRAVENTA', 'siDesisteVendedor'],
+      ['RESERVA_ARRIENDO', 'siNoSeConcreta'],
     ];
 
     it('no tienen valor por defecto y son obligatorias', () => {

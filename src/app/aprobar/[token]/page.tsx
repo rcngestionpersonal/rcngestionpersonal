@@ -90,7 +90,9 @@ export default async function PaginaAprobacion({ params }: { params: Promise<{ t
       nombreDocumento={doc.nombreDocumento}
       numero={version.numero}
       codigo={parte.contrato.codigoVerificacion}
-      bloques={doc.bloques}
+      // Una plantilla pendiente de revisión legal lo advierte arriba, igual que
+      // en el PDF: quien aprueba tiene que verlo antes de leer.
+      bloques={doc.avisoSinRevisar ? [{ tipo: 'aviso', texto: doc.avisoSinRevisar }, ...doc.bloques] : doc.bloques}
       cambios={docPrevio ? compararVersiones(docPrevio.bloques, doc.bloques) : null}
       parte={{
         nombre: parte.nombre,

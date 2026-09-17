@@ -18,6 +18,8 @@ import * as corretajeV3 from './corretaje-v3';
 import * as arrendamientoResidencialV1 from './arrendamiento-residencial-v1';
 import * as arrendamientoComercialV1 from './arrendamiento-comercial-v1';
 import * as arrendamientoIndustrialV1 from './arrendamiento-industrial-v1';
+import * as reservaCompraventaV3 from './reserva-compraventa-v3';
+import * as reservaArriendoV3 from './reserva-arriendo-v3';
 import type { ContratoTipo } from '../tipos';
 import type { EstiloNumeracion } from '../clausulas';
 import type { BloqueDocumento, DatosDocumento } from './base';
@@ -109,13 +111,22 @@ const REGISTRO: Record<ContratoTipo, LineaDeVersiones> = {
     actual: corretajeAbiertoV1.PLANTILLA_VERSION,
     versiones: { [corretajeAbiertoV1.PLANTILLA_VERSION]: deUnTipo(corretajeAbiertoV1) },
   },
+  // Las reservas se retiraron el 2026-09-11 y volvieron el 2026-09-16 con la
+  // v3. Su v2 se eliminó al retirarlas (ningún contrato la usaba); la v1 sigue
+  // registrada por si existiera alguno de la primera etapa.
   RESERVA_ARRIENDO: {
-    actual: v1.PLANTILLA_VERSION,
-    versiones: { [v1.PLANTILLA_VERSION]: V1_GLOBAL },
+    actual: reservaArriendoV3.PLANTILLA_VERSION,
+    versiones: {
+      [v1.PLANTILLA_VERSION]: V1_GLOBAL,
+      [reservaArriendoV3.PLANTILLA_VERSION]: deUnTipo(reservaArriendoV3, true),
+    },
   },
   RESERVA_COMPRAVENTA: {
-    actual: v1.PLANTILLA_VERSION,
-    versiones: { [v1.PLANTILLA_VERSION]: V1_GLOBAL },
+    actual: reservaCompraventaV3.PLANTILLA_VERSION,
+    versiones: {
+      [v1.PLANTILLA_VERSION]: V1_GLOBAL,
+      [reservaCompraventaV3.PLANTILLA_VERSION]: deUnTipo(reservaCompraventaV3, true),
+    },
   },
 };
 

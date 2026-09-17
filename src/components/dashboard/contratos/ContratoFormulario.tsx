@@ -49,6 +49,10 @@ function autocompletar(tipo: ContratoTipo, datos: Record<string, string>, listin
     propiedadDireccion: listing.address,
     propiedadCiudad: listing.city,
     precio: listing.operationType !== 'RENT' ? precio : null,
+    // Reserva de compraventa: el dueño es la parte vendedora.
+    vendedor_nombre: listing.ownerName,
+    vendedor_telefono: listing.ownerPhone,
+    precioTotal: listing.operationType !== 'RENT' ? precio : null,
     // Arrendamientos: el dueño es el arrendador.
     arrendador_nombre: listing.ownerName,
     arrendador_telefono: listing.ownerPhone,

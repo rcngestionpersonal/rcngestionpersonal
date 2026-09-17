@@ -4,8 +4,9 @@
 
 import { DEFINICIONES_LEGADO, FIRMANTES_LEGADO } from './tipos-legado';
 
-// Los valores del enum en la base. Se generan hoy el corretaje y los tres
-// arrendamientos (residencial, comercial e industrial). El resto son tipos RETIRADOS que siguen en el enum porque hay (o puede haber)
+// Los valores del enum en la base. Se generan hoy el corretaje, las dos
+// reservas y los tres arrendamientos (residencial, comercial e industrial). El
+// resto son tipos RETIRADOS que siguen en el enum porque hay (o puede haber)
 // contratos que los usan, y esos contratos se abren, se imprimen y se descargan
 // igual que siempre. Lo que no se puede es crear otro.
 //
@@ -30,8 +31,6 @@ export const CONTRATO_TIPOS_LEGADO: readonly ContratoTipo[] = [
   'CORRETAJE_EXCLUSIVO',
   'ARRENDAMIENTO',
   'CORRETAJE_ABIERTO',
-  'RESERVA_ARRIENDO',
-  'RESERVA_COMPRAVENTA',
 ];
 
 export function esTipoArchivado(tipo: string): boolean {
@@ -186,7 +185,7 @@ export const TIPO_PERSONA = [
 export function parte(
   rol: string,
   titulo: string,
-  extras: { tipoDocumento?: boolean; juridicaPorDefecto?: boolean; descripcion?: string } = {},
+  extras: { tipoDocumento?: boolean; juridicaPorDefecto?: boolean; descripcion?: string; estadoCivil?: boolean } = {},
 ): SeccionDefinicion {
   const natural = { clave: `${rol}_tipoPersona`, valores: ['NATURAL'] };
   const juridica = { clave: `${rol}_tipoPersona`, valores: ['JURIDICA'] };
@@ -220,6 +219,9 @@ export function parte(
       obligatorio: true,
       visibleSi: natural,
     },
+    ...(extras.estadoCivil
+      ? [{ clave: `${rol}_estadoCivil`, etiqueta: 'Estado civil', tipo: 'texto' as const, visibleSi: natural }]
+      : []),
     { clave: `${rol}_razonSocial`, etiqueta: 'Razón social', tipo: 'texto', obligatorio: true, visibleSi: juridica },
     { clave: `${rol}_ruc`, etiqueta: 'RUC', tipo: 'cedula', obligatorio: true, visibleSi: juridica },
     {
@@ -859,12 +861,302 @@ const DEFINICIONES_ARRENDAMIENTO: Record<string, TipoDefinicion> = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// RESERVAS
+//
+// Retiradas el 2026-09-11 y vueltas a ofrecer el 2026-09-16, ya con aprobación
+// de borrador y con partes que pueden ser compañías. Los campos son los de su
+// última versión; las decisiones que más conflictos generan siguen sin valor
+// por defecto.
+// ---------------------------------------------------------------------------
+
+// Sin número de cuenta, entidad ni titular: el respaldo del pago es el
+// comprobante de la transacción, y los datos para pagar viajan aparte.
+const FORMAS_PAGO: CampoOpcion[] = [
+  { valor: 'TRANSFERENCIA', etiqueta: 'Transferencia bancaria' },
+  { valor: 'DEPOSITO', etiqueta: 'Depósito' },
+  { valor: 'EFECTIVO', etiqueta: 'Efectivo' },
+  { valor: 'CHEQUE', etiqueta: 'Cheque' },
+];
+
+const DEFINICIONES_RESERVA: Record<string, TipoDefinicion> = {
+  RESERVA_COMPRAVENTA: {
+    titulo: 'Reserva de compraventa',
+    descripcion: 'Cuando un comprador entrega dinero para separar el inmueble mientras se prepara la escritura.',
+    nombreDocumento: 'CONTRATO DE RESERVA DE COMPRAVENTA DE BIEN INMUEBLE',
+    requiereInmueble: true,
+    secciones: [
+      parte('vendedor', 'Parte vendedora', { estadoCivil: true }),
+      parte('comprador', 'Parte compradora', { estadoCivil: true }),
+      parteAgente('corredor', 'Tú, como corredor'),
+      {
+        clave: 'antecedentes',
+        titulo: 'Antecedentes (opcional)',
+        descripcion: 'Si no los completas, el documento los omite en vez de dejarlos en blanco.',
+        campos: [
+          {
+            clave: 'representacion',
+            etiqueta: 'Representación por poder, si alguna parte comparece por otra',
+            tipo: 'area',
+            ayuda: 'Ejemplo: poder especial otorgado el 12 de marzo de 2024 ante la Notaría Décima del cantón Quito.',
+          },
+          {
+            clave: 'tituloDominio',
+            etiqueta: 'Título con el que la parte vendedora acredita el dominio',
+            tipo: 'area',
+            ayuda: 'Escritura, posesión efectiva o el instrumento inscrito que corresponda.',
+          },
+          { clave: 'predio', etiqueta: 'Número de predio', tipo: 'texto' },
+        ],
+      },
+      {
+        clave: 'reserva',
+        titulo: 'Condiciones de la reserva',
+        campos: [
+          { clave: 'precioTotal', etiqueta: 'Precio total acordado', tipo: 'dinero', obligatorio: true },
+          { clave: 'montoReserva', etiqueta: 'Monto de la reserva', tipo: 'dinero', obligatorio: true },
+          {
+            clave: 'formaPago',
+            etiqueta: 'Forma de pago de la reserva',
+            tipo: 'opcion',
+            obligatorio: true,
+            porDefecto: 'TRANSFERENCIA',
+            opciones: FORMAS_PAGO,
+            ayuda: 'No se registra número de cuenta: el respaldo del pago es el comprobante de la transacción.',
+          },
+          { clave: 'fechaEntrega', etiqueta: 'Fecha en que se entrega el valor', tipo: 'fecha', obligatorio: true },
+          {
+            clave: 'reservaEntregadaA',
+            etiqueta: 'El valor de la reserva queda en poder de',
+            tipo: 'opcion',
+            obligatorio: true,
+            porDefecto: 'VENDEDOR',
+            opciones: [
+              { valor: 'VENDEDOR', etiqueta: 'La parte vendedora' },
+              { valor: 'CORREDOR', etiqueta: 'El corredor, en depósito hasta el cierre' },
+            ],
+            ayuda: 'De esto depende quién devuelve o entrega el dinero si alguien desiste. La cláusula de penalidad se redacta sola a partir de tu respuesta.',
+          },
+          {
+            clave: 'plazoDevolucionDias',
+            etiqueta: 'Plazo para devolver o entregar el valor (días hábiles)',
+            tipo: 'numero',
+            obligatorio: true,
+            porDefecto: '5',
+          },
+          {
+            clave: 'formaPagoSaldo',
+            etiqueta: 'Forma de pago del saldo',
+            tipo: 'opcion',
+            obligatorio: true,
+            porDefecto: 'CONTADO',
+            opciones: [
+              { valor: 'CONTADO', etiqueta: 'Contado' },
+              { valor: 'CREDITO', etiqueta: 'Crédito hipotecario' },
+              { valor: 'MIXTO', etiqueta: 'Mixto' },
+            ],
+          },
+          {
+            clave: 'entidadFinanciera',
+            etiqueta: 'Entidad que concede el crédito',
+            tipo: 'texto',
+            ayuda: 'Solo el nombre de la institución. Nunca un número de cuenta.',
+            visibleSi: { clave: 'formaPagoSaldo', valores: ['CREDITO', 'MIXTO'] },
+          },
+          {
+            clave: 'plazoEscrituraDias',
+            etiqueta: 'Plazo para suscribir la escritura pública (días)',
+            tipo: 'numero',
+            obligatorio: true,
+            porDefecto: '60',
+          },
+          {
+            clave: 'gastosNotariales',
+            etiqueta: 'Gastos notariales y de registro a cargo de',
+            tipo: 'opcion',
+            obligatorio: true,
+            porDefecto: 'COMPRADOR',
+            opciones: [
+              { valor: 'COMPRADOR', etiqueta: 'La parte compradora' },
+              { valor: 'VENDEDOR', etiqueta: 'La parte vendedora' },
+              { valor: 'COMPARTIDOS', etiqueta: 'Compartidos en partes iguales' },
+            ],
+          },
+          // ------------------------------------------------------------------
+          // LAS DOS OPCIONES DE DESISTIMIENTO VAN SIN VALOR POR DEFECTO, A
+          // PROPÓSITO. NO AÑADIR UNO: es la cláusula que más conflictos genera
+          // y un default la decidiría por el agente sin que la note.
+          // ------------------------------------------------------------------
+          {
+            clave: 'siDesisteComprador',
+            etiqueta: 'Si desiste la parte compradora, el valor de la reserva',
+            tipo: 'opcionExplicada',
+            obligatorio: true,
+            opciones: [
+              {
+                valor: 'SE_PIERDE',
+                etiqueta: 'Queda a favor de la parte vendedora',
+                consecuencia:
+                  'La compradora pierde todo lo entregado. Es lo que más protege a la vendedora, y también lo que más se discute después si la compradora alega que se retiró por una causa justificada.',
+              },
+              {
+                valor: 'DEVOLUCION_TOTAL',
+                etiqueta: 'Se devuelve en su totalidad',
+                consecuencia:
+                  'La compradora puede retirarse sin costo. La reserva deja de ser una garantía: la vendedora saca el inmueble del mercado sin nada a cambio.',
+              },
+              {
+                valor: 'DEVOLUCION_PARCIAL',
+                etiqueta: 'Se devuelve parcialmente',
+                consecuencia:
+                  'Se retiene solo la parte que definas abajo y el resto vuelve a la compradora. Es el punto medio, y se sostiene mejor si lo retenido guarda relación con gastos reales.',
+              },
+            ],
+            ayuda: 'No hay valor por defecto: elígelo con el cliente delante. Lo habitual en el mercado es que quede a favor de la parte vendedora.',
+          },
+          {
+            clave: 'siDesisteCompradorDetalle',
+            etiqueta: 'Detalle de la devolución parcial',
+            tipo: 'texto',
+            visibleSi: { clave: 'siDesisteComprador', valores: ['DEVOLUCION_PARCIAL'] },
+          },
+          {
+            clave: 'siDesisteVendedor',
+            etiqueta: 'Si desiste la parte vendedora',
+            tipo: 'opcionExplicada',
+            obligatorio: true,
+            opciones: [
+              {
+                valor: 'DEVUELVE_DOBLE',
+                etiqueta: 'Devuelve la reserva y paga otro tanto igual',
+                consecuencia:
+                  'La vendedora arriesga el mismo monto que la compradora. Es lo que hace que la reserva sea recíproca de verdad y lo que desalienta que se retire por una oferta mejor.',
+              },
+              {
+                valor: 'DEVUELVE_SIMPLE',
+                etiqueta: 'Devuelve solo la reserva',
+                consecuencia:
+                  'La vendedora puede retirarse sin costo. La compradora pierde el tiempo y los gastos del trámite sin compensación, y nada impide aceptar una oferta mejor a mitad del plazo.',
+              },
+            ],
+            ayuda: 'No hay valor por defecto: elígelo con el cliente delante. Lo habitual es devolver la reserva y pagar una suma igual como indemnización.',
+          },
+        ],
+      },
+    ],
+  },
+
+  RESERVA_ARRIENDO: {
+    titulo: 'Reserva de arrendamiento',
+    descripcion: 'Cuando un interesado entrega dinero para separar un inmueble mientras se cumplen las condiciones para arrendarlo.',
+    nombreDocumento: 'RESERVA DE ARRENDAMIENTO',
+    requiereInmueble: true,
+    secciones: [
+      parte('interesado', 'Datos del interesado'),
+      parteAgente('corredor', 'Tú, como agente'),
+      {
+        clave: 'reserva',
+        titulo: 'Condiciones de la reserva',
+        campos: [
+          { clave: 'montoReserva', etiqueta: 'Monto de la reserva', tipo: 'dinero', obligatorio: true },
+          {
+            clave: 'formaPago',
+            etiqueta: 'Forma de pago de la reserva',
+            tipo: 'opcion',
+            obligatorio: true,
+            porDefecto: 'TRANSFERENCIA',
+            opciones: FORMAS_PAGO,
+            ayuda: 'No se registra número de cuenta: el respaldo del pago es el comprobante de la transacción.',
+          },
+          { clave: 'fechaEntrega', etiqueta: 'Fecha en que se entrega el valor', tipo: 'fecha', obligatorio: true },
+          {
+            clave: 'reservaEntregadaA',
+            etiqueta: 'El valor de la reserva queda en poder de',
+            tipo: 'opcion',
+            obligatorio: true,
+            porDefecto: 'AGENTE',
+            opciones: [
+              { valor: 'AGENTE', etiqueta: 'El agente, en depósito hasta que se firme' },
+              { valor: 'ARRENDADOR', etiqueta: 'El arrendador' },
+            ],
+            ayuda: 'De esto depende quién devuelve el dinero si el arriendo no se concreta. La cláusula se redacta sola a partir de tu respuesta.',
+          },
+          {
+            clave: 'plazoDevolucionDias',
+            etiqueta: 'Plazo para devolver o entregar el valor (días hábiles)',
+            tipo: 'numero',
+            obligatorio: true,
+            porDefecto: '5',
+          },
+          { clave: 'plazoDias', etiqueta: 'Plazo de la reserva (días)', tipo: 'numero', obligatorio: true, porDefecto: '8' },
+          {
+            clave: 'condiciones',
+            etiqueta: 'Condiciones para firmar el arriendo',
+            tipo: 'area',
+            obligatorio: true,
+            porDefecto: 'Aprobación del garante propuesto y entrega de la documentación requerida por el arrendador.',
+          },
+          {
+            clave: 'destinoValor',
+            etiqueta: 'El valor de la reserva se imputa a',
+            tipo: 'opcion',
+            obligatorio: true,
+            porDefecto: 'PRIMER_CANON',
+            opciones: [
+              { valor: 'PRIMER_CANON', etiqueta: 'El primer canon de arrendamiento' },
+              { valor: 'GARANTIA', etiqueta: 'La garantía o depósito' },
+            ],
+          },
+          {
+            clave: 'siNoSeConcreta',
+            etiqueta: 'Si el arriendo no se concreta, el valor',
+            tipo: 'opcionExplicada',
+            // SIN VALOR POR DEFECTO, A PROPÓSITO. NO AÑADIR UNO.
+            obligatorio: true,
+            opciones: [
+              {
+                valor: 'DEVOLUCION_TOTAL',
+                etiqueta: 'Se devuelve en su totalidad',
+                consecuencia:
+                  'El interesado recupera todo lo entregado. El arrendador no recibe compensación por los días que el inmueble estuvo fuera de oferta.',
+              },
+              {
+                valor: 'DEVOLUCION_PARCIAL',
+                etiqueta: 'Se devuelve parcialmente',
+                consecuencia:
+                  'Se retiene solo la parte que definas abajo y el resto vuelve al interesado. Es el punto medio, y se sostiene mejor si lo retenido guarda relación con gastos reales.',
+              },
+              {
+                valor: 'SE_PIERDE',
+                etiqueta: 'Se pierde a favor del arrendador',
+                consecuencia:
+                  'El interesado pierde todo, incluso si el arriendo no se firmó por algo que no dependía de él. Es la alternativa más dura y la que más reclamos genera.',
+              },
+            ],
+            ayuda: 'No hay valor por defecto: elígelo con el cliente delante.',
+          },
+          {
+            clave: 'devolucionParcialDetalle',
+            etiqueta: 'Detalle de la devolución parcial',
+            tipo: 'texto',
+            visibleSi: { clave: 'siNoSeConcreta', valores: ['DEVOLUCION_PARCIAL'] },
+          },
+        ],
+      },
+    ],
+  },
+};
+
 // Todas las definiciones: las vivas y las archivadas, que siguen aquí para que
 // un contrato retirado se abra e imprima igual que el día que se firmó.
 export const CONTRATO_DEFINICION: Record<ContratoTipo, TipoDefinicion> = {
   ...(DEFINICIONES_LEGADO as Record<ContratoTipo, TipoDefinicion>),
   ...(DEFINICIONES_VIVAS as Record<ContratoTipo, TipoDefinicion>),
   ...(DEFINICIONES_ARRENDAMIENTO as Record<ContratoTipo, TipoDefinicion>),
+  // Las reservas volvieron a ofrecerse: su definición viva reemplaza a la que
+  // quedó en ./tipos-legado cuando se retiraron (no hay contratos de reserva
+  // anteriores en la base).
+  ...(DEFINICIONES_RESERVA as Record<ContratoTipo, TipoDefinicion>),
 };
 
 // Selector de documento: solo lo que se puede generar hoy.
@@ -872,9 +1164,11 @@ export type MenuEntrada = { clase: 'tipo'; tipo: ContratoTipo };
 
 export const CONTRATO_MENU: MenuEntrada[] = [
   { clase: 'tipo', tipo: 'CORRETAJE' },
+  { clase: 'tipo', tipo: 'RESERVA_COMPRAVENTA' },
   { clase: 'tipo', tipo: 'ARRENDAMIENTO_RESIDENCIAL' },
   { clase: 'tipo', tipo: 'ARRENDAMIENTO_COMERCIAL' },
   { clase: 'tipo', tipo: 'ARRENDAMIENTO_INDUSTRIAL' },
+  { clase: 'tipo', tipo: 'RESERVA_ARRIENDO' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -905,6 +1199,17 @@ export const PARTES_POR_TIPO: Record<ContratoTipo, ParteDefinicion[]> = {
   ARRENDAMIENTO_INDUSTRIAL: [
     { rol: 'arrendador', etiqueta: 'Arrendadora' },
     { rol: 'arrendatario', etiqueta: 'Arrendataria' },
+  ],
+  // En las reservas el agente comparece (como depositario del valor, si lo
+  // tiene) pero no aprueba: aprueban las partes de la operación.
+  RESERVA_COMPRAVENTA: [
+    { rol: 'vendedor', etiqueta: 'Parte vendedora' },
+    { rol: 'comprador', etiqueta: 'Parte compradora' },
+    { rol: 'corredor', etiqueta: 'Corredor de bienes raíces', esAgente: true },
+  ],
+  RESERVA_ARRIENDO: [
+    { rol: 'interesado', etiqueta: 'Interesado' },
+    { rol: 'corredor', etiqueta: 'Agente', esAgente: true },
   ],
 };
 
