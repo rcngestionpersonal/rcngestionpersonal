@@ -77,7 +77,7 @@ const nextConfig = {
         '/aprobar/[token]/pdf',
         '/c/[codigo]',
         '/firmar/[token]/pdf',
-      ].map((ruta) => [ruta, ['./node_modules/pdfkit/js/standard-fonts/*', './node_modules/pdfkit/js/data/*']]),
+      ].map((ruta) => [ruta, ['./node_modules/pdfkit/js/standard-fonts/**/*', './node_modules/pdfkit/js/data/**/*']]),
     ),
     // Reportes a clientes (Fase 9): las rutas que rasterizan los tres reportes,
     // para descarga y para el adjunto del correo. Misma cadena satori->resvg.
