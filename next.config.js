@@ -56,8 +56,29 @@ const nextConfig = {
       './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
     ],
     // Contratos: ya NO pasan por satori/resvg. Su PDF se arma con
-    // @react-pdf/renderer, con texto vectorial y sin binarios nativos, asi que
-    // sus rutas no necesitan incluir nada aqui.
+    // @react-pdf/renderer, que usa 'pdfkit'. Next deja 'pdfkit' fuera del
+    // bundle por defecto, y pdfkit carga sus fuentes estandar con un mapa de
+    // imports interno (require('#standard-fonts/Helvetica')) que el tracer no
+    // sigue: sin esto la funcion revienta en produccion con "Cannot find module
+    // .../pdfkit/js/standard-fonts/Helvetica.cjs" apenas carga el modulo del
+    // PDF, aunque en local (next dev / next start) funcione. Van en toda ruta que
+    // importa contratos/servidor, versiones o pdf.
+    ...Object.fromEntries(
+      [
+        '/api/aprobacion/[token]',
+        '/api/real-estate/contratos',
+        '/api/real-estate/contratos/[id]',
+        '/api/real-estate/contratos/[id]/archivo',
+        '/api/real-estate/contratos/[id]/documento',
+        '/api/real-estate/contratos/[id]/enviar',
+        '/api/real-estate/contratos/[id]/reenviar',
+        '/api/real-estate/contratos/[id]/word',
+        '/aprobar/[token]',
+        '/aprobar/[token]/pdf',
+        '/c/[codigo]',
+        '/firmar/[token]/pdf',
+      ].map((ruta) => [ruta, ['./node_modules/pdfkit/js/standard-fonts/*', './node_modules/pdfkit/js/data/*']]),
+    ),
     // Reportes a clientes (Fase 9): las rutas que rasterizan los tres reportes,
     // para descarga y para el adjunto del correo. Misma cadena satori->resvg.
     '/api/real-estate/reportes/visitas/[id]/archivo': [
