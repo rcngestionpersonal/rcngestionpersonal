@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { descifrarDocumento, fechaConZona } from '@/lib/real-estate/contratos/aprobacion';
 import { AVISO_FIRMA_ELECTRONICA } from '@/lib/real-estate/contratos/legado-firma';
 import { etiquetaRol, nombreDeParte } from '@/lib/real-estate/contratos/servidor';
-import { AVISO_APROBACION, CONTRATO_DEFINICION, esEstadoDeFirmaLegado, type ContratoTipo } from '@/lib/real-estate/contratos/tipos';
+import { AVISO_APROBACION, CONTRATO_DEFINICION, esContratoDeFirmaLegado, etiquetasEtapas, type ContratoTipo } from '@/lib/real-estate/contratos/tipos';
 
 // Verificación pública de un documento: el registro de sus versiones y de quién
 // aprobó cada una.
@@ -39,12 +39,14 @@ function Marco({ children }: { children: React.ReactNode }) {
 
 const ESTADO_CONTRATO: Record<string, string> = {
   BORRADOR: 'Borrador',
-  EN_APROBACION: 'En revisión',
-  APROBADO: 'Versión aprobada',
-  RECHAZADO: 'Con cambios pedidos',
+  EN_REVISION_PRINCIPAL: 'En revisión',
+  APROBADO_PRINCIPAL: 'En revisión',
+  EN_REVISION_CONTRAPARTE: 'En revisión',
+  APROBADO_FINAL: 'Versión aprobada',
+  CAMBIOS_SOLICITADOS_PRINCIPAL: 'Con cambios pedidos',
+  CAMBIOS_SOLICITADOS_CONTRAPARTE: 'Con cambios pedidos',
+  VENCIDO: 'En pausa',
   ANULADO: 'Anulado',
-  PENDIENTE_FIRMA: 'Firma no concluida',
-  FIRMADO: 'Firmado',
 };
 
 const ESTADO_VERSION: Record<string, string> = {
@@ -69,11 +71,14 @@ export default async function VerificacionPage({ params }: { params: Promise<{ c
       createdAt: true,
       versiones: {
         orderBy: { numero: 'desc' },
-        select: { id: true, numero: true, estado: true, enviadaAt: true, aprobadaAt: true, huella: true, documentoCifrado: true },
+        select: {
+          id: true, numero: true, estado: true, enviadaAt: true, aprobadaAt: true, huella: true, documentoCifrado: true,
+          representa: true, principalHeredadaDe: true,
+        },
       },
       // Solo nombre, rol y decisión de cada parte. Ni el correo ni la cédula,
       // ni siquiera los últimos cuatro dígitos: esta página la ve cualquiera.
-      partes: { select: { versionId: true, rol: true, nombre: true, estado: true, firmadoAt: true, aprobadoAt: true } },
+      partes: { select: { versionId: true, rol: true, etapa: true, nombre: true, estado: true, firmadoAt: true, aprobadoAt: true } },
     },
   });
 
@@ -91,9 +96,10 @@ export default async function VerificacionPage({ params }: { params: Promise<{ c
 
   const tipo = contrato.tipo as ContratoTipo;
   const nombreDocumento = CONTRATO_DEFINICION[tipo].nombreDocumento;
-  const deFirma = esEstadoDeFirmaLegado(contrato.estado) || contrato.partes.some((p) => !p.versionId);
-  const insignia = ESTADO_CONTRATO[contrato.estado] ?? contrato.estado;
-  const destacada = contrato.estado === 'APROBADO' || contrato.estado === 'FIRMADO';
+  const deFirma = esContratoDeFirmaLegado(contrato);
+  const firmadoPorTodos = deFirma && contrato.partes.filter((p) => !p.versionId).every((p) => p.estado === 'FIRMADO');
+  const insignia = deFirma ? (firmadoPorTodos ? 'Firmado' : 'Firma no concluida') : (ESTADO_CONTRATO[contrato.estado] ?? contrato.estado);
+  const destacada = deFirma ? firmadoPorTodos : contrato.estado === 'APROBADO_FINAL';
 
   return (
     <Marco>
@@ -158,7 +164,14 @@ export default async function VerificacionPage({ params }: { params: Promise<{ c
                 <ul className="mt-2 space-y-3">
                   {contrato.versiones.map((v) => {
                     const doc = descifrarDocumento(v.documentoCifrado);
-                    const partes = contrato.partes.filter((p) => p.versionId === v.id);
+                    // Etapa por etapa. Con corrección menor, la etapa principal
+                    // conserva la aprobación de la versión base.
+                    const base = v.principalHeredadaDe !== null ? contrato.versiones.find((x) => x.numero === v.principalHeredadaDe) : null;
+                    const etiquetas = etiquetasEtapas(tipo, v.representa);
+                    const partes = [
+                      ...(base ? contrato.partes.filter((p) => p.versionId === base.id && p.etapa === 'PRINCIPAL') : []),
+                      ...contrato.partes.filter((p) => p.versionId === v.id),
+                    ];
                     return (
                       <li key={v.id} className="rounded-xl border border-line p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -173,7 +186,11 @@ export default async function VerificacionPage({ params }: { params: Promise<{ c
                             <li key={p.rol} className="flex flex-wrap justify-between gap-2 text-[13px]">
                               <span className="min-w-0">
                                 <span className="font-semibold">{nombreDeParte(doc, tipo, p)}</span>{' '}
-                                <span className="text-text-3">· {etiquetaRol(tipo, p.rol)}</span>
+                                <span className="text-text-3">
+                                  · {etiquetaRol(tipo, p.rol)}
+                                  {etiquetas[p.etapa] ? ` (${p.etapa === 'PRINCIPAL' ? '1' : '2'}. ${etiquetas[p.etapa]})` : ''}
+                                  {base && p.versionId === base.id ? ` · en la versión ${base.numero}` : ''}
+                                </span>
                               </span>
                               <span className={`text-xs ${p.estado === 'APROBADO' ? 'font-semibold text-accent' : 'text-text-3'}`}>
                                 {p.estado === 'APROBADO'

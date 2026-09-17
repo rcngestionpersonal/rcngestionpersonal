@@ -40,20 +40,51 @@ export function esTipoArchivado(tipo: string): boolean {
 // ---------------------------------------------------------------------------
 // ESTADOS
 //
-// El modulo ya no firma: cada envio es una version que las partes aprueban o
-// no. PENDIENTE_FIRMA y FIRMADO quedan solo para los contratos de la etapa de
-// firma electronica, que se conservan tal como se firmaron.
+// El módulo no firma: cada envío es una versión que las partes aprueban o no.
+// Y no la reciben a la vez. Primero la revisa el cliente del agente (la parte
+// PRINCIPAL) y, solo cuando la aprueba y el agente lo decide, la contraparte:
+//
+//   BORRADOR → EN_REVISION_PRINCIPAL → APROBADO_PRINCIPAL
+//            → EN_REVISION_CONTRAPARTE → APROBADO_FINAL
+//
+// Laterales: CAMBIOS_SOLICITADOS_PRINCIPAL, CAMBIOS_SOLICITADOS_CONTRAPARTE,
+// VENCIDO y ANULADO.
 // ---------------------------------------------------------------------------
 export const CONTRATO_ESTADOS = [
   'BORRADOR',
-  'EN_APROBACION',
-  'APROBADO',
-  'RECHAZADO',
+  'EN_REVISION_PRINCIPAL',
+  'APROBADO_PRINCIPAL',
+  'EN_REVISION_CONTRAPARTE',
+  'APROBADO_FINAL',
+  'CAMBIOS_SOLICITADOS_PRINCIPAL',
+  'CAMBIOS_SOLICITADOS_CONTRAPARTE',
+  'VENCIDO',
   'ANULADO',
-  'PENDIENTE_FIRMA',
-  'FIRMADO',
 ] as const;
 export type ContratoEstado = (typeof CONTRATO_ESTADOS)[number];
+
+// Valores del flujo anterior. Pueden seguir en la base hasta que corre la
+// migración de datos (scripts/migrate-contratos-flujo-secuencial.ts): se leen
+// como su equivalente y nunca se escriben.
+const ESTADOS_ANTERIORES: Record<string, ContratoEstado> = {
+  EN_APROBACION: 'EN_REVISION_PRINCIPAL',
+  APROBADO: 'APROBADO_FINAL',
+  RECHAZADO: 'CAMBIOS_SOLICITADOS_PRINCIPAL',
+  // Firma electrónica retirada: firmado por todos, o que ya no puede concluir.
+  FIRMADO: 'APROBADO_FINAL',
+  PENDIENTE_FIRMA: 'VENCIDO',
+};
+
+export function estadoVigente(estado: string): ContratoEstado {
+  if ((CONTRATO_ESTADOS as readonly string[]).includes(estado)) return estado as ContratoEstado;
+  return ESTADOS_ANTERIORES[estado] ?? 'BORRADOR';
+}
+
+// En revisión: hay enlaces vivos esperando una decisión.
+export function estaEnRevision(estado: string): boolean {
+  const e = estadoVigente(estado);
+  return e === 'EN_REVISION_PRINCIPAL' || e === 'EN_REVISION_CONTRAPARTE';
+}
 
 export const PARTE_ESTADOS = ['ENVIADO', 'ABIERTO', 'APROBADO', 'RECHAZADO', 'FIRMADO'] as const;
 export type ParteEstado = (typeof PARTE_ESTADOS)[number];
@@ -61,13 +92,135 @@ export type ParteEstado = (typeof PARTE_ESTADOS)[number];
 export const VERSION_ESTADOS = ['EN_APROBACION', 'APROBADA', 'RECHAZADA', 'REEMPLAZADA', 'ANULADA'] as const;
 export type VersionEstado = (typeof VERSION_ESTADOS)[number];
 
-// Un contrato del flujo de firma retirado: se abre y se descarga, nada más.
+// Un contrato del flujo de firma retirado: se abre y se descarga, nada más. Se
+// reconoce por sus firmantes, que no pertenecen a ninguna versión; el estado
+// solo cuenta mientras no corrió la migración.
 export function esEstadoDeFirmaLegado(estado: string): boolean {
   return estado === 'PENDIENTE_FIRMA' || estado === 'FIRMADO';
 }
 
-// Vigencia del enlace de revisión. Vencido, el agente lo reenvía.
-export const APROBACION_VIGENCIA_DIAS = 15;
+export function esContratoDeFirmaLegado(contrato: { estado: string; partes: Array<{ versionId: string | null }> }): boolean {
+  return esEstadoDeFirmaLegado(contrato.estado) || contrato.partes.some((p) => !p.versionId);
+}
+
+// ---------------------------------------------------------------------------
+// ETAPAS Y LADOS
+//
+// Cada documento tiene lados: vendedor y comprador, arrendador y arrendatario.
+// El agente dice a cuál representa (por defecto, al propietario) y ese lado es
+// la etapa PRINCIPAL; el resto, la CONTRAPARTE. Un lado sin partes en el
+// documento no tiene etapa: en la reserva de arrendamiento el arrendador no
+// comparece, así que la revisa solo el interesado.
+// ---------------------------------------------------------------------------
+export type Etapa = 'PRINCIPAL' | 'CONTRAPARTE';
+export const ETAPAS: readonly Etapa[] = ['PRINCIPAL', 'CONTRAPARTE'];
+
+export type LadoDefinicion = { clave: string; etiqueta: string; roles: string[] };
+
+type LadosDelTipo = { porDefecto: string; lados: LadoDefinicion[] };
+
+const LADOS_ARRENDAMIENTO: LadosDelTipo = {
+  porDefecto: 'ARRENDADOR',
+  lados: [
+    { clave: 'ARRENDADOR', etiqueta: 'Arrendador', roles: ['arrendador'] },
+    { clave: 'ARRENDATARIO', etiqueta: 'Arrendatario', roles: ['arrendatario'] },
+  ],
+};
+
+export const LADOS_POR_TIPO: Partial<Record<ContratoTipo, LadosDelTipo>> = {
+  CORRETAJE: { porDefecto: 'PROPIETARIO', lados: [{ clave: 'PROPIETARIO', etiqueta: 'Propietario', roles: ['propietario'] }] },
+  ARRENDAMIENTO_RESIDENCIAL: LADOS_ARRENDAMIENTO,
+  ARRENDAMIENTO_COMERCIAL: LADOS_ARRENDAMIENTO,
+  ARRENDAMIENTO_INDUSTRIAL: {
+    porDefecto: 'ARRENDADOR',
+    lados: [
+      { clave: 'ARRENDADOR', etiqueta: 'Arrendadora', roles: ['arrendador'] },
+      { clave: 'ARRENDATARIO', etiqueta: 'Arrendataria', roles: ['arrendatario'] },
+    ],
+  },
+  RESERVA_COMPRAVENTA: {
+    porDefecto: 'VENDEDOR',
+    lados: [
+      { clave: 'VENDEDOR', etiqueta: 'Vendedor', roles: ['vendedor'] },
+      { clave: 'COMPRADOR', etiqueta: 'Comprador', roles: ['comprador'] },
+    ],
+  },
+  RESERVA_ARRIENDO: {
+    porDefecto: 'ARRENDADOR',
+    lados: [
+      { clave: 'ARRENDADOR', etiqueta: 'Arrendador', roles: [] },
+      { clave: 'INTERESADO', etiqueta: 'Interesado', roles: ['interesado'] },
+    ],
+  },
+};
+
+export function ladosDelTipo(tipo: ContratoTipo): LadosDelTipo | null {
+  return LADOS_POR_TIPO[tipo] ?? null;
+}
+
+// El lado que representa el agente. Un valor que no corresponde al tipo cae al
+// de por defecto: nunca deja un contrato sin etapa principal definida.
+export function ladoRepresentado(tipo: ContratoTipo, representa: string | null | undefined): LadoDefinicion | null {
+  const def = ladosDelTipo(tipo);
+  if (!def) return null;
+  return def.lados.find((l) => l.clave === representa) ?? def.lados.find((l) => l.clave === def.porDefecto) ?? null;
+}
+
+// Roles del documento (sin el agente) que aprueban en cada etapa.
+export function rolesPorEtapa(tipo: ContratoTipo, representa: string | null | undefined): Record<Etapa, string[]> {
+  const def = ladosDelTipo(tipo);
+  const principal = ladoRepresentado(tipo, representa);
+  if (!def || !principal) return { PRINCIPAL: [], CONTRAPARTE: [] };
+  return {
+    PRINCIPAL: principal.roles,
+    CONTRAPARTE: def.lados.filter((l) => l.clave !== principal.clave).flatMap((l) => l.roles),
+  };
+}
+
+// Cómo se nombra cada etapa en la pantalla: "Vendedor", "Comprador". null si
+// la etapa no existe en ese documento.
+export function etiquetasEtapas(tipo: ContratoTipo, representa: string | null | undefined): Record<Etapa, string | null> {
+  const def = ladosDelTipo(tipo);
+  const principal = ladoRepresentado(tipo, representa);
+  if (!def || !principal) return { PRINCIPAL: null, CONTRAPARTE: null };
+  const otros = def.lados.filter((l) => l.clave !== principal.clave && l.roles.length > 0);
+  return {
+    PRINCIPAL: principal.roles.length > 0 ? principal.etiqueta : null,
+    CONTRAPARTE: otros.length > 0 ? otros.map((l) => l.etiqueta).join(' y ') : null,
+  };
+}
+
+// Quita el sufijo de persona adicional: "vendedor_2" es del lado "vendedor".
+export function rolBase(rol: string): string {
+  return rol.replace(/_\d+$/, '');
+}
+
+export function etapaDeRol(tipo: ContratoTipo, representa: string | null | undefined, rol: string): Etapa | null {
+  const roles = rolesPorEtapa(tipo, representa);
+  const base = rolBase(rol);
+  if (roles.PRINCIPAL.includes(base)) return 'PRINCIPAL';
+  if (roles.CONTRAPARTE.includes(base)) return 'CONTRAPARTE';
+  return null;
+}
+
+// Vigencia del enlace de revisión, configurable en cada envío. Por defecto 72
+// horas en las reservas, que se negocian en días, y 5 días en el resto.
+export const VIGENCIAS_HORAS = [24, 48, 72, 120, 168, 360] as const;
+
+export function vigenciaPorDefectoHoras(tipo: ContratoTipo): number {
+  return tipo === 'RESERVA_COMPRAVENTA' || tipo === 'RESERVA_ARRIENDO' ? 72 : 120;
+}
+
+export function vigenciaValida(horas: unknown): horas is number {
+  return typeof horas === 'number' && (VIGENCIAS_HORAS as readonly number[]).includes(horas);
+}
+
+// Aviso de "está por vencer" para el agente.
+export const HORAS_AVISO_VENCIMIENTO = 24;
+
+// Hasta cuántas personas comparecen en un mismo lado (cónyuges, convivientes o
+// copropietarios). Todas aprueban antes de pasar a la etapa siguiente.
+export const MAX_PERSONAS_POR_LADO = 3;
 
 // Lo que se imprime donde un campo opcional quedó sin llenar. Un marcador
 // visible y no un hueco en blanco: un espacio vacío pasa desapercibido al
@@ -142,10 +295,13 @@ export type CampoDefinicion = {
   ayuda?: string;
   // Legado: los tipos retirados marcaban así los datos de cada firmante.
   rolFirmante?: string;
-  // El campo solo existe si otro campo tiene uno de estos valores. Oculto, no
-  // se pide ni se valida: los datos de una compañía no se exigen a una persona.
-  visibleSi?: { clave: string; valores: string[] };
+  // El campo solo existe si otro campo tiene uno de estos valores (o, con una
+  // lista, si se cumplen todas). Oculto, no se pide ni se valida: los datos de
+  // una compañía no se exigen a una persona.
+  visibleSi?: CondicionCampo | CondicionCampo[];
 };
+
+export type CondicionCampo = { clave: string; valores: string[] };
 
 export type SeccionDefinicion = {
   clave: string;
@@ -240,16 +396,105 @@ export function parte(
       visibleSi: juridica,
     },
     {
+      clave: `${rol}_telefono`,
+      etiqueta: 'Teléfono (WhatsApp)',
+      tipo: 'telefono',
+      obligatorio: true,
+      ayuda: 'El enlace para revisar cada versión se comparte de preferencia por WhatsApp.',
+    },
+    {
       clave: `${rol}_correo`,
       etiqueta: 'Correo electrónico',
       tipo: 'correo',
-      obligatorio: true,
-      ayuda: 'Por aquí recibirá cada versión del documento para revisarla y aprobarla.',
+      ayuda: 'Opcional. Si lo tiene, el enlace también puede llegarle por correo.',
     },
-    { clave: `${rol}_telefono`, etiqueta: 'Teléfono', tipo: 'telefono', obligatorio: true },
     { clave: `${rol}_direccion`, etiqueta: 'Domicilio', tipo: 'texto', obligatorio: true },
+    {
+      clave: `${rol}_personas`,
+      etiqueta: 'Personas en este lado',
+      tipo: 'opcion',
+      obligatorio: true,
+      porDefecto: '1',
+      opciones: [
+        { valor: '1', etiqueta: 'Una' },
+        { valor: '2', etiqueta: 'Dos' },
+        { valor: '3', etiqueta: 'Tres' },
+      ],
+      visibleSi: natural,
+      ayuda: 'Si comparecen cónyuges, convivientes o copropietarios, agrégalos: cada uno recibe su enlace y todos deben aprobar.',
+    },
   );
   return { clave: rol, titulo, descripcion: extras.descripcion, campos };
+}
+
+const ORDINAL_PERSONA: Record<number, string> = { 2: 'segunda persona', 3: 'tercera persona' };
+
+// Las demás personas de un lado: la segunda y la tercera. Comparecen como
+// personas naturales junto a la primera, bajo la misma denominación, y cada
+// una aprueba con su propio enlace.
+function personasAdicionales(
+  rol: string,
+  titulo: string,
+  extras: { tipoDocumento?: boolean; estadoCivil?: boolean },
+): SeccionDefinicion[] {
+  const secciones: SeccionDefinicion[] = [];
+  for (let n = 2; n <= MAX_PERSONAS_POR_LADO; n += 1) {
+    const visible: CondicionCampo[] = [
+      { clave: `${rol}_tipoPersona`, valores: ['NATURAL'] },
+      { clave: `${rol}_personas`, valores: ['2', '3'].filter((v) => Number(v) >= n) },
+    ];
+    const r = `${rol}_${n}`;
+    const campos: CampoDefinicion[] = [
+      { clave: `${r}_nombre`, etiqueta: 'Nombre completo', tipo: 'texto', obligatorio: true, visibleSi: visible },
+    ];
+    if (extras.tipoDocumento) {
+      campos.push({
+        clave: `${r}_tipoDocumento`,
+        etiqueta: 'Tipo de documento',
+        tipo: 'opcion',
+        obligatorio: true,
+        porDefecto: 'CEDULA',
+        opciones: TIPO_DOCUMENTO,
+        visibleSi: visible,
+      });
+    }
+    campos.push(
+      {
+        clave: `${r}_cedula`,
+        etiqueta: extras.tipoDocumento ? 'Número de documento' : 'Cédula',
+        tipo: 'cedula',
+        obligatorio: true,
+        visibleSi: visible,
+      },
+      ...(extras.estadoCivil ? [{ clave: `${r}_estadoCivil`, etiqueta: 'Estado civil', tipo: 'texto' as const, visibleSi: visible }] : []),
+      { clave: `${r}_telefono`, etiqueta: 'Teléfono (WhatsApp)', tipo: 'telefono', obligatorio: true, visibleSi: visible },
+      { clave: `${r}_correo`, etiqueta: 'Correo electrónico', tipo: 'correo', visibleSi: visible, ayuda: 'Opcional.' },
+      {
+        clave: `${r}_direccion`,
+        etiqueta: 'Domicilio',
+        tipo: 'texto',
+        visibleSi: visible,
+        ayuda: 'Si lo dejas vacío, se usa el de la primera persona.',
+      },
+    );
+    secciones.push({
+      clave: r,
+      titulo: `${titulo} · ${ORDINAL_PERSONA[n]}`,
+      descripcion: 'Recibe su propio enlace y también debe aprobar antes de pasar a la etapa siguiente.',
+      campos,
+    });
+  }
+  return secciones;
+}
+
+// Un lado completo del documento: la primera persona (o la compañía) y, si
+// hace falta, las demás personas de ese mismo lado.
+export function lado(
+  rol: string,
+  titulo: string,
+  extras: { tipoDocumento?: boolean; juridicaPorDefecto?: boolean; descripcion?: string; estadoCivil?: boolean } = {},
+): SeccionDefinicion[] {
+  return [parte(rol, titulo, extras), ...personasAdicionales(rol, titulo, extras)];
 }
 
 // El agente también es parte en los documentos donde actúa como corredor, y
@@ -296,7 +541,7 @@ const DEFINICIONES_VIVAS: Record<string, TipoDefinicion> = {
     nombreDocumento: 'CONTRATO DE CORRETAJE INMOBILIARIO',
     requiereInmueble: true,
     secciones: [
-      parte('propietario', 'Datos del propietario', { tipoDocumento: true }),
+      ...lado('propietario', 'Datos del propietario', { tipoDocumento: true }),
       parteAgente('corredor', 'Tú, como corredor'),
       {
         clave: 'exclusividad',
@@ -521,8 +766,8 @@ const DEFINICIONES_ARRENDAMIENTO: Record<string, TipoDefinicion> = {
     nombreDocumento: 'CONTRATO DE ARRENDAMIENTO DE VIVIENDA',
     requiereInmueble: true,
     secciones: [
-      parte('arrendador', 'Arrendador (propietario)'),
-      parte('arrendatario', 'Arrendatario (inquilino)'),
+      ...lado('arrendador', 'Arrendador (propietario)'),
+      ...lado('arrendatario', 'Arrendatario (inquilino)'),
       {
         clave: 'inmueble',
         titulo: 'El inmueble',
@@ -616,8 +861,8 @@ const DEFINICIONES_ARRENDAMIENTO: Record<string, TipoDefinicion> = {
     nombreDocumento: 'CONTRATO DE ARRENDAMIENTO COMERCIAL',
     requiereInmueble: true,
     secciones: [
-      parte('arrendador', 'Arrendador (propietario)'),
-      parte('arrendatario', 'Arrendatario'),
+      ...lado('arrendador', 'Arrendador (propietario)'),
+      ...lado('arrendatario', 'Arrendatario'),
       {
         clave: 'inmueble',
         titulo: 'El inmueble',
@@ -729,8 +974,8 @@ const DEFINICIONES_ARRENDAMIENTO: Record<string, TipoDefinicion> = {
     nombreDocumento: 'CONTRATO DE ARRENDAMIENTO INDUSTRIAL',
     requiereInmueble: true,
     secciones: [
-      parte('arrendador', 'Arrendadora', { juridicaPorDefecto: true }),
-      parte('arrendatario', 'Arrendataria', { juridicaPorDefecto: true }),
+      ...lado('arrendador', 'Arrendadora', { juridicaPorDefecto: true }),
+      ...lado('arrendatario', 'Arrendataria', { juridicaPorDefecto: true }),
       {
         clave: 'antecedentes',
         titulo: 'El inmueble y el uso',
@@ -886,8 +1131,8 @@ const DEFINICIONES_RESERVA: Record<string, TipoDefinicion> = {
     nombreDocumento: 'CONTRATO DE RESERVA DE COMPRAVENTA DE BIEN INMUEBLE',
     requiereInmueble: true,
     secciones: [
-      parte('vendedor', 'Parte vendedora', { estadoCivil: true }),
-      parte('comprador', 'Parte compradora', { estadoCivil: true }),
+      ...lado('vendedor', 'Parte vendedora', { estadoCivil: true }),
+      ...lado('comprador', 'Parte compradora', { estadoCivil: true }),
       parteAgente('corredor', 'Tú, como corredor'),
       {
         clave: 'antecedentes',
@@ -1052,7 +1297,7 @@ const DEFINICIONES_RESERVA: Record<string, TipoDefinicion> = {
     nombreDocumento: 'RESERVA DE ARRENDAMIENTO',
     requiereInmueble: true,
     secciones: [
-      parte('interesado', 'Datos del interesado'),
+      ...lado('interesado', 'Datos del interesado'),
       parteAgente('corredor', 'Tú, como agente'),
       {
         clave: 'reserva',
@@ -1221,9 +1466,10 @@ export function esContratoTipo(valor: unknown): valor is ContratoTipo {
 // aprobada una versión: los cambios quedan en la copia de trabajo hasta que se
 // envían como versión nueva. Un contrato anulado, uno del flujo de firma o uno
 // de tipo archivado ya no.
-export function esEditable(estado: ContratoEstado, tipo?: string): boolean {
+export function esEditable(estado: string, tipo?: string): boolean {
   if (tipo && esTipoArchivado(tipo)) return false;
-  return estado === 'BORRADOR' || estado === 'EN_APROBACION' || estado === 'APROBADO' || estado === 'RECHAZADO';
+  if (esEstadoDeFirmaLegado(estado)) return false;
+  return estadoVigente(estado) !== 'ANULADO';
 }
 
 export function correoValido(valor: string): boolean {
@@ -1243,7 +1489,8 @@ export function valorEfectivo(tipo: ContratoTipo, datos: Record<string, string>,
 
 export function campoVisible(tipo: ContratoTipo, campo: CampoDefinicion, datos: Record<string, string>): boolean {
   if (!campo.visibleSi) return true;
-  return campo.visibleSi.valores.includes(valorEfectivo(tipo, datos, campo.visibleSi.clave));
+  const condiciones = Array.isArray(campo.visibleSi) ? campo.visibleSi : [campo.visibleSi];
+  return condiciones.every((c) => c.valores.includes(valorEfectivo(tipo, datos, c.clave)));
 }
 
 // Devuelve los campos obligatorios que faltan, para que el formulario y la
@@ -1251,11 +1498,15 @@ export function campoVisible(tipo: ContratoTipo, campo: CampoDefinicion, datos: 
 export function camposFaltantes(tipo: ContratoTipo, datos: Record<string, string>): string[] {
   const faltan: string[] = [];
   for (const seccion of CONTRATO_DEFINICION[tipo].secciones) {
+    // En las personas adicionales de un lado, la etiqueta sola ("Cédula") no
+    // dice de quién falta: va con el título de su sección.
+    const prefijo = /_\d+$/.test(seccion.clave) ? `${seccion.titulo}: ` : '';
     for (const campo of seccion.campos) {
-      if (!campo.obligatorio || !campoVisible(tipo, campo, datos)) continue;
+      if (!campoVisible(tipo, campo, datos)) continue;
       const valor = valorEfectivo(tipo, datos, campo.clave);
-      if (!valor) faltan.push(campo.etiqueta);
-      else if (campo.tipo === 'correo' && !correoValido(valor)) faltan.push(`${campo.etiqueta} (formato no válido)`);
+      // Un correo opcional no se exige, pero si se escribió tiene que servir.
+      if (campo.tipo === 'correo' && valor && !correoValido(valor)) faltan.push(`${prefijo}${campo.etiqueta} (formato no válido)`);
+      else if (campo.obligatorio && !valor) faltan.push(`${prefijo}${campo.etiqueta}`);
     }
   }
   return faltan;
@@ -1284,7 +1535,10 @@ export type IdentidadParte = {
 
 export function identidadParte(tipo: ContratoTipo, datos: Record<string, string>, rol: string): IdentidadParte {
   const v = (clave: string) => valorEfectivo(tipo, datos, `${rol}_${clave}`);
-  const contacto = { correo: v('correo'), telefono: v('telefono'), domicilio: v('direccion') };
+  // Una persona adicional sin domicilio propio comparte el de la primera.
+  const base = rolBase(rol);
+  const domicilio = v('direccion') || (base !== rol ? valorEfectivo(tipo, datos, `${base}_direccion`) : '');
+  const contacto = { correo: v('correo'), telefono: v('telefono'), domicilio };
   if (v('tipoPersona') === 'JURIDICA') {
     const representante = { nombre: v('representante'), cedula: v('representanteCedula') };
     return {
@@ -1339,4 +1593,39 @@ export function identidadAgente(
     aprobador: persona,
     ...contacto,
   };
+}
+
+// ---------------------------------------------------------------------------
+// PARTES DEL DOCUMENTO CON SUS PERSONAS ADICIONALES
+// ---------------------------------------------------------------------------
+
+// Cuántas personas comparecen en un lado. Una compañía comparece sola, por su
+// representante.
+export function personasEnLado(tipo: ContratoTipo, datos: Record<string, string>, rol: string): number {
+  if (valorEfectivo(tipo, datos, `${rol}_tipoPersona`) === 'JURIDICA') return 1;
+  const campo = camposDe(tipo).find((c) => c.clave === `${rol}_personas`);
+  if (!campo) return 1;
+  const n = Number(valorEfectivo(tipo, datos, `${rol}_personas`));
+  return Number.isInteger(n) ? Math.min(Math.max(n, 1), MAX_PERSONAS_POR_LADO) : 1;
+}
+
+// Roles de las personas adicionales de un lado: "vendedor_2", "vendedor_3".
+export function rolesAdicionales(tipo: ContratoTipo, datos: Record<string, string>, rol: string): string[] {
+  const salida: string[] = [];
+  for (let n = 2; n <= personasEnLado(tipo, datos, rol); n += 1) salida.push(`${rol}_${n}`);
+  return salida;
+}
+
+export type ParteDocumento = ParteDefinicion & { rolBase: string };
+
+// Quiénes comparecen de verdad en este documento, en el orden de las líneas de
+// firma: cada parte de la definición seguida de las demás personas de su lado.
+export function partesDocumento(tipo: ContratoTipo, datos: Record<string, string>): ParteDocumento[] {
+  const salida: ParteDocumento[] = [];
+  for (const def of PARTES_POR_TIPO[tipo] ?? []) {
+    salida.push({ ...def, rolBase: def.rol });
+    if (def.esAgente) continue;
+    for (const rol of rolesAdicionales(tipo, datos, def.rol)) salida.push({ rol, etiqueta: def.etiqueta, rolBase: def.rol });
+  }
+  return salida;
 }

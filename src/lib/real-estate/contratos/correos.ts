@@ -204,3 +204,76 @@ export function correoCancelado(input: { nombreParte: string; nombreDocumento: s
   ].join('\n');
   return { subject, text, html };
 }
+
+// Al agente: su cliente aprobó y le toca decidir cuándo enviar la versión a la
+// contraparte. No se envía sola: quizá quiera llamar antes.
+export function correoAprobacionPrincipal(input: {
+  nombreAgente: string;
+  nombreDocumento: string;
+  numero: number;
+  quienes: string;
+  contraparte: string;
+  urlPanel: string;
+}): { subject: string; text: string; html: string } {
+  const subject = `${input.quienes} aprobó la versión ${input.numero}: ${input.nombreDocumento}`;
+  const html = MARCO(
+    'Tu cliente aprobó el borrador',
+    `<p style="${P}">Hola ${esc(input.nombreAgente)}:</p>
+     <p style="${P}">
+       <strong style="${FUERTE}">${esc(input.quienes)}</strong> aprobó la versión ${input.numero} de
+       <strong style="${FUERTE}">${esc(input.nombreDocumento)}</strong>.
+     </p>
+     <p style="${P}">Cuando lo decidas, envíasela a ${esc(input.contraparte)} desde el recorrido del contrato. No se envía sola.</p>
+     ${BOTON(input.urlPanel, `Enviar a ${esc(input.contraparte)}`)}`,
+  );
+  const text = [
+    `Hola ${input.nombreAgente}:`,
+    '',
+    `${input.quienes} aprobó la versión ${input.numero} de "${input.nombreDocumento}".`,
+    `Cuando lo decidas, envíasela a ${input.contraparte} desde el recorrido del contrato. No se envía sola.`,
+    '',
+    input.urlPanel,
+  ].join('\n');
+  return { subject, text, html };
+}
+
+// A la parte principal: el agente corrigió solo datos de la contraparte. Su
+// aprobación se conserva porque las condiciones no cambiaron, pero tiene
+// derecho a saberlo.
+export function correoCorreccionMenor(input: {
+  nombreParte: string;
+  nombreDocumento: string;
+  base: number;
+  numero: number;
+  campos: string[];
+  agente: { nombre: string; empresa: string | null };
+}): { subject: string; text: string; html: string } {
+  const subject = `Corrección de datos en ${input.nombreDocumento}`;
+  const remitente = input.agente.empresa ? `${input.agente.nombre} (${input.agente.empresa})` : input.agente.nombre;
+  const campos = input.campos.length > 0 ? input.campos : ['Datos de la contraparte'];
+  const html = MARCO(
+    'Se corrigieron datos de la otra parte',
+    `<p style="${P}">Estimado/a ${esc(input.nombreParte)}:</p>
+     <p style="${P}">
+       <strong style="${FUERTE}">${esc(remitente)}</strong> corrigió datos de la otra parte en
+       <strong style="${FUERTE}">${esc(input.nombreDocumento)}</strong> (versión ${input.numero}). Las condiciones que usted
+       aprobó en la versión ${input.base} no cambiaron, por eso su aprobación se mantiene.
+     </p>
+     <p style="margin:14px 0 6px;font-size:13px;font-weight:700;color:#1a1330;">Qué se corrigió</p>
+     <ul style="margin:0 0 6px;padding-left:20px;font-size:13.5px;line-height:1.6;color:#635a80;">${campos
+       .map((c) => `<li>${esc(c)}</li>`)
+       .join('')}</ul>
+     <p style="${P}">Si algo no le parece correcto, responda a este correo.</p>`,
+  );
+  const text = [
+    `Estimado/a ${input.nombreParte}:`,
+    '',
+    `${remitente} corrigió datos de la otra parte en "${input.nombreDocumento}" (versión ${input.numero}). Las condiciones que usted aprobó en la versión ${input.base} no cambiaron, por eso su aprobación se mantiene.`,
+    '',
+    'Qué se corrigió:',
+    ...campos.map((c) => `- ${c}`),
+    '',
+    'Si algo no le parece correcto, responda a este correo.',
+  ].join('\n');
+  return { subject, text, html };
+}

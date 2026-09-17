@@ -17,6 +17,8 @@ import {
   esTipoArchivado,
   identidadAgente,
   identidadParte,
+  partesDocumento,
+  rolesAdicionales,
   type ContratoTipo,
   type IdentidadParte,
 } from './tipos';
@@ -177,6 +179,13 @@ export function construirDocumento(input: EntradaDocumento): {
         .filter(Boolean)
         .map((v) => etiquetaDeOpcion(input.tipo, clave, v)),
     parte: (rol) => identidadDe(input, rol),
+    adicionales: (rol) =>
+      identidadDe(input, rol).juridica
+        ? []
+        : rolesAdicionales(input.tipo, input.datos, rol).map((r) => ({
+            identidad: identidadParte(input.tipo, input.datos, r),
+            estadoCivil: (input.datos[`${r}_estadoCivil`] ?? '').trim(),
+          })),
   };
 
   return {
@@ -189,10 +198,11 @@ export function construirDocumento(input: EntradaDocumento): {
   };
 }
 
-// Líneas de firma manuscrita, en el orden en que comparecen las partes. En una
-// compañía firma su representante, por ella.
+// Líneas de firma manuscrita, en el orden en que comparecen las partes, con una
+// línea por cada persona de un mismo lado. En una compañía firma su
+// representante, por ella.
 export function lineasDeFirma(input: EntradaDocumento): LineaFirma[] {
-  return (PARTES_POR_TIPO[input.tipo] ?? []).map((definicion) => {
+  return partesDocumento(input.tipo, input.datos).map((definicion) => {
     const p = identidadDe(input, definicion.rol);
     const pasaporte = p.tipoDocumento === 'pasaporte';
     return {

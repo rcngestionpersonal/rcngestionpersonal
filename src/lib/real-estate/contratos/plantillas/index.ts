@@ -19,6 +19,7 @@ import * as arrendamientoResidencialV1 from './arrendamiento-residencial-v1';
 import * as arrendamientoComercialV1 from './arrendamiento-comercial-v1';
 import * as arrendamientoIndustrialV1 from './arrendamiento-industrial-v1';
 import * as reservaCompraventaV3 from './reserva-compraventa-v3';
+import * as reservaCompraventaV4 from './reserva-compraventa-v4';
 import * as reservaArriendoV3 from './reserva-arriendo-v3';
 import type { ContratoTipo } from '../tipos';
 import type { EstiloNumeracion } from '../clausulas';
@@ -121,11 +122,14 @@ const REGISTRO: Record<ContratoTipo, LineaDeVersiones> = {
       [reservaArriendoV3.PLANTILLA_VERSION]: deUnTipo(reservaArriendoV3, true),
     },
   },
+  // La v4 (2026-09-17) quita la advertencia bajo el título y alinea la ficha con
+  // la cláusula de objeto. La v3 queda para los contratos que ya la usan.
   RESERVA_COMPRAVENTA: {
-    actual: reservaCompraventaV3.PLANTILLA_VERSION,
+    actual: reservaCompraventaV4.PLANTILLA_VERSION,
     versiones: {
       [v1.PLANTILLA_VERSION]: V1_GLOBAL,
       [reservaCompraventaV3.PLANTILLA_VERSION]: deUnTipo(reservaCompraventaV3, true),
+      [reservaCompraventaV4.PLANTILLA_VERSION]: deUnTipo(reservaCompraventaV4, true),
     },
   },
 };

@@ -926,15 +926,43 @@ enum ContratoTipo {
   ARRENDAMIENTO_INDUSTRIAL
 }
 
+// Flujo secuencial: primero aprueba el cliente del agente (etapa principal) y,
+// cuando el agente lo decide, la contraparte.
+//   BORRADOR -> EN_REVISION_PRINCIPAL -> APROBADO_PRINCIPAL
+//            -> EN_REVISION_CONTRAPARTE -> APROBADO_FINAL
+// Laterales: CAMBIOS_SOLICITADOS_*, VENCIDO y ANULADO.
+// Los valores del flujo anterior (EN_APROBACION, APROBADO, RECHAZADO y los de la
+// firma electronica) se migran con scripts/migrate-contratos-flujo-secuencial.ts.
 enum ContratoEstado {
   BORRADOR
-  // Legado: flujo de firma electronica, retirado. No se crean nuevos.
-  PENDIENTE_FIRMA
-  FIRMADO
-  RECHAZADO
+  EN_REVISION_PRINCIPAL
+  APROBADO_PRINCIPAL
+  EN_REVISION_CONTRAPARTE
+  APROBADO_FINAL
+  CAMBIOS_SOLICITADOS_PRINCIPAL
+  CAMBIOS_SOLICITADOS_CONTRAPARTE
+  VENCIDO
   ANULADO
-  EN_APROBACION
-  APROBADO
+}
+
+enum ContratoEtapa {
+  PRINCIPAL
+  CONTRAPARTE
+}
+
+enum ContratoEventoTipo {
+  CREACION
+  EDICION
+  ENVIO
+  ENVIO_SIMULTANEO
+  APERTURA
+  APROBACION
+  SOLICITUD_CAMBIOS
+  REENVIO
+  REGENERACION
+  CORRECCION_MENOR
+  VENCIMIENTO
+  ANULACION
 }
 
 enum ParteEstado {
@@ -979,6 +1007,14 @@ model Contrato {
 
   estado ContratoEstado @default(BORRADOR)
 
+  // A quien representa el agente: el lado que revisa primero ("VENDEDOR",
+  // "ARRENDADOR"...). null = el de por defecto del tipo, el propietario.
+  representa String?
+
+  // Vigencia de los enlaces que eligio el agente en su ultimo envio, en horas.
+  // null = la de por defecto del tipo (72 h las reservas, 120 h el resto).
+  vigenciaHoras Int?
+
   // Numero de la ultima version enviada. 0 = nunca se envio.
   versionActual Int @default(0)
 
@@ -1002,6 +1038,7 @@ model Contrato {
 
   partes    ContratoParte[]
   versiones ContratoVersion[]
+  eventos   ContratoEvento[]
 
   @@index([agentId, createdAt])
   @@index([estado])
@@ -1023,6 +1060,30 @@ model ContratoVersion {
 
   estado ContratoVersionEstado @default(EN_APROBACION)
 
+  // Etapas que tiene esta version, fijadas al enviarla: si despues el agente
+  // cambia a quien representa, lo enviado no cambia de reglas.
+  representa          String?
+  requierePrincipal   Boolean @default(true)
+  requiereContraparte Boolean @default(false)
+
+  // El agente eligio enviar a las dos etapas a la vez (no recomendado).
+  simultanea Boolean @default(false)
+  // Cuando el agente habilito a la contraparte. Sin esto (y sin envio
+  // simultaneo) ningun enlace de la contraparte abre ni decide nada.
+  contraparteEnviadaAt DateTime?
+  principalAprobadaAt  DateTime?
+
+  // Huella del documento con los datos de la contraparte tapados. Dos
+  // versiones con la misma huella de condiciones solo difieren en esos datos.
+  huellaCondiciones   String?
+  // Correccion menor: la aprobacion de la etapa principal se conserva de esta
+  // version anterior, que tenia las mismas condiciones.
+  principalHeredadaDe Int?
+
+  // Los datos del formulario con los que se congelo, cifrados. Permiten decir
+  // que campos cambiaron de una version a otra (nunca sus valores).
+  datosCifrados String?
+
   enviadaAt  DateTime  @default(now())
   aprobadaAt DateTime?
   // Cuando se rechazo, se reemplazo o se anulo.
@@ -1043,8 +1104,11 @@ model ContratoParte {
   version    ContratoVersion? @relation(fields: [versionId], references: [id], onDelete: Cascade)
   versionId  String?
 
-  // Rol dentro del documento: "propietario", "arrendatario"...
+  // Rol dentro del documento: "propietario", "arrendatario"... Las demas
+  // personas de un lado llevan sufijo: "vendedor_2".
   rol    String
+  // Etapa en la que aprueba: la de su lado.
+  etapa  ContratoEtapa @default(PRINCIPAL)
   // Quien aprueba. En una persona juridica, su representante legal.
   nombre String
   correo String
@@ -1054,10 +1118,12 @@ model ContratoParte {
   cedulaCifrada String
   cedulaUlt4    String
 
-  // Hash del token del enlace, nunca el token: si alguien lee la base de datos
-  // no puede aprobar por nadie. El token viaja solo en el correo.
-  tokenHash String   @unique
-  expiraAt  DateTime
+  // El enlace se busca por el hash de su token. El token se guarda ademas
+  // cifrado con ENCRYPTION_KEY para que el agente pueda volver a compartirlo
+  // por WhatsApp: sin la clave, leer la tabla no permite aprobar por nadie.
+  tokenHash    String   @unique
+  tokenCifrado String?
+  expiraAt     DateTime
 
   estado ParteEstado @default(ENVIADO)
 
@@ -1079,6 +1145,34 @@ model ContratoParte {
   @@index([versionId])
   @@index([estado, expiraAt])
   @@map("ContratoFirmante")
+}
+
+// Historial de un contrato: cada creacion, envio, apertura, aprobacion, pedido
+// de cambios, reenvio, edicion, vencimiento y anulacion. Solo se agregan filas.
+//
+// Lo que identifica a una persona (nombre, comentario, IP, navegador) va
+// cifrado en "detalleCifrado"; en claro quedan solo el tipo, la etapa, el rol,
+// la version y su huella, que sirven para ordenar y filtrar.
+model ContratoEvento {
+  id         String   @id @default(cuid())
+  contrato   Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  contratoId String
+
+  tipo  ContratoEventoTipo
+  // "AGENTE", "PARTE" o "SISTEMA" (un vencimiento lo detecta el sistema).
+  actor String
+
+  parteId       String?
+  rol           String?
+  etapa         ContratoEtapa?
+  versionNumero Int?
+  huella        String?
+
+  detalleCifrado String?
+
+  createdAt DateTime @default(now())
+
+  @@index([contratoId, createdAt])
 }
 
 // ---------------------------------------------------------------------------

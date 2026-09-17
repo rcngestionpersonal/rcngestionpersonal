@@ -8,7 +8,7 @@ import { ModuleHeader } from '../CardKit';
 import { IconContract } from '../icons';
 import ContratoFormulario from '../contratos/ContratoFormulario';
 import ContratoSeguimiento from '../contratos/ContratoSeguimiento';
-import type { ContratoResumen, DatosPantallaContratos } from '../contratos/tipos-cliente';
+import type { AlertaContrato, ContratoResumen, DatosPantallaContratos } from '../contratos/tipos-cliente';
 // Esta pantalla ya NO importa el catálogo de tipos a propósito: la etiqueta de
 // cada fila la resuelve el servidor. Un tipo que este despliegue no conozca se
 // dibuja degradado en vez de lanzar y dejar al agente sin módulo.
@@ -16,7 +16,8 @@ import { ENLACE_REVISION_ABOGADO, ENLACE_REVISION_ABOGADO_ETIQUETA } from '@/lib
 
 // Modulo "Contratos". Pestaña propia, feature Pro con bloqueo elegante en
 // Basico. Genera el documento, lo negocia version por version con aprobacion
-// de las partes y deja el recorrido documentado para la notaria.
+// de las partes -primero el cliente del agente, despues la contraparte- y deja
+// el recorrido documentado para la notaria.
 
 type Vista =
   | { modo: 'lista' }
@@ -44,7 +45,17 @@ export default function ContratosTab({ suscripcion }: { suscripcion: AccesoInput
   );
 }
 
-const ESTADOS_CONOCIDOS = ['BORRADOR', 'EN_APROBACION', 'APROBADO', 'RECHAZADO', 'ANULADO', 'PENDIENTE_FIRMA', 'FIRMADO'];
+const ESTADOS_CONOCIDOS = [
+  'BORRADOR',
+  'EN_REVISION_PRINCIPAL',
+  'APROBADO_PRINCIPAL',
+  'EN_REVISION_CONTRAPARTE',
+  'APROBADO_FINAL',
+  'CAMBIOS_SOLICITADOS_PRINCIPAL',
+  'CAMBIOS_SOLICITADOS_CONTRAPARTE',
+  'VENCIDO',
+  'ANULADO',
+];
 
 // "No se pudo cargar" y "todavía no tienes contratos" son cosas distintas y
 // antes se veían casi igual. Esto guarda POR QUÉ falló, para poder decirlo.
@@ -193,6 +204,8 @@ function Panel({ t }: { t: (k: string) => string }) {
         </div>
       </div>
 
+      {(datos.alertas ?? []).length > 0 ? <Alertas t={t} alertas={datos.alertas} onAbrir={(id) => setVista({ modo: 'seguimiento', id })} /> : null}
+
       {datos.contratos.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-line px-4 py-8 text-center text-sm text-text-2">
           {t('contratos.sinContratos')}
@@ -227,6 +240,7 @@ function Fila({
   const soloLectura = contrato.archivado || contrato.deFirma || contrato.estado === 'ANULADO';
   const nuncaEnviado = contrato.estado === 'BORRADOR' && (contrato.versionActual ?? 0) === 0;
   const estado = ESTADOS_CONOCIDOS.includes(contrato.estado) ? contrato.estado : 'BORRADOR';
+  const etiquetaEstado = contrato.deFirma ? t('contratos.filaDeFirma.corta') : t(`contratos.estado.${estado}`);
 
   return (
     <li className="rounded-2xl border border-line bg-surface p-4">
@@ -245,16 +259,18 @@ function Fila({
         </div>
         <span
           className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold ${
-            estado === 'APROBADO' || estado === 'FIRMADO'
-              ? 'border-accent-line bg-accent-dim text-accent'
-              : estado === 'EN_APROBACION'
-                ? 'border-brand-line bg-brand-dim text-brand'
-                : estado === 'RECHAZADO'
-                  ? 'border-danger text-danger'
-                  : 'border-line bg-surface-2 text-text-2'
+            contrato.deFirma
+              ? 'border-line bg-surface-2 text-text-2'
+              : estado === 'APROBADO_FINAL' || estado === 'APROBADO_PRINCIPAL'
+                ? 'border-accent-line bg-accent-dim text-accent'
+                : estado === 'EN_REVISION_PRINCIPAL' || estado === 'EN_REVISION_CONTRAPARTE'
+                  ? 'border-brand-line bg-brand-dim text-brand'
+                  : estado.startsWith('CAMBIOS_SOLICITADOS') || estado === 'VENCIDO'
+                    ? 'border-danger text-danger'
+                    : 'border-line bg-surface-2 text-text-2'
           }`}
         >
-          {t(`contratos.estado.${estado}`)}
+          {etiquetaEstado}
         </span>
       </div>
 
@@ -300,5 +316,37 @@ function Fila({
         </a>
       </div>
     </li>
+  );
+}
+
+// Lo que el agente tiene que atender: su cliente aprobó y falta enviar a la
+// contraparte, alguien pidió cambios, un enlace vence en menos de 24 horas o ya
+// venció. Solo avisos: nada se envía solo a los clientes.
+function Alertas({ t, alertas, onAbrir }: { t: (k: string) => string; alertas: AlertaContrato[]; onAbrir: (id: string) => void }) {
+  return (
+    <section className="rounded-2xl border border-brand-line bg-surface p-4">
+      <p className="text-xs font-bold uppercase tracking-[0.1em] text-text-2">{t('contratos.alertas.titulo')}</p>
+      <ul className="mt-2 space-y-2">
+        {alertas.map((a, i) => (
+          <li key={`${a.contratoId}-${a.tipo}-${i}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line px-3 py-2.5">
+            <p className="min-w-0 flex-1 text-[13px] leading-relaxed text-text">
+              {t(`contratos.alerta.${a.tipo}`)
+                .replace('{quien}', a.quien || t('contratos.alguien'))
+                .replace('{tipo}', a.tipoEtiqueta.toLowerCase())
+                .replace('{etapa}', (a.etapa ?? t('contratos.laContraparte')).toLowerCase())
+                .replace('{horas}', String(a.horas ?? ''))}
+            </p>
+            <button
+              onClick={() => onAbrir(a.contratoId)}
+              className={`min-h-[40px] shrink-0 rounded-lg border px-3 text-xs font-semibold transition ${
+                a.tipo === 'enviar_contraparte' ? 'border-accent-line bg-accent-dim text-accent' : 'border-line-strong text-text hover:bg-surface-2'
+              }`}
+            >
+              {a.tipo === 'enviar_contraparte' ? t('contratos.alerta.enviar') : t('contratos.alerta.abrir')}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

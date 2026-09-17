@@ -8,15 +8,16 @@ import {
   ENLACE_EXPLICAR_CLIENTE_ETIQUETA,
   ENLACE_REVISION_ABOGADO,
   ENLACE_REVISION_ABOGADO_ETIQUETA,
-  PARTES_POR_TIPO,
   campoVisible,
   camposFaltantes,
-  identidadParte,
+  ladosDelTipo,
   type CampoDefinicion,
   type ContratoTipo,
+  type Etapa,
 } from '@/lib/real-estate/contratos/tipos';
 import type { CambiosEntreVersiones } from '@/lib/real-estate/contratos/clausulas';
 import ContratoClausulas from './ContratoClausulas';
+import { Dialogo, reemplazar as rellenar, textoVigencia } from './ContratoSeguimiento';
 import VistaDocumento from './VistaDocumento';
 import type { ContratoCompleto, DocumentoTrabajo, ListingOpcion, PlantillaVigente } from './tipos-cliente';
 
@@ -89,6 +90,9 @@ export default function ContratoFormulario({
   const [tipo, setTipo] = useState<ContratoTipo | null>(null);
   const [listingId, setListingId] = useState<string | null>(listings[0]?.id ?? null);
   const [datos, setDatos] = useState<Record<string, string>>({});
+  // A quién representa el agente: su cliente revisa primero.
+  const [representa, setRepresenta] = useState<string | null>(null);
+  const representaRef = useRef<string | null>(null);
   const [id, setId] = useState<string | null>(contratoId);
   const [paso, setPaso] = useState<Paso>(pasoInicial);
   const [versionActual, setVersionActual] = useState(0);
@@ -119,6 +123,8 @@ export default function ContratoFormulario({
         setTipo(c.tipo);
         setListingId(c.listingId);
         setDatos(c.datos);
+        setRepresenta(c.representa);
+        representaRef.current = c.representa;
         setVersionActual(c.versionActual);
       } finally {
         setCargando(false);
@@ -129,6 +135,9 @@ export default function ContratoFormulario({
   // Valores por defecto al elegir el tipo, más lo que ya sabe el inventario.
   function elegirTipo(nuevo: ContratoTipo) {
     setTipo(nuevo);
+    const porDefecto = ladosDelTipo(nuevo)?.porDefecto ?? null;
+    setRepresenta(porDefecto);
+    representaRef.current = porDefecto;
     const iniciales: Record<string, string> = {};
     for (const seccion of CONTRATO_DEFINICION[nuevo].secciones) {
       for (const campo of seccion.campos) {
@@ -151,7 +160,7 @@ export default function ContratoFormulario({
             const r = await fetch('/api/real-estate/contratos', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ tipo: tipoActual, listingId: listing, datos: siguientes }),
+              body: JSON.stringify({ tipo: tipoActual, listingId: listing, datos: siguientes, ...(representaRef.current ? { representa: representaRef.current } : {}) }),
             });
             const d = await r.json().catch(() => ({}));
             if (!r.ok) {
@@ -172,7 +181,7 @@ export default function ContratoFormulario({
         const r = await fetch(`/api/real-estate/contratos/${idActual}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ datos: siguientes, listingId: listing }),
+          body: JSON.stringify({ datos: siguientes, listingId: listing, ...(representaRef.current ? { representa: representaRef.current } : {}) }),
         });
         if (!r.ok) {
           const d = await r.json().catch(() => ({}));
@@ -309,6 +318,35 @@ export default function ContratoFormulario({
             </p>
           ) : null}
 
+          {(ladosDelTipo(tipo)?.lados.length ?? 0) > 1 ? (
+            <section className="rounded-2xl border border-line bg-surface p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.1em] text-text-2">{t('contratos.representa.titulo')}</p>
+              <div className="mt-2 grid grid-cols-2 gap-1.5">
+                {ladosDelTipo(tipo)?.lados.map((l) => {
+                  const activo = (representa ?? ladosDelTipo(tipo)?.porDefecto) === l.clave;
+                  return (
+                    <button
+                      key={l.clave}
+                      type="button"
+                      aria-pressed={activo}
+                      onClick={() => {
+                        setRepresenta(l.clave);
+                        representaRef.current = l.clave;
+                        void guardar(datos, tipo, listingId);
+                      }}
+                      className={`min-h-[44px] rounded-xl border px-2 text-[13px] font-semibold transition ${
+                        activo ? 'border-brand-line bg-brand-dim text-brand' : 'border-line text-text-2 hover:bg-surface-2'
+                      }`}
+                    >
+                      {l.etiqueta}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-[12px] leading-relaxed text-text-3">{t('contratos.representa.ayuda')}</p>
+            </section>
+          ) : null}
+
           {definicion.ayuda ? (
             <p className="rounded-2xl border border-line bg-surface-2 px-4 py-3 text-[13px] leading-relaxed text-text-2">{definicion.ayuda}</p>
           ) : null}
@@ -389,7 +427,7 @@ export default function ContratoFormulario({
       ) : null}
 
       {paso === 'revisar' && id ? (
-        <Revisar t={t} tipo={tipo} contratoId={id} datos={datos} onIrADatos={() => void irA('datos')} onEnviado={onEnviado} />
+        <Revisar t={t} contratoId={id} onIrADatos={() => void irA('datos')} onEnviado={onEnviado} />
       ) : null}
 
       {/* Dos enlaces con públicos distintos: uno orienta sobre cuándo conviene
@@ -440,25 +478,24 @@ export function hayCambios(c: CambiosEntreVersiones | null): boolean {
 
 function Revisar({
   t,
-  tipo,
   contratoId,
-  datos,
   onIrADatos,
   onEnviado,
 }: {
   t: (k: string) => string;
-  tipo: ContratoTipo;
   contratoId: string;
-  datos: Record<string, string>;
   onIrADatos: () => void;
   onEnviado: (id: string) => void;
 }) {
   const [doc, setDoc] = useState<DocumentoTrabajo | null>(null);
   const [error, setError] = useState('');
   const [leyendo, setLeyendo] = useState(false);
-  const [confirmar, setConfirmar] = useState(false);
+  const [confirmar, setConfirmar] = useState<{ destino: Etapa; correccionMenor: boolean } | null>(null);
   const [avisoWord, setAvisoWord] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const [vigencia, setVigencia] = useState<number | null>(null);
+  const [porCorreo, setPorCorreo] = useState(true);
+  const [simultaneo, setSimultaneo] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -471,21 +508,26 @@ function Revisar({
     })();
   }, [contratoId, t]);
 
-  // Quiénes reciben la versión: las partes que no son el agente, con quien
-  // aprueba por cada una.
-  const destinatarios = PARTES_POR_TIPO[tipo]
-    .filter((p) => !p.esAgente)
-    .map((p) => ({ definicion: p, identidad: identidadParte(tipo, datos, p.rol) }));
-
   async function enviar() {
+    if (!doc || !confirmar) return;
     setEnviando(true);
     setError('');
     try {
-      const r = await fetch(`/api/real-estate/contratos/${contratoId}/enviar`, { method: 'POST' });
+      const r = await fetch(`/api/real-estate/contratos/${contratoId}/enviar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destino: confirmar.destino,
+          correccionMenor: confirmar.correccionMenor,
+          simultaneo: confirmar.destino === 'PRINCIPAL' && simultaneo,
+          porCorreo,
+          vigenciaHoras: vigencia ?? doc.envio.vigenciaHoras,
+        }),
+      });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) {
         setError(d.faltantes?.length ? `${d.error} ${d.faltantes.join(', ')}` : (d.error ?? t('contratos.error.enviar')));
-        setConfirmar(false);
+        setConfirmar(null);
         return;
       }
       onEnviado(contratoId);
@@ -504,13 +546,30 @@ function Revisar({
     );
   }
 
+  const { envio } = doc;
   const siguiente = doc.versionActual + 1;
   const cambios = doc.cambiosSinEnviar;
-  const sinCambiosDesdeUltima = doc.versionActual > 0 && !hayCambios(cambios);
-  const puedeEnviar = doc.editable && doc.faltantes.length === 0 && !sinCambiosDesdeUltima && !enviando;
+  const principal = envio.etiquetas.PRINCIPAL;
+  const contraparte = envio.etiquetas.CONTRAPARTE;
+  const valores = {
+    principal: principal?.toLowerCase() ?? t('contratos.tuCliente'),
+    contraparte: contraparte?.toLowerCase() ?? t('contratos.laContraparte'),
+    n: envio.vigente?.numero ?? doc.versionActual,
+  };
+  const reemplazar = (texto: string, extra: Record<string, string | number> = {}) => rellenar(texto, { ...valores, ...extra });
+
+  const completo = doc.editable && doc.faltantes.length === 0;
+  const primera = envio.primera;
+  const enRevisionSinCambios = !envio.hayCambios && envio.vigente?.estado === 'EN_APROBACION' && !envio.puedeEnviarContraparte;
+  const destinatariosDe = (etapa: Etapa) => envio.destinatarios[etapa];
+  const hayCorreo = (etapa: Etapa) => destinatariosDe(etapa).some((d) => d.correo);
 
   return (
     <div className="space-y-4">
+      {doc.avisoSinRevisar ? (
+        <p className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-[13px] leading-relaxed text-text">{doc.avisoSinRevisar}</p>
+      ) : null}
+
       <section className="rounded-2xl border border-line bg-surface p-4">
         {doc.versionActual === 0 ? (
           <p className="text-[13.5px] leading-relaxed text-text-2">{t('contratos.revisar.sinEnviar')}</p>
@@ -535,27 +594,37 @@ function Revisar({
         </div>
       ) : null}
 
+      {/* El orden de revisión, con nombres. */}
       <section className="rounded-2xl border border-line bg-surface p-4">
-        <p className="text-xs font-bold uppercase tracking-[0.1em] text-text-2">
-          {t('contratos.revisar.quienes').replace('{n}', String(siguiente))}
-        </p>
-        <ul className="mt-2 space-y-2">
-          {destinatarios.map(({ definicion, identidad }) => (
-            <li key={definicion.rol} className="rounded-xl border border-line bg-surface-2 p-3">
-              <p className="text-sm font-semibold text-text">
-                {identidad.aprobador.nombre || '—'}{' '}
-                <span className="font-normal text-text-3">· {definicion.etiqueta.toLowerCase()}</span>
+        <p className="text-xs font-bold uppercase tracking-[0.1em] text-text-2">{t('contratos.revisar.flujo.titulo')}</p>
+        {(['PRINCIPAL', 'CONTRAPARTE'] as Etapa[])
+          .filter((e) => envio.etiquetas[e])
+          .map((e, i, lista) => (
+            <div key={e} className="mt-3">
+              <p className="text-[13px] font-semibold text-text">
+                {i + 1}. {envio.etiquetas[e]}
+                <span className="font-normal text-text-3">
+                  {' '}
+                  · {i === 0 ? t('contratos.revisar.flujo.primero') : t('contratos.revisar.flujo.despues')}
+                </span>
               </p>
-              {identidad.juridica ? (
-                <p className="text-xs text-text-2">{t('contratos.revisar.porCompania').replace('{compania}', identidad.nombre || '—')}</p>
-              ) : null}
-              <p className="text-xs text-text-2">{identidad.correo || '—'}</p>
-              <p className="text-[11px] text-text-3">
-                {t('contratos.confirmar.cedula')} ••••{identidad.aprobador.cedula.replace(/\D/g, '').slice(-4)}
-              </p>
-            </li>
+              <ul className="mt-1.5 space-y-1.5">
+                {destinatariosDe(e).map((d) => (
+                  <li key={d.rol} className="rounded-xl border border-line bg-surface-2 px-3 py-2">
+                    <p className="text-sm font-semibold text-text">
+                      {d.nombre || '—'} <span className="font-normal text-text-3">· {d.rolEtiqueta.toLowerCase()}</span>
+                    </p>
+                    {d.compania ? <p className="text-xs text-text-2">{t('contratos.revisar.porCompania').replace('{compania}', d.compania)}</p> : null}
+                    <p className="text-xs text-text-2">
+                      {[d.telefono, d.correo].filter(Boolean).join(' · ') || '—'}
+                      {d.cedulaUlt4 ? ` · ${t('contratos.confirmar.cedula')} ••••${d.cedulaUlt4}` : ''}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+              {i < lista.length - 1 ? <p className="mt-2 text-center text-text-3" aria-hidden="true">↓</p> : null}
+            </div>
           ))}
-        </ul>
       </section>
 
       <section className="rounded-2xl border border-line bg-surface p-4">
@@ -575,14 +644,59 @@ function Revisar({
 
       {error ? <p className="rounded-xl border border-danger bg-danger-dim px-3.5 py-2.5 text-sm text-danger">{error}</p> : null}
 
+      {/* Qué envío corresponde ahora. */}
       <div className="flex flex-col gap-2">
-        <button
-          onClick={() => setConfirmar(true)}
-          disabled={!puedeEnviar}
-          className="gradient-btn min-h-[52px] rounded-xl px-6 text-base font-bold text-grad-contrast disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {doc.versionActual === 0 ? t('contratos.enviarAprobacion') : t('contratos.enviarVersion').replace('{n}', String(siguiente))}
-        </button>
+        {envio.puedeEnviarContraparte ? (
+          <>
+            <p className="rounded-2xl border border-accent-line bg-accent-dim px-4 py-3 text-[13px] leading-relaxed text-accent">
+              {reemplazar(t('contratos.revisar.contraparteLista'))}
+            </p>
+            <button
+              onClick={() => setConfirmar({ destino: 'CONTRAPARTE', correccionMenor: false })}
+              disabled={!completo}
+              className="gradient-btn min-h-[52px] rounded-xl px-6 text-base font-bold text-grad-contrast disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {reemplazar(t('contratos.enviarA'), { etapa: valores.contraparte })}
+            </button>
+          </>
+        ) : envio.correccionMenorPosible ? (
+          <>
+            <div className="rounded-2xl border border-brand-line bg-brand-dim px-4 py-3">
+              <p className="text-[13.5px] font-semibold text-brand">{reemplazar(t('contratos.revisar.correccion.titulo'))}</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-text-2">{reemplazar(t('contratos.revisar.correccion.detalle'))}</p>
+            </div>
+            <button
+              onClick={() => setConfirmar({ destino: 'CONTRAPARTE', correccionMenor: true })}
+              disabled={!completo}
+              className="gradient-btn min-h-[52px] rounded-xl px-6 text-base font-bold text-grad-contrast disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {reemplazar(t('contratos.revisar.correccion.boton'))}
+            </button>
+            <button
+              onClick={() => setConfirmar({ destino: 'PRINCIPAL', correccionMenor: false })}
+              disabled={!completo}
+              className="min-h-[48px] rounded-xl border border-line-strong px-6 text-sm font-semibold text-text transition hover:bg-surface-2 disabled:opacity-50"
+            >
+              {reemplazar(t('contratos.revisar.correccion.alternativa'))}
+            </button>
+          </>
+        ) : enRevisionSinCambios ? (
+          <p className="rounded-2xl border border-line bg-surface-2 px-4 py-3 text-[13px] leading-relaxed text-text-2">{reemplazar(t('contratos.revisar.enRevision'))}</p>
+        ) : primera ? (
+          <>
+            {doc.versionActual > 0 && primera === 'PRINCIPAL' && contraparte ? (
+              <p className="text-[12.5px] leading-relaxed text-text-3">{reemplazar(t('contratos.revisar.vuelvePrincipal'))}</p>
+            ) : null}
+            <button
+              onClick={() => setConfirmar({ destino: primera, correccionMenor: false })}
+              disabled={!completo || (!envio.hayCambios && envio.vigente?.estado === 'APROBADA')}
+              className="gradient-btn min-h-[52px] rounded-xl px-6 text-base font-bold text-grad-contrast disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {reemplazar(t('contratos.enviarA'), { etapa: (envio.etiquetas[primera] ?? '').toLowerCase() })}
+            </button>
+          </>
+        ) : null}
+
         <div className="grid gap-2 sm:grid-cols-2">
           <a
             href={`/api/real-estate/contratos/${contratoId}/archivo?trabajo=1&previa=1`}
@@ -604,9 +718,7 @@ function Revisar({
       {avisoWord ? (
         <Dialogo onCerrar={() => setAvisoWord(false)}>
           <h4 className="text-base font-bold text-text">{t('contratos.word')}</h4>
-          <p className="mt-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-[14px] leading-relaxed text-text">
-            {doc.avisoWord}
-          </p>
+          <p className="mt-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-[14px] leading-relaxed text-text">{doc.avisoWord}</p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row-reverse">
             <a
               href={`/api/real-estate/contratos/${contratoId}/word`}
@@ -626,51 +738,76 @@ function Revisar({
       ) : null}
 
       {confirmar ? (
-        <Dialogo onCerrar={() => setConfirmar(false)}>
-          <h4 className="text-base font-bold text-text">{t('contratos.confirmar.titulo')}</h4>
+        <Dialogo onCerrar={() => setConfirmar(null)}>
+          <h4 className="text-base font-bold text-text">
+            {reemplazar(t('contratos.enviarA'), { etapa: (envio.etiquetas[confirmar.destino] ?? '').toLowerCase() })}
+          </h4>
           <p className="mt-1 text-[13px] leading-relaxed text-text-2">
-            {t('contratos.confirmar.detalle').replace('{n}', String(siguiente))}
+            {t('contratos.confirmar.detalle').replace('{n}', String(confirmar.destino === 'CONTRAPARTE' && !confirmar.correccionMenor ? valores.n : siguiente))}
           </p>
-          <ul className="mt-4 space-y-2">
-            {destinatarios.map(({ definicion, identidad }) => (
-              <li key={definicion.rol} className="rounded-xl border border-line bg-surface p-3">
-                <p className="text-sm font-semibold text-text">{identidad.aprobador.nombre || '—'}</p>
-                <p className="text-xs text-text-2">{identidad.correo || '—'}</p>
+          <ul className="mt-3 space-y-2">
+            {[...destinatariosDe(confirmar.destino), ...(confirmar.destino === 'PRINCIPAL' && simultaneo ? destinatariosDe('CONTRAPARTE') : [])].map((d) => (
+              <li key={d.rol} className="rounded-xl border border-line bg-surface p-3">
+                <p className="text-sm font-semibold text-text">
+                  {d.nombre || '—'} <span className="font-normal text-text-3">· {d.rolEtiqueta.toLowerCase()}</span>
+                </p>
+                <p className="text-xs text-text-2">{[d.telefono, d.correo].filter(Boolean).join(' · ') || '—'}</p>
               </li>
             ))}
           </ul>
+
+          <label className="mt-4 block">
+            <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.1em] text-text-2">{t('contratos.vigencia')}</span>
+            <select
+              value={vigencia ?? envio.vigenciaHoras}
+              onChange={(e) => setVigencia(Number(e.target.value))}
+              className="min-h-[44px] w-full rounded-xl border border-line-strong bg-surface-2 px-3.5 text-sm text-text"
+            >
+              {envio.vigencias.map((h) => (
+                <option key={h} value={h}>
+                  {textoVigencia(t, h)}
+                </option>
+              ))}
+            </select>
+          </label>
+          {hayCorreo(confirmar.destino) ? (
+            <label className="mt-3 flex cursor-pointer items-start gap-3 py-1">
+              <input type="checkbox" checked={porCorreo} onChange={(e) => setPorCorreo(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0" />
+              <span className="text-[13.5px] leading-relaxed text-text-2">{t('contratos.porCorreo')}</span>
+            </label>
+          ) : null}
+
+          {/* Opción avanzada, apagada por defecto. */}
+          {confirmar.destino === 'PRINCIPAL' && contraparte && !confirmar.correccionMenor ? (
+            <details className="mt-3 rounded-xl border border-line px-3 py-2">
+              <summary className="min-h-[36px] cursor-pointer py-2 text-[13px] font-semibold text-text-2">{t('contratos.revisar.avanzado')}</summary>
+              <label className="mt-1 flex cursor-pointer items-start gap-3 py-1">
+                <input type="checkbox" checked={simultaneo} onChange={(e) => setSimultaneo(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0" />
+                <span className="text-[13.5px] leading-relaxed text-text">{reemplazar(t('contratos.revisar.simultaneo'))}</span>
+              </label>
+              <p className={`mt-1 rounded-lg px-3 py-2 text-[12.5px] leading-relaxed ${simultaneo ? 'border border-danger bg-danger-dim text-danger' : 'text-text-3'}`}>
+                {t('contratos.revisar.simultaneo.aviso')}
+              </p>
+            </details>
+          ) : null}
+
           <div className="mt-4 flex flex-col gap-2 sm:flex-row-reverse">
             <button
               onClick={() => void enviar()}
               disabled={enviando}
-              className="gradient-btn min-h-[44px] rounded-xl px-6 text-sm font-bold text-grad-contrast disabled:opacity-50 sm:min-w-[160px]"
+              className="gradient-btn min-h-[48px] rounded-xl px-6 text-sm font-bold text-grad-contrast disabled:opacity-50 sm:min-w-[160px]"
             >
               {enviando ? t('contratos.enviando') : t('contratos.confirmar.enviar')}
             </button>
             <button
-              onClick={() => setConfirmar(false)}
-              className="min-h-[44px] rounded-xl border border-line px-6 text-sm font-semibold text-text-2 transition hover:bg-surface-2"
+              onClick={() => setConfirmar(null)}
+              className="min-h-[48px] rounded-xl border border-line px-6 text-sm font-semibold text-text-2 transition hover:bg-surface-2"
             >
               {t('common.cancelar')}
             </button>
           </div>
         </Dialogo>
       ) : null}
-    </div>
-  );
-}
-
-function Dialogo({ children, onCerrar }: { children: React.ReactNode; onCerrar: () => void }) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-6"
-      role="dialog"
-      aria-modal="true"
-      onClick={onCerrar}
-    >
-      <div className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-bg-alt p-5 sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        {children}
-      </div>
     </div>
   );
 }

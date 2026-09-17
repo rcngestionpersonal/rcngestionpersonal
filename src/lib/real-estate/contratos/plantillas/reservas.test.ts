@@ -118,11 +118,48 @@ describe.each(['RESERVA_COMPRAVENTA', 'RESERVA_ARRIENDO'] as const)('%s', (tipo)
 });
 
 describe('reserva de compraventa', () => {
-  it('advierte arriba que no es una promesa de compraventa', () => {
-    const bloques = doc('RESERVA_COMPRAVENTA').bloques;
-    expect(bloques[0].tipo).toBe('titulo');
-    expect(bloques[1]).toMatchObject({ tipo: 'aviso' });
-    expect((bloques[1] as { texto: string }).texto).toContain('no una promesa de compraventa');
+  it('ya no repite bajo el título que no es una promesa: lo dice la cláusula de naturaleza jurídica', () => {
+    const d = doc('RESERVA_COMPRAVENTA');
+    expect(d.bloques[0].tipo).toBe('titulo');
+    expect(d.bloques.some((b) => b.tipo === 'aviso')).toBe(false);
+    expect(d.texto).not.toContain('no una promesa de compraventa');
+    expect(clausula(d.bloques, 'naturaleza').texto).toContain('No constituye, por sí mismo, promesa de compraventa');
+  });
+
+  it('la ficha describe el inmueble igual que la cláusula tercera', () => {
+    const d = doc('RESERVA_COMPRAVENTA', { predio: '123456' });
+    const ficha = d.bloques.find((b) => b.tipo === 'ficha');
+    const inmueble = ficha && 'filas' in ficha ? ficha.filas.find((f) => f.etiqueta === 'Inmueble')?.valor : '';
+    const objeto = clausula(d.bloques, 'objeto');
+    expect(objeto.encabezado).toContain('TERCERA');
+    expect(inmueble).toBe('un departamento de prueba, ubicado en Quito, predio N.º 123456.');
+    expect(objeto.texto).toContain(`reserva del siguiente bien inmueble: ${inmueble} Los linderos`);
+  });
+
+  it('la v4 no cambia el texto de las cláusulas de la v3', () => {
+    const v4 = doc('RESERVA_COMPRAVENTA').bloques;
+    const entradaV3 = { version: 'reserva-compraventa-v3-2026-09' };
+    const v3 = prepararDocumento({
+      tipo: 'RESERVA_COMPRAVENTA',
+      ...entradaV3,
+      datos: datos('RESERVA_COMPRAVENTA'),
+      agente: {
+        nombre: 'Agente de Prueba',
+        cedula: '1700000001',
+        ruc: null,
+        licencia: 'LIC-0001',
+        direccion: 'Calle Ficticia 1, Quito',
+        telefono: '+593 99 000 0001',
+        correo: 'agente@ejemplo.test',
+        ciudad: 'Quito',
+      },
+      inmueble: { descripcion: 'un departamento de prueba', ubicacion: 'Quito', caracteristicas: '' },
+      fecha: new Date('2026-09-16T12:00:00Z'),
+    }).bloques;
+    const clausulasDe = (b: BloqueFinal[]) => b.filter((x) => x.tipo === 'clausula');
+    expect(clausulasDe(v4)).toEqual(clausulasDe(v3));
+    // La v3 conserva su advertencia: así se congeló lo que ya se envió con ella.
+    expect(v3.some((b) => b.tipo === 'aviso')).toBe(true);
   });
 
   it('calcula el saldo en la ficha', () => {

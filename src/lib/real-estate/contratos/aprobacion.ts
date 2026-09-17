@@ -1,17 +1,17 @@
 import crypto from 'crypto';
 import { decryptAtRest, encryptAtRest } from '@/lib/real-estate/payments/encryption';
 import type { BloqueFinal } from './clausulas';
-import { APROBACION_VIGENCIA_DIAS, type ContratoTipo } from './tipos';
+import type { ContratoTipo } from './tipos';
 
 // Mecánica de la aprobación de borrador: enlaces personales, identificación de
 // quien aprueba, registro de cada decisión y documento congelado de cada
 // versión.
 //
-// El token del enlace se genera con 32 bytes de aleatoriedad criptográfica y
-// NUNCA se guarda: en la base vive solo su SHA-256. Si alguien lee la tabla no
-// puede aprobar por nadie, porque del hash no se vuelve al token. El token
-// existe únicamente en el correo de la parte, y ese buzón es la credencial (sin
-// login).
+// El token del enlace se genera con 32 bytes de aleatoriedad criptográfica. Se
+// busca por su SHA-256, y el token mismo se guarda solo CIFRADO con la clave de
+// la plataforma: el agente necesita volver a compartir el enlace por WhatsApp
+// sin invalidarlo, pero quien lea la tabla sin la clave no puede aprobar por
+// nadie. El enlace es la credencial de la parte (sin login).
 
 export function generarToken(): { token: string; hash: string } {
   const token = crypto.randomBytes(32).toString('base64url');
@@ -22,8 +22,21 @@ export function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token, 'utf8').digest('hex');
 }
 
-export function fechaExpiracion(desde = new Date()): Date {
-  return new Date(desde.getTime() + APROBACION_VIGENCIA_DIAS * 24 * 60 * 60 * 1000);
+export function fechaExpiracion(horas: number, desde = new Date()): Date {
+  return new Date(desde.getTime() + horas * 60 * 60 * 1000);
+}
+
+export function cifrarToken(token: string): string {
+  return encryptAtRest(token);
+}
+
+export function descifrarToken(guardado: string | null): string | null {
+  if (!guardado) return null;
+  try {
+    return decryptAtRest(guardado);
+  } catch {
+    return null;
+  }
 }
 
 // Código público del documento (/c/[codigo]). Corto para poder dictarlo por
@@ -177,6 +190,7 @@ export function describirNavegador(userAgent: string | null): string {
   return `${navegador} en ${sistema}`;
 }
 
+// Fecha y hora en Ecuador continental, para el historial.
 export function fechaConZona(fecha: Date | null): string | null {
   if (!fecha) return null;
   return `${fecha.toLocaleString('es-EC', { dateStyle: 'medium', timeStyle: 'medium', timeZone: 'America/Guayaquil' })} (GMT-5)`;

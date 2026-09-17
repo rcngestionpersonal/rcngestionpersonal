@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { isEmailConfigured, sendEmailNotification } from '@/lib/real-estate/email';
 import {
   agenteConContratos,
+  baseUrl,
   cambiosSinEnviar,
   congelada,
   contratoDelAgente,
@@ -12,18 +13,35 @@ import {
   esContratoDeFirma,
   etiquetaRol,
   nombreDeParte,
+  referenciaInmueble,
   resultadoDeVersion,
+  ultimaVersion,
   type ContratoCompleto,
 } from '@/lib/real-estate/contratos/servidor';
-import { cifrarDatos, descifrarDatos } from '@/lib/real-estate/contratos/aprobacion';
+import { cifrarDatos, descifrarDatos, descifrarToken, fechaConZona } from '@/lib/real-estate/contratos/aprobacion';
 import { CLAVE_EDICION, compararVersiones, hayEdiciones } from '@/lib/real-estate/contratos/clausulas';
 import { correoCancelado } from '@/lib/real-estate/contratos/correos';
+import { leerDetalle, registrarEdicion, registrarEvento, solicitudDe } from '@/lib/real-estate/contratos/eventos';
+import {
+  enlaceWhatsApp,
+  estaPendiente,
+  etapaCompleta,
+  indicadorEtapas,
+  mensajeParaCompartir,
+  parteHabilitada,
+} from '@/lib/real-estate/contratos/flujo';
+import { sincronizarVencimiento } from '@/lib/real-estate/contratos/versiones';
 import {
   CONTRATO_DEFINICION,
+  VIGENCIAS_HORAS,
   camposFaltantes,
   esEditable,
   esTipoArchivado,
-  type ContratoEstado,
+  etiquetasEtapas,
+  identidadParte,
+  ladoRepresentado,
+  ladosDelTipo,
+  vigenciaPorDefectoHoras,
   type ContratoTipo,
 } from '@/lib/real-estate/contratos/tipos';
 
@@ -55,15 +73,20 @@ const editarSchema = z.object({
   datos: z.record(z.string(), z.string().max(5000)).optional(),
   listingId: z.string().min(1).nullable().optional(),
   clausulas: edicionSchema.optional(),
+  // A quién representa el agente: decide quién revisa primero.
+  representa: z.string().max(40).optional(),
 });
 
 const anularSchema = z.object({ nota: z.string().trim().min(3, 'Indica el motivo.').max(500) });
 
-function parteResumen(contrato: ContratoCompleto, p: ContratoCompleto['partes'][number]) {
+type ParteFila = ContratoCompleto['partes'][number];
+
+function parteResumen(contrato: ContratoCompleto, p: ParteFila) {
   return {
     id: p.id,
     rol: p.rol,
     rolEtiqueta: etiquetaRol(contrato.tipo as ContratoTipo, p.rol),
+    etapa: p.etapa,
     nombre: p.nombre,
     correo: p.correo,
     estado: p.estado,
@@ -82,24 +105,35 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (auth.error) return auth.error;
 
   const { id } = await params;
-  const contrato = await contratoDelAgente(id, auth.agentId);
+  let contrato = await contratoDelAgente(id, auth.agentId);
   if (!contrato) return NextResponse.json({ error: 'Contrato no encontrado.' }, { status: 404 });
+
+  // Un enlace vencido deja el contrato en VENCIDO (y el historial lo registra)
+  // en cuanto alguien lo mira.
+  const deFirma = esContratoDeFirma(contrato);
+  if (!deFirma && (await sincronizarVencimiento(contrato)) !== contrato.estado) {
+    contrato = (await contratoDelAgente(id, auth.agentId)) ?? contrato;
+  }
 
   const tipo = contrato.tipo as ContratoTipo;
   const datos = descifrarDatos(contrato.datosCifrados);
   // Los campos internos (la foto del inmueble, las ediciones de cláusulas) no
   // vuelven al formulario.
   const visibles = Object.fromEntries(Object.entries(datos).filter(([k]) => !k.startsWith('__')));
-  const deFirma = esContratoDeFirma(contrato);
-  const editable = !deFirma && esEditable(contrato.estado as ContratoEstado, tipo);
+  const editable = !deFirma && esEditable(contrato.estado, tipo);
+  const vigente = ultimaVersion(contrato);
+  const referencia = await referenciaInmueble(contrato, datos);
+  const tipoDocumento = (CONTRATO_DEFINICION[tipo]?.titulo ?? 'documento').toLowerCase();
 
-  // Cada versión con lo que cambió respecto de la anterior: es el recorrido
-  // de la negociación que el agente lleva a la notaría.
+  // Cada versión con lo que cambió respecto de la anterior y quién decidió qué,
+  // etapa por etapa. Las personas que aún no deciden la versión vigente traen
+  // su enlace para compartirlo otra vez.
   const congeladas = contrato.versiones.map((v) => congelada(v));
   const versiones = contrato.versiones
     .map((v, i) => {
       const doc = congeladas[i];
       const previa = i > 0 ? congeladas[i - 1] : null;
+      const partesVersion = contrato!.partes.filter((p) => p.versionId === v.id);
       return {
         numero: v.numero,
         estado: v.estado,
@@ -107,11 +141,30 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         aprobadaAt: v.aprobadaAt,
         cerradaAt: v.cerradaAt,
         huella: v.huella,
-        resultado: resultadoDeVersion(contrato, v),
+        simultanea: v.simultanea,
+        principalHeredadaDe: v.principalHeredadaDe,
+        contraparteEnviadaAt: v.contraparteEnviadaAt,
+        principalAprobadaAt: v.principalAprobadaAt,
+        etiquetas: etiquetasEtapas(tipo, v.representa),
+        resultado: resultadoDeVersion(contrato!, v),
         cambios: doc && previa ? compararVersiones(previa.bloques, doc.bloques) : null,
-        partes: contrato.partes
-          .filter((p) => p.versionId === v.id)
-          .map((p) => ({ ...parteResumen(contrato, p), nombreParte: nombreDeParte(doc, tipo, p) })),
+        partes: partesVersion.map((p) => {
+          const vigenteYPendiente = v.id === vigente?.id && v.estado === 'EN_APROBACION' && estaPendiente(p) && parteHabilitada(p, v, partesVersion);
+          const token = vigenteYPendiente ? descifrarToken(p.tokenCifrado) : null;
+          const url = token ? `${baseUrl()}/aprobar/${token}` : null;
+          const mensaje = url ? mensajeParaCompartir({ nombre: p.nombre, tipoDocumento, referencia, enlace: url }) : null;
+          return {
+            ...parteResumen(contrato!, p),
+            nombreParte: nombreDeParte(doc, tipo, p),
+            // null si ya decidió, si la versión no está en revisión o si el
+            // enlace es anterior al guardado cifrado (hay que regenerarlo).
+            enlace:
+              url && mensaje
+                ? { url, mensaje, whatsapp: enlaceWhatsApp(identidadParte(tipo, datos, p.rol).telefono, mensaje), vencido: p.expiraAt.getTime() < Date.now() }
+                : null,
+            puedeRegenerar: vigenteYPendiente,
+          };
+        }),
       };
     })
     .reverse();
@@ -122,7 +175,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     cambios = cambiosSinEnviar(contrato, trabajo.preparado.bloques);
   }
 
-  const vigente = contrato.versiones.find((v) => v.numero === contrato.versionActual);
+  const partesVigentes = vigente ? contrato.partes.filter((p) => p.versionId === vigente.id) : [];
+  const representaVigente = vigente?.representa ?? contrato.representa;
+  const eventos = await prisma.contratoEvento.findMany({ where: { contratoId: id }, orderBy: { createdAt: 'desc' }, take: 200 });
+
   return NextResponse.json({
     contrato: {
       id: contrato.id,
@@ -133,6 +189,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       deFirma,
       editable,
       estado: contrato.estado,
+      representa: ladoRepresentado(tipo, contrato.representa)?.clave ?? null,
+      lados: (ladosDelTipo(tipo)?.lados ?? []).map((l) => ({ clave: l.clave, etiqueta: l.etiqueta })),
+      etiquetas: etiquetasEtapas(tipo, representaVigente),
+      indicador: deFirma
+        ? []
+        : indicadorEtapas({
+            etiquetas: etiquetasEtapas(tipo, representaVigente),
+            estado: contrato.estado,
+            principalCompleta: vigente ? etapaCompleta(vigente, partesVigentes, 'PRINCIPAL') : false,
+          }),
+      vigenciaHoras: contrato.vigenciaHoras ?? vigenciaPorDefectoHoras(tipo),
+      vigencias: VIGENCIAS_HORAS,
       listingId: contrato.listingId,
       codigoVerificacion: contrato.codigoVerificacion,
       plantillaVersion: contrato.plantillaVersion,
@@ -148,11 +216,30 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         descripcion: datos.__inmuebleDescripcion ?? '',
         ubicacion: datos.__inmuebleUbicacion ?? '',
       },
-      partes: contrato.partes
-        .filter((p) => (vigente ? p.versionId === vigente.id : !p.versionId))
-        .map((p) => parteResumen(contrato, p)),
+      partes: contrato.partes.filter((p) => (vigente ? p.versionId === vigente.id : !p.versionId)).map((p) => parteResumen(contrato!, p)),
       versiones,
       cambiosSinEnviar: cambios,
+      eventos: eventos.map((e) => {
+        const d = leerDetalle(e.detalleCifrado);
+        return {
+          id: e.id,
+          tipo: e.tipo,
+          actor: e.actor,
+          fecha: e.createdAt,
+          fechaEcuador: fechaConZona(e.createdAt),
+          etapa: e.etapa,
+          rolEtiqueta: e.rol ? etiquetaRol(tipo, e.rol) : null,
+          versionNumero: e.versionNumero,
+          huella: e.huella,
+          nombre: d?.nombre ?? null,
+          comentario: d?.comentario ?? null,
+          canal: d?.canal ?? null,
+          campos: d?.campos ?? null,
+          nota: d?.nota ?? null,
+          ip: d?.ip ?? null,
+          navegador: d?.navegador ?? null,
+        };
+      }),
     },
     faltantes: camposFaltantes(tipo, visibles),
   });
@@ -167,8 +254,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (!contrato) return NextResponse.json({ error: 'Contrato no encontrado.' }, { status: 404 });
 
   // Se edita mientras la negociación esté abierta. Lo enviado no se toca: los
-  // cambios van a la copia de trabajo y salen como versión nueva.
-  if (esContratoDeFirma(contrato) || !esEditable(contrato.estado as ContratoEstado, contrato.tipo)) {
+  // cambios van a la copia de trabajo y salen como versión nueva, que vuelve a
+  // pasar por las aprobaciones.
+  if (esContratoDeFirma(contrato) || !esEditable(contrato.estado, contrato.tipo)) {
     const archivado = esTipoArchivado(contrato.tipo);
     return NextResponse.json(
       {
@@ -184,6 +272,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const parsed = editarSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: 'Datos inválidos.', details: parsed.error.flatten().fieldErrors }, { status: 400 });
+  }
+  const tipo = contrato.tipo as ContratoTipo;
+  if (parsed.data.representa !== undefined && !ladosDelTipo(tipo)?.lados.some((l) => l.clave === parsed.data.representa)) {
+    return NextResponse.json({ error: 'Ese lado no existe en este documento.', code: 'representa_invalido' }, { status: 400 });
   }
 
   const previos = descifrarDatos(contrato.datosCifrados);
@@ -208,16 +300,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     datos.__inmuebleCaracteristicas = inmueble.caracteristicas;
   }
 
+  const nuevoCifrado = cifrarDatos(datos);
+  const cambioAlgo =
+    JSON.stringify(previos) !== JSON.stringify(datos) || cambiaInmueble || (parsed.data.representa !== undefined && parsed.data.representa !== contrato.representa);
+
   await prisma.contrato.update({
     where: { id },
     data: {
-      datosCifrados: cifrarDatos(datos),
+      datosCifrados: nuevoCifrado,
       ...(cambiaInmueble ? { listingId: parsed.data.listingId ?? null } : {}),
+      ...(parsed.data.representa !== undefined ? { representa: parsed.data.representa } : {}),
     },
   });
+  if (cambioAlgo) await registrarEdicion(id, solicitudDe(request.headers));
 
   const visibles = Object.fromEntries(Object.entries(datos).filter(([k]) => !k.startsWith('__')));
-  return NextResponse.json({ ok: true, faltantes: camposFaltantes(contrato.tipo as ContratoTipo, visibles) });
+  return NextResponse.json({ ok: true, faltantes: camposFaltantes(tipo, visibles) });
 }
 
 // DELETE solo borra lo que nunca salió. Un contrato enviado se anula, no se
@@ -243,7 +341,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 }
 
 // Anular: el agente detiene la negociación. Los enlaces dejan de servir y las
-// partes que no habían decidido reciben aviso.
+// personas que no habían decidido y tienen correo reciben aviso: se lo pidió el
+// agente con esta acción.
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await agenteConContratos(request);
   if (auth.error) return auth.error;
@@ -252,8 +351,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const contrato = await contratoDelAgente(id, auth.agentId);
   if (!contrato) return NextResponse.json({ error: 'Contrato no encontrado.' }, { status: 404 });
   if (contrato.estado === 'ANULADO') return NextResponse.json({ ok: true, yaAnulado: true });
-  if (contrato.estado === 'FIRMADO') {
-    return NextResponse.json({ error: 'Un contrato firmado no se anula desde aquí.', code: 'firmado' }, { status: 409 });
+  if (esContratoDeFirma(contrato)) {
+    return NextResponse.json({ error: 'Un contrato de la etapa de firma electrónica no se anula desde aquí.', code: 'firmado' }, { status: 409 });
   }
 
   const parsed = anularSchema.safeParse(await request.json().catch(() => null));
@@ -263,29 +362,30 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const nombreDocumento = CONTRATO_DEFINICION[contrato.tipo as ContratoTipo].nombreDocumento;
   const ahora = new Date();
-  const pendientes = contrato.partes.filter(
-    (p) => (p.estado === 'ENVIADO' || p.estado === 'ABIERTO') && p.expiraAt.getTime() > ahora.getTime(),
-  );
+  const pendientes = contrato.partes.filter((p) => estaPendiente(p) && p.expiraAt.getTime() > ahora.getTime());
+  const vigente = ultimaVersion(contrato);
 
-  await prisma.$transaction([
-    prisma.contrato.update({
-      where: { id },
-      data: { estado: 'ANULADO', anuladoAt: ahora, anuladoNota: parsed.data.nota },
-    }),
-    prisma.contratoVersion.updateMany({
-      where: { contratoId: id, estado: 'EN_APROBACION' },
-      data: { estado: 'ANULADA', cerradaAt: ahora },
-    }),
+  await prisma.$transaction(async (tx) => {
+    await tx.contrato.update({ where: { id }, data: { estado: 'ANULADO', anuladoAt: ahora, anuladoNota: parsed.data.nota } });
+    await tx.contratoVersion.updateMany({ where: { contratoId: id, estado: 'EN_APROBACION' }, data: { estado: 'ANULADA', cerradaAt: ahora } });
     // Los enlaces se invalidan venciéndolos: no se borran, para que quien
     // entre vea "este documento fue cancelado" y no un 404 sin explicación.
-    prisma.contratoParte.updateMany({
-      where: { contratoId: id, estado: { in: ['ENVIADO', 'ABIERTO'] } },
-      data: { expiraAt: ahora },
-    }),
-  ]);
+    await tx.contratoParte.updateMany({ where: { contratoId: id, estado: { in: ['ENVIADO', 'ABIERTO'] } }, data: { expiraAt: ahora } });
+    await registrarEvento(tx, {
+      contratoId: id,
+      tipo: 'ANULACION',
+      actor: 'AGENTE',
+      versionNumero: vigente?.numero ?? null,
+      huella: vigente?.huella ?? null,
+      solicitud: solicitudDe(request.headers),
+      detalle: { comentario: parsed.data.nota },
+      fecha: ahora,
+    });
+  });
 
   if (isEmailConfigured()) {
     for (const p of pendientes) {
+      if (!p.correo) continue;
       const correo = correoCancelado({ nombreParte: p.nombre, nombreDocumento });
       await sendEmailNotification({ to: p.correo, ...correo }).catch(() => {});
     }

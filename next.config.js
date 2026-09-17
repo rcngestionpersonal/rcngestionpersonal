@@ -55,26 +55,9 @@ const nextConfig = {
       './node_modules/harfbuzzjs/*.wasm',
       './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
     ],
-    // Contratos: las rutas que rasterizan el PDF necesitan los mismos binarios
-    // nativos. La de aprobacion incluida: cuando la ultima parte aprueba, genera
-    // el PDF de la version que se adjunta al correo. /firmar/[token]/pdf queda
-    // para la copia de quien firmo en la etapa de firma electronica.
-    '/api/real-estate/contratos/[id]/archivo': [
-      './node_modules/harfbuzzjs/*.wasm',
-      './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
-    ],
-    '/api/aprobacion/[token]': [
-      './node_modules/harfbuzzjs/*.wasm',
-      './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
-    ],
-    '/aprobar/[token]/pdf': [
-      './node_modules/harfbuzzjs/*.wasm',
-      './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
-    ],
-    '/firmar/[token]/pdf': [
-      './node_modules/harfbuzzjs/*.wasm',
-      './node_modules/@resvg/resvg-js-linux-x64-gnu/*.node',
-    ],
+    // Contratos: ya NO pasan por satori/resvg. Su PDF se arma con
+    // @react-pdf/renderer, con texto vectorial y sin binarios nativos, asi que
+    // sus rutas no necesitan incluir nada aqui.
     // Reportes a clientes (Fase 9): las rutas que rasterizan los tres reportes,
     // para descarga y para el adjunto del correo. Misma cadena satori->resvg.
     '/api/real-estate/reportes/visitas/[id]/archivo': [

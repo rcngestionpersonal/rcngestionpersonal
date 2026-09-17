@@ -60,6 +60,9 @@ export type DatosDocumento = {
   // Identidad de una parte (persona o compañía con su representante). Para el
   // rol del agente usa los datos del perfil.
   parte: (rol: string) => IdentidadParte;
+  // Las demás personas del mismo lado (cónyuges, copropietarios), en orden.
+  // Vacío en una compañía y cuando comparece una sola persona.
+  adicionales: (rol: string) => Array<{ identidad: IdentidadParte; estadoCivil: string }>;
 };
 
 // Las etiquetas de opcion empiezan con articulo ('El comprador'), y al
@@ -223,21 +226,29 @@ export function opcional(valor: string, marcador = '[ POR COMPLETAR ]'): string 
 // el nombre con el que el resto del contrato se refiere a ella. "calificacion"
 // se inserta tras el documento de identidad (la licencia del corredor, por
 // ejemplo). Lo que falte sale marcado, nunca en blanco.
+//
+// Cuando en un lado comparecen varias personas (cónyuges, copropietarios), van
+// una tras otra y la denominación las abarca a todas. Con una sola persona el
+// texto es exactamente el de siempre.
 export function comparecenciaParte(d: DatosDocumento, rol: string, denominacion: string, calificacion = ''): string {
   const p = d.parte(rol);
-  const contacto = [
-    `con domicilio en ${opcional(p.domicilio)}`,
-    p.correo ? `correo electrónico ${p.correo}` : null,
-    p.telefono ? `teléfono ${p.telefono}` : null,
-  ]
-    .filter(Boolean)
-    .join(', ');
+  const contacto = (q: IdentidadParte) =>
+    [`con domicilio en ${opcional(q.domicilio)}`, q.correo ? `correo electrónico ${q.correo}` : null, q.telefono ? `teléfono ${q.telefono}` : null]
+      .filter(Boolean)
+      .join(', ');
   const extra = calificacion ? `, ${calificacion}` : '';
   if (p.juridica && p.representante) {
     return `la compañía ${opcional(p.nombre)}, con RUC N.º ${opcional(p.documento)}, debidamente representada por ${opcional(
       p.representante.nombre,
-    )}, portador de la cédula N.º ${opcional(p.representante.cedula)}, en su calidad de representante legal${extra}, ${contacto}, a quien en adelante se denominará "${denominacion}"`;
+    )}, portador de la cédula N.º ${opcional(p.representante.cedula)}, en su calidad de representante legal${extra}, ${contacto(p)}, a quien en adelante se denominará "${denominacion}"`;
   }
-  const documento = p.tipoDocumento === 'pasaporte' ? 'el pasaporte' : 'la cédula';
-  return `${opcional(p.nombre)}, portador de ${documento} N.º ${opcional(p.documento)}${extra}, ${contacto}, a quien en adelante se denominará "${denominacion}"`;
+  const documento = (q: IdentidadParte) => (q.tipoDocumento === 'pasaporte' ? 'el pasaporte' : 'la cédula');
+  const persona = `${opcional(p.nombre)}, portador de ${documento(p)} N.º ${opcional(p.documento)}${extra}, ${contacto(p)}`;
+  const adicionales = d.adicionales(rol).map(
+    ({ identidad: q, estadoCivil }) =>
+      `${opcional(q.nombre)}, portador de ${documento(q)} N.º ${opcional(q.documento)}${estadoCivil ? `, de estado civil ${estadoCivil}` : ''}, ${contacto(q)}`,
+  );
+  if (adicionales.length === 0) return `${persona}, a quien en adelante se denominará "${denominacion}"`;
+  const ultima = adicionales[adicionales.length - 1];
+  return `${[persona, ...adicionales.slice(0, -1)].join('; ')}; y ${ultima}, a quienes en adelante se denominará conjuntamente "${denominacion}"`;
 }

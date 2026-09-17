@@ -1,52 +1,151 @@
-import satori from 'satori';
-import { Resvg } from '@resvg/resvg-js';
-import { PDFDocument } from 'pdf-lib';
-import { loadFichaFonts } from '@/lib/real-estate/ficha/fonts';
-import { pngPageToJpeg } from '@/lib/real-estate/ficha/photos';
+import React from 'react';
+import { Document, Font, Page, StyleSheet, Text, View, renderToBuffer } from '@react-pdf/renderer';
+import { FICHA_FONT_BASE64 } from '@/lib/real-estate/ficha/fonts-data';
 import type { BloqueFinal, LineaFirma } from './clausulas';
 import { AVISO_FIRMA_ELECTRONICA, AVISO_REDINMO_NO_ES_PARTE_LEGADO } from './legado-firma';
 import { AVISO_APROBACION, AVISO_REDINMO_NO_ES_PARTE, NOTA_ANEXO_SEPARABLE } from './tipos';
 
-// PDF del contrato: A4 sobrio y formal, fondo blanco. Misma cadena
-// satori -> resvg -> pdf-lib que las fichas y las cartas, con paginación
-// propia: un contrato no cabe en una hoja y satori dibuja lienzos de tamaño
-// fijo, así que hay que repartir los bloques en páginas antes de dibujar.
+// PDF del contrato: A4 sobrio y formal, con TEXTO VECTORIAL. Es el lugar común
+// de todos los tipos de contrato: encabezado, márgenes, pie y paginación viven
+// aquí y en ningún otro lado.
 //
-// EL CUERPO NO LLEVA MARCA DE LA PLATAFORMA. Ni logotipo, ni nombre, ni pie, ni
-// código: el contrato es del agente y de sus clientes. El pie de cada página
-// dice solo en qué estado está el borrador y el número de página.
+// Por qué así: hasta la versión anterior cada página era una imagen JPEG de
+// 1588 px de ancho (≈192 ppp, calidad 78) dibujada con satori y resvg. En el
+// celular la página se ve reducida y no se nota; en un monitor de escritorio se
+// amplía y aparecen el desenfoque y los artefactos del JPEG. Aquí el texto es
+// texto: nítido a cualquier zoom, seleccionable y mucho más liviano.
 //
-// La constancia va aparte, como ANEXO con su propio encabezado y su propia
-// numeración: identifica el sistema que registró las aprobaciones (su utilidad
-// depende de poder verificarla) y se puede quitar al imprimir para la notaría
-// sin que la numeración del contrato quede con huecos.
+// Y la paginación la hace el motor de maquetación, no una estimación de alto
+// por caracteres: una cláusula larga se parte entre páginas, el título de una
+// cláusula nunca queda solo al pie (va en el mismo bloque que sus primeras
+// líneas) y se evitan líneas huérfanas y viudas.
+//
+// EL CUERPO NO LLEVA MARCA DE LA PLATAFORMA. Ni logotipo, ni nombre, ni código.
+// Los avisos para quien revisa (plantilla en revisión, advertencias) se
+// muestran en la pantalla de aprobación, no en el documento. Un borrador lleva
+// solo la palabra BORRADOR, pequeña y en gris; una versión aprobada, nada.
+//
+// La constancia va aparte, como ANEXO con su propia numeración: identifica el
+// sistema que registró las aprobaciones y se puede quitar al imprimir para la
+// notaría sin dejar huecos en la numeración del contrato.
 
-const FONT = 'Plus Jakarta Sans';
-const A4 = { width: 794, height: 1123 };
-const RASTER = 1588;
-const A4_PT: [number, number] = [595.28, 841.89];
+const FUENTE = 'Plus Jakarta Sans';
+let fuentesRegistradas = false;
 
-const MARGEN_X = 64;
-const MARGEN_ARRIBA = 64;
-const MARGEN_ABAJO = 64;
-const ANCHO_UTIL = A4.width - MARGEN_X * 2;
-// Reserva para el pie de página.
-const ALTO_PIE = 44;
-const ALTO_UTIL = A4.height - MARGEN_ARRIBA - MARGEN_ABAJO - ALTO_PIE;
+function registrarFuentes() {
+  if (fuentesRegistradas) return;
+  Font.register({
+    family: FUENTE,
+    fonts: ([400, 600, 700, 800] as const).map((peso) => ({
+      src: `data:font/woff;base64,${FICHA_FONT_BASE64[peso]}`,
+      fontWeight: peso,
+    })),
+  });
+  // Sin guiones de corte: el motor usa patrones del inglés y en un contrato en
+  // español partiría palabras donde no corresponde.
+  Font.registerHyphenationCallback((palabra) => [palabra]);
+  fuentesRegistradas = true;
+}
 
-// Cuerpo en 12px: un contrato se lee entero, no se ojea.
-const CUERPO = 12;
-const INTERLINEADO = 1.55;
-const ALTO_LINEA = CUERPO * INTERLINEADO;
-// Caracteres que entran por línea a este ancho y tamaño, medido sobre el render
-// real; se usa para estimar cuánto ocupa cada bloque y paginar.
-const CARS_POR_LINEA = Math.floor(ANCHO_UTIL / (CUERPO * 0.5));
-// Un párrafo más largo que esto se parte en oraciones para que nunca desborde
-// una página.
-const MAX_CARS_PARRAFO = 2400;
+// Márgenes A4 estándar: 22,6 mm arriba, 25,4 mm abajo (con el pie dentro del
+// margen) y 21,9 mm a los lados.
+const MARGEN = { arriba: 64, abajo: 72, lados: 62 };
+const CUERPO = 10.5;
+
+const TINTA = '#14121f';
+const GRIS = '#5c5676';
+const GRIS_CLARO = '#8a8599';
+const LINEA = '#d6d3df';
+
+const s = StyleSheet.create({
+  pagina: {
+    fontFamily: FUENTE,
+    fontSize: CUERPO,
+    color: TINTA,
+    paddingTop: MARGEN.arriba,
+    paddingBottom: MARGEN.abajo,
+    paddingHorizontal: MARGEN.lados,
+    backgroundColor: '#ffffff',
+  },
+  marca: {
+    position: 'absolute',
+    top: 30,
+    right: MARGEN.lados,
+    fontSize: 7.5,
+    color: '#a8a4b3',
+  },
+  titulo: { fontSize: 14, fontWeight: 800, textAlign: 'center', lineHeight: 1.3 },
+  fecha: { fontSize: 9.5, color: GRIS, textAlign: 'center', marginTop: 5, marginBottom: 18 },
+  // Alineado a la izquierda y no justificado: el motor, para justificar, separa
+  // también las letras cuando no le alcanza con los espacios, y esas líneas se
+  // ven estiradas.
+  cuerpo: { fontSize: CUERPO, lineHeight: 1.5, textAlign: 'left' },
+  subtitulo: { fontWeight: 800, letterSpacing: 0.4 },
+  encabezado: { fontWeight: 700 },
+  pie: {
+    position: 'absolute',
+    bottom: 30,
+    left: MARGEN.lados,
+    right: MARGEN.lados,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    borderTopWidth: 0.6,
+    borderTopColor: LINEA,
+    paddingTop: 6,
+  },
+  pieTexto: { fontSize: 7.5, color: GRIS_CLARO, lineHeight: 1.35, maxWidth: 360 },
+  pieNumero: { fontSize: 7.5, color: GRIS_CLARO },
+  ficha: { borderWidth: 0.8, borderColor: LINEA, borderRadius: 4, marginBottom: 14 },
+  fichaTitulo: {
+    fontSize: 9,
+    fontWeight: 800,
+    letterSpacing: 0.4,
+    paddingVertical: 5,
+    paddingHorizontal: 9,
+    backgroundColor: '#faf9fc',
+    borderBottomWidth: 0.6,
+    borderBottomColor: LINEA,
+  },
+  fichaFila: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 9 },
+  fichaEtiqueta: { width: 150, fontSize: 9.5, fontWeight: 700, color: GRIS, paddingRight: 8 },
+  fichaValor: { flex: 1, fontSize: 9.5, lineHeight: 1.4 },
+  leyenda: { fontSize: 9.5, color: GRIS, marginBottom: 10 },
+  firmaFila: { flexDirection: 'row', justifyContent: 'space-between' },
+  firma: { width: '47%', marginBottom: 18 },
+  firmaEspacio: { height: 46, borderBottomWidth: 0.8, borderBottomColor: TINTA, marginBottom: 5 },
+  firmaNombre: { fontSize: 10, fontWeight: 700 },
+  firmaDato: { fontSize: 9, color: '#3d3854', lineHeight: 1.4 },
+  firmaCalidad: { fontSize: 9, fontWeight: 700, letterSpacing: 0.4, marginTop: 2 },
+  // Anexo
+  anexoRotulo: { fontSize: 8, fontWeight: 800, color: GRIS_CLARO },
+  anexoTitulo: { fontSize: 14, fontWeight: 800, marginTop: 2 },
+  anexoSubtitulo: { fontSize: 9, color: GRIS, marginTop: 2 },
+  anexoCabecera: { borderBottomWidth: 0.8, borderBottomColor: LINEA, paddingBottom: 8, marginBottom: 10 },
+  nota: { fontSize: 8.5, color: GRIS, lineHeight: 1.4, marginBottom: 8 },
+  aviso: {
+    borderWidth: 0.8,
+    borderColor: '#b45309',
+    backgroundColor: '#fffbeb',
+    borderRadius: 4,
+    padding: 8,
+    marginBottom: 10,
+    fontSize: 9.5,
+    lineHeight: 1.45,
+    color: '#7c3f06',
+  },
+  fila: { flexDirection: 'row', marginBottom: 1.5 },
+  filaEtiqueta: { width: 130, fontSize: 8, color: GRIS_CLARO },
+  filaValor: { flex: 1, fontSize: 8.5, lineHeight: 1.35 },
+  etapaTitulo: { fontSize: 9.5, fontWeight: 800, marginTop: 6, marginBottom: 5 },
+  tarjeta: { borderWidth: 0.8, borderColor: LINEA, borderRadius: 4, padding: 8, marginBottom: 7 },
+  tarjetaCabecera: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  tarjetaNombre: { fontSize: 9.5, fontWeight: 700, flex: 1, paddingRight: 8 },
+  decision: { fontSize: 8.5, fontWeight: 700 },
+});
 
 // ---------------------------------------------------------------------------
-// Anexos
+// Datos
 // ---------------------------------------------------------------------------
 
 export type ParteConstancia = {
@@ -56,6 +155,7 @@ export type ParteConstancia = {
   enNombreDe: string | null;
   cedula: string;
   correo: string;
+  etapa: 'PRINCIPAL' | 'CONTRAPARTE';
   enviadoAt: string | null;
   abiertoAt: string | null;
   decision: 'APROBO' | 'NO_APROBO' | 'PENDIENTE' | 'SIN_DECISION';
@@ -64,6 +164,8 @@ export type ParteConstancia = {
   ip: string | null;
   navegador: string | null;
   leyoCompleto: boolean;
+  // Aprobación conservada de otra versión con las mismas condiciones.
+  enVersion: number | null;
 };
 
 export type AnexoAprobacion = {
@@ -76,7 +178,10 @@ export type AnexoAprobacion = {
   enviadaAt: string;
   huella: string;
   enviadaPor: string;
-  partes: ParteConstancia[];
+  // "Secuencial: primero Vendedor, después Comprador", o la advertencia del
+  // envío simultáneo.
+  envio: string;
+  etapas: Array<{ titulo: string; nota: string | null; partes: ParteConstancia[] }>;
   historial: Array<{ numero: number; enviadaAt: string; resultado: string }>;
 };
 
@@ -108,460 +213,378 @@ export type DatosPdfContrato = {
   nombreDocumento: string;
   ciudad: string;
   fechaLarga: string;
-  avisoSinRevisar: string | null;
-  // "Versión 2 — aprobada por ... el ...", "Borrador sin enviar"...
+  // Todo lo que no es una versión aprobada por todas las partes.
+  borrador: boolean;
+  // "Versión 2 — aprobada por ... el ...", "Borrador · versión 3, en revisión"...
   pie: string | null;
   anexo: AnexoAprobacion | AnexoFirmaLegado | null;
 };
 
 // ---------------------------------------------------------------------------
-// Paginación del cuerpo
+// Cuerpo
 // ---------------------------------------------------------------------------
 
-type ElementoPagina =
-  | { tipo: 'titulo'; texto: string }
-  | { tipo: 'subtitulo'; texto: string }
-  | { tipo: 'parrafo'; texto: string }
-  | { tipo: 'aviso'; texto: string }
-  // Una cláusula se reparte en tramos, uno por párrafo: solo el primero lleva
-  // el encabezado. Así una cláusula larga cruza de página sin cortarse a mitad.
-  | { tipo: 'tramo'; encabezado: string | null; texto: string; ultimo: boolean }
-  | { tipo: 'ficha'; titulo: string; filas: Array<{ etiqueta: string; valor: string }> }
-  | { tipo: 'firmas'; leyenda: string | null; partes: LineaFirma[] };
-
-function lineas(texto: string, factorAncho = 1): number {
-  return Math.max(1, Math.ceil(texto.length / (CARS_POR_LINEA * factorAncho)));
+function parrafos(texto: string): string[] {
+  const lista = texto
+    .split(/\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  return lista.length > 0 ? lista : [''];
 }
 
-function altoEstimado(el: ElementoPagina): number {
-  switch (el.tipo) {
-    case 'titulo':
-      return lineas(el.texto, 0.7) * 24 + 40;
-    case 'subtitulo':
-      return 22 + 18;
-    case 'parrafo':
-      return lineas(el.texto) * ALTO_LINEA + 12;
-    case 'aviso':
-      return lineas(el.texto, 0.94) * ALTO_LINEA + 34;
-    case 'tramo':
-      return (el.encabezado ? 22 : 0) + lineas(el.texto) * ALTO_LINEA + (el.ultimo ? 14 : 6);
-    case 'ficha':
-      return 26 + el.filas.reduce((alto, f) => alto + Math.max(ALTO_LINEA + 8, lineas(f.valor, 0.62) * ALTO_LINEA + 8), 0) + 14;
-    case 'firmas': {
-      const filas = Math.ceil(el.partes.length / 2);
-      const altoParte = Math.max(...el.partes.map((p) => (p.enRepresentacionDe ? 5 : 3)), 3) * 15 + 70;
-      return (el.leyenda ? lineas(el.leyenda) * 16 + 12 : 0) + 30 + filas * altoParte;
-    }
-  }
-}
-
-// Parte un párrafo demasiado largo en oraciones, sin pasar del máximo.
-function trocear(parrafo: string): string[] {
-  if (parrafo.length <= MAX_CARS_PARRAFO) return [parrafo];
-  const oraciones = parrafo.match(/[^.;]+[.;]+\s*|[^.;]+$/g) ?? [parrafo];
-  const trozos: string[] = [];
-  let actual = '';
-  for (const o of oraciones) {
-    if (actual && actual.length + o.length > MAX_CARS_PARRAFO) {
-      trozos.push(actual.trim());
-      actual = '';
-    }
-    actual += o;
-  }
-  if (actual.trim()) trozos.push(actual.trim());
-  return trozos;
-}
-
-function aElementos(bloques: BloqueFinal[]): ElementoPagina[] {
-  const salida: ElementoPagina[] = [];
-  for (const b of bloques) {
-    if (b.tipo === 'clausula') {
-      const parrafos = b.texto
-        .split(/\n+/)
-        .map((p) => p.trim())
-        .filter(Boolean)
-        .flatMap(trocear);
-      if (parrafos.length === 0) parrafos.push('');
-      parrafos.forEach((texto, i) =>
-        salida.push({ tipo: 'tramo', encabezado: i === 0 ? b.encabezado : null, texto, ultimo: i === parrafos.length - 1 }),
-      );
-    } else if (b.tipo === 'firmas') {
-      salida.push({ tipo: 'firmas', leyenda: b.leyenda, partes: b.partes });
-    } else if (b.tipo === 'ficha') {
-      salida.push({ tipo: 'ficha', titulo: b.titulo, filas: b.filas });
-    } else {
-      for (const texto of trocear(b.texto)) salida.push({ tipo: b.tipo, texto });
-    }
-  }
-  return salida;
-}
-
-function paginar(elementos: ElementoPagina[]): ElementoPagina[][] {
-  const paginas: ElementoPagina[][] = [];
-  let actual: ElementoPagina[] = [];
-  let alto = 0;
-  elementos.forEach((el, i) => {
-    let suyo = altoEstimado(el);
-    // Un encabezado de cláusula no se queda solo al pie de una página: viaja
-    // con su primer párrafo.
-    const siguiente = elementos[i + 1];
-    if (el.tipo === 'tramo' && el.encabezado && siguiente?.tipo === 'tramo' && !siguiente.encabezado) {
-      suyo = Math.max(suyo, 22 + 3 * ALTO_LINEA);
-    }
-    if (alto + suyo > ALTO_UTIL && actual.length > 0) {
-      paginas.push(actual);
-      actual = [];
-      alto = 0;
-    }
-    actual.push(el);
-    alto += altoEstimado(el);
-  });
-  if (actual.length > 0) paginas.push(actual);
-  return paginas;
-}
-
-// ---------------------------------------------------------------------------
-// Piezas
-// ---------------------------------------------------------------------------
-
-function Aviso({ texto, fuerte = false }: { texto: string; fuerte?: boolean }) {
+// Un subtítulo suelto ("CLÁUSULAS") no puede quedar al pie de una página: viaja
+// como primera línea del bloque que lo sigue. Va en el mismo texto y sin un
+// renglón de separación en letra menor: el motor mide mal ese renglón y corta
+// la página antes de tiempo (probado: dejaba 148 pt en blanco).
+function Clausula({ bloque, subtitulo }: { bloque: Extract<BloqueFinal, { tipo: 'clausula' }>; subtitulo: string | null }) {
+  const [primero, ...resto] = parrafos(bloque.texto);
   return (
-    <div
-      style={{
-        display: 'flex',
-        border: '1px solid #b45309',
-        background: '#fffbeb',
-        borderRadius: 6,
-        padding: '10px 12px',
-        marginBottom: 12,
-        fontSize: fuerte ? 11 : 10.5,
-        fontWeight: fuerte ? 600 : 400,
-        lineHeight: 1.5,
-        color: '#7c3f06',
-      }}
-    >
+    // Sin márgenes en la vista que agrupa la cláusula: con ellos el motor calcula
+    // mal el corte y pasa la cláusula entera a la hoja siguiente (probado: 182 pt
+    // en blanco). El espacio entre cláusulas va en el propio texto.
+    <View>
+      {/* Título + primeras líneas en un mismo bloque de texto, con al menos
+          tres líneas juntas: el título nunca queda solo al final de la hoja. */}
+      <Text orphans={3} widows={2} style={[s.cuerpo, { marginTop: subtitulo ? 14 : 9 }]}>
+        {subtitulo ? <Text style={s.subtitulo}>{subtitulo}</Text> : null}
+        {subtitulo ? '\n' : null}
+        <Text style={s.encabezado}>{bloque.encabezado}</Text>
+        {'\n'}
+        {primero}
+      </Text>
+      {resto.map((p, i) => (
+        <Text key={i} orphans={2} widows={2} style={[s.cuerpo, { marginTop: 4 }]}>
+          {p}
+        </Text>
+      ))}
+    </View>
+  );
+}
+
+function Parrafo({ texto, subtitulo }: { texto: string; subtitulo: string | null }) {
+  return (
+    <Text orphans={subtitulo ? 3 : 2} widows={2} style={[s.cuerpo, { marginBottom: 8, marginTop: subtitulo ? 6 : 0 }]}>
+      {subtitulo ? <Text style={s.subtitulo}>{subtitulo}</Text> : null}
+      {subtitulo ? '\n' : null}
       {texto}
-    </div>
+    </Text>
+  );
+}
+
+function Ficha({ bloque, subtitulo }: { bloque: Extract<BloqueFinal, { tipo: 'ficha' }>; subtitulo: string | null }) {
+  const [primera, ...resto] = bloque.filas;
+  const fila = (f: { etiqueta: string; valor: string }, ultima: boolean) => (
+    <View style={[s.fichaFila, ultima ? {} : { borderBottomWidth: 0.5, borderBottomColor: '#ece9f2' }]}>
+      <Text style={s.fichaEtiqueta}>{f.etiqueta}</Text>
+      <Text style={s.fichaValor}>{f.valor}</Text>
+    </View>
+  );
+  return (
+    <View style={{ marginBottom: 4 }}>
+      {/* El título de la ficha viaja con su primera fila. */}
+      <View wrap={false}>
+        {subtitulo ? <Text style={[s.subtitulo, { marginBottom: 6 }]}>{subtitulo}</Text> : null}
+        <View style={[s.ficha, { marginBottom: 0, borderBottomWidth: resto.length > 0 ? 0 : 0.8, borderBottomLeftRadius: resto.length > 0 ? 0 : 4, borderBottomRightRadius: resto.length > 0 ? 0 : 4 }]}>
+          <Text style={s.fichaTitulo}>{bloque.titulo}</Text>
+          {primera ? fila(primera, resto.length === 0) : null}
+        </View>
+      </View>
+      {resto.length > 0 ? (
+        <View style={[s.ficha, { borderTopWidth: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 }]}>
+          {resto.map((f, i) => (
+            <View key={f.etiqueta} wrap={false}>
+              {fila(f, i === resto.length - 1)}
+            </View>
+          ))}
+        </View>
+      ) : (
+        <View style={{ height: 14 }} />
+      )}
+    </View>
   );
 }
 
 function Firma({ parte }: { parte: LineaFirma }) {
-  const dato = { display: 'flex', fontSize: 10, color: '#3d3854', lineHeight: 1.45 } as const;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: (ANCHO_UTIL - 32) / 2, marginBottom: 20 }}>
+    <View style={s.firma}>
       {/* Espacio para la firma manuscrita. */}
-      <div style={{ display: 'flex', height: 52 }} />
-      <div style={{ display: 'flex', borderTop: '1px solid #14121f', marginBottom: 6 }} />
+      <View style={s.firmaEspacio} />
       {parte.enRepresentacionDe ? (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', fontSize: 11, fontWeight: 700 }}>{parte.enRepresentacionDe.razonSocial}</div>
-          <div style={dato}>RUC {parte.enRepresentacionDe.ruc}</div>
-          <div style={{ ...dato, marginTop: 2 }}>p. {parte.nombre}</div>
-          <div style={dato}>
+        <>
+          <Text style={s.firmaNombre}>{parte.enRepresentacionDe.razonSocial}</Text>
+          <Text style={s.firmaDato}>RUC {parte.enRepresentacionDe.ruc}</Text>
+          <Text style={[s.firmaDato, { marginTop: 1 }]}>p. {parte.nombre}</Text>
+          <Text style={s.firmaDato}>
             {parte.tipoDocumento} {parte.documento} · Representante legal
-          </div>
-        </div>
+          </Text>
+        </>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', fontSize: 11, fontWeight: 700 }}>{parte.nombre}</div>
-          <div style={dato}>
+        <>
+          <Text style={s.firmaNombre}>{parte.nombre}</Text>
+          <Text style={s.firmaDato}>
             {parte.tipoDocumento} {parte.documento}
-          </div>
-        </div>
+          </Text>
+        </>
       )}
-      <div style={{ display: 'flex', fontSize: 10, fontWeight: 700, letterSpacing: 0.4, marginTop: 2 }}>{parte.calidad}</div>
-    </div>
+      <Text style={s.firmaCalidad}>{parte.calidad}</Text>
+    </View>
   );
 }
 
-function Pie({ izquierda, derecha }: { izquierda: string | null; derecha: string }) {
+// Una cláusula corta antes de las firmas viaja con ellas: una hoja que solo
+// tiene firmas, sin texto del contrato, no debería existir.
+const MAX_CARS_CIERRE_CON_FIRMAS = 700;
+
+function Firmas({
+  bloque,
+  subtitulo,
+  cierre,
+}: {
+  bloque: Extract<BloqueFinal, { tipo: 'firmas' }>;
+  subtitulo: string | null;
+  cierre: Extract<BloqueFinal, { tipo: 'clausula' }> | null;
+}) {
+  const pares: LineaFirma[][] = [];
+  for (let i = 0; i < bloque.partes.length; i += 2) pares.push(bloque.partes.slice(i, i + 2));
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        borderTop: '1px solid #e7e3f0',
-        paddingTop: 8,
-        height: ALTO_PIE,
-      }}
-    >
-      <div style={{ display: 'flex', fontSize: 8.5, color: '#6f6a86', lineHeight: 1.4, maxWidth: ANCHO_UTIL - 110 }}>
-        {izquierda ?? ''}
-      </div>
-      <div style={{ display: 'flex', fontSize: 8.5, color: '#6f6a86' }}>{derecha}</div>
-    </div>
+    <View>
+      {pares.map((par, i) => (
+        // Cada par de firmas va entero en una página; la leyenda, con el primero.
+        <View key={i} wrap={false} style={i === 0 ? { marginTop: cierre ? 9 : 18 } : undefined}>
+          {i === 0 && cierre ? (
+            <View style={{ marginBottom: 18 }}>
+              <Text style={s.cuerpo}>
+                <Text style={s.encabezado}>{cierre.encabezado}</Text>
+                {'\n'}
+                {cierre.texto}
+              </Text>
+            </View>
+          ) : null}
+          {i === 0 && subtitulo ? <Text style={[s.subtitulo, { marginBottom: 6 }]}>{subtitulo}</Text> : null}
+          {i === 0 && bloque.leyenda ? <Text style={s.leyenda}>{bloque.leyenda}</Text> : null}
+          <View style={s.firmaFila}>
+            {par.map((p, j) => (
+              <Firma key={`${p.calidad}-${j}`} parte={p} />
+            ))}
+          </View>
+        </View>
+      ))}
+    </View>
   );
 }
 
-function marco(children: React.ReactNode[]) {
+function Cuerpo({ datos }: { datos: DatosPdfContrato }) {
+  const salida: React.ReactNode[] = [];
+  let subtitulo: string | null = null;
+  // Cláusula de cierre que se dibuja junto con las firmas.
+  let cierre: Extract<BloqueFinal, { tipo: 'clausula' }> | null = null;
+  datos.bloques.forEach((b, i) => {
+    switch (b.tipo) {
+      case 'titulo':
+        salida.push(
+          <View key={i}>
+            <Text style={s.titulo}>{b.texto}</Text>
+            <Text style={s.fecha}>
+              {datos.ciudad}, {datos.fechaLarga}
+            </Text>
+          </View>,
+        );
+        return;
+      case 'subtitulo':
+        if (subtitulo) salida.push(<Parrafo key={`st-${i}`} texto="" subtitulo={subtitulo} />);
+        subtitulo = b.texto;
+        return;
+      // Los avisos son para quien revisa, no parte del contrato: se muestran en
+      // la pantalla de aprobación.
+      case 'aviso':
+        return;
+      case 'clausula': {
+        const siguiente = datos.bloques[i + 1];
+        if (!subtitulo && siguiente?.tipo === 'firmas' && !b.texto.includes('\n') && b.texto.length <= MAX_CARS_CIERRE_CON_FIRMAS) {
+          cierre = b;
+          return;
+        }
+        salida.push(<Clausula key={i} bloque={b} subtitulo={subtitulo} />);
+        break;
+      }
+      case 'parrafo':
+        salida.push(<Parrafo key={i} texto={b.texto} subtitulo={subtitulo} />);
+        break;
+      case 'ficha':
+        salida.push(<Ficha key={i} bloque={b} subtitulo={subtitulo} />);
+        break;
+      case 'firmas':
+        salida.push(<Firmas key={i} bloque={b} subtitulo={subtitulo} cierre={cierre} />);
+        cierre = null;
+        break;
+    }
+    subtitulo = null;
+  });
+  if (subtitulo) salida.push(<Parrafo key="st-final" texto="" subtitulo={subtitulo} />);
+  return <>{salida}</>;
+}
+
+function Pie({ texto, prefijo }: { texto: string | null; prefijo: string }) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        width: A4.width,
-        height: A4.height,
-        background: '#ffffff',
-        fontFamily: FONT,
-        padding: `${MARGEN_ARRIBA}px ${MARGEN_X}px ${MARGEN_ABAJO}px`,
-        color: '#14121f',
-      }}
-    >
-      {children}
-    </div>
+    <View fixed style={s.pie}>
+      <Text style={s.pieTexto}>{texto ?? ''}</Text>
+      <Text
+        style={s.pieNumero}
+        // Numeración de ESTE bloque de páginas: el contrato cuenta sus páginas
+        // y el anexo las suyas.
+        render={({ subPageNumber, subPageTotalPages }) => `${prefijo}${subPageNumber} de ${subPageTotalPages}`}
+      />
+    </View>
   );
 }
 
-function paginaCuerpo(datos: DatosPdfContrato, elementos: ElementoPagina[], numero: number, total: number) {
-  return marco([
-      <div key="contenido" style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-        {elementos.map((el, i) => {
-          if (el.tipo === 'titulo') {
-            return (
-              <div key={i} style={{ display: 'flex', flexDirection: 'column', marginBottom: 20 }}>
-                <div style={{ display: 'flex', fontSize: 16, fontWeight: 800, justifyContent: 'center', textAlign: 'center' }}>
-                  {el.texto}
-                </div>
-                <div style={{ display: 'flex', fontSize: 10, color: '#5c5676', justifyContent: 'center', marginTop: 6 }}>
-                  {datos.ciudad}, {datos.fechaLarga}
-                </div>
-              </div>
-            );
-          }
-          if (el.tipo === 'subtitulo') {
-            return (
-              <div key={i} style={{ display: 'flex', fontSize: 11.5, fontWeight: 800, marginTop: 8, marginBottom: 8, letterSpacing: 0.4 }}>
-                {el.texto}
-              </div>
-            );
-          }
-          if (el.tipo === 'aviso') return <Aviso key={i} texto={el.texto} />;
-          if (el.tipo === 'ficha') {
-            return (
-              <div
-                key={i}
-                style={{ display: 'flex', flexDirection: 'column', border: '1px solid #d6cfe8', borderRadius: 6, marginTop: 4, marginBottom: 14 }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    fontSize: 10,
-                    fontWeight: 800,
-                    letterSpacing: 0.4,
-                    padding: '7px 12px',
-                    borderBottom: '1px solid #e7e3f0',
-                    background: '#faf9fc',
-                  }}
-                >
-                  {el.titulo}
-                </div>
-                {el.filas.map((f, j) => (
-                  <div
-                    key={f.etiqueta}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'row',
-                      padding: '6px 12px',
-                      ...(j < el.filas.length - 1 ? { borderBottom: '1px solid #f0edf6' } : {}),
-                    }}
-                  >
-                    <div style={{ display: 'flex', width: 170, fontSize: 10.5, fontWeight: 700, color: '#5c5676' }}>{f.etiqueta}</div>
-                    <div style={{ display: 'flex', flexGrow: 1, flexShrink: 1, fontSize: 10.5, lineHeight: 1.45 }}>{f.valor}</div>
-                  </div>
-                ))}
-              </div>
-            );
-          }
-          if (el.tipo === 'tramo') {
-            return (
-              <div key={i} style={{ display: 'flex', flexDirection: 'column', marginBottom: el.ultimo ? 12 : 6 }}>
-                {el.encabezado ? (
-                  <div style={{ display: 'flex', fontSize: CUERPO, fontWeight: 700, marginBottom: 4 }}>{el.encabezado}</div>
-                ) : null}
-                <div style={{ display: 'flex', fontSize: CUERPO, lineHeight: INTERLINEADO, textAlign: 'justify' }}>{el.texto}</div>
-              </div>
-            );
-          }
-          if (el.tipo === 'firmas') {
-            return (
-              <div key={i} style={{ display: 'flex', flexDirection: 'column', marginTop: 22 }}>
-                {el.leyenda ? (
-                  <div style={{ display: 'flex', fontSize: 10.5, color: '#5c5676', marginBottom: 12 }}>{el.leyenda}</div>
-                ) : null}
-                <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-                  {el.partes.map((p, j) => (
-                    <Firma key={`${p.calidad}-${j}`} parte={p} />
-                  ))}
-                </div>
-              </div>
-            );
-          }
-          return (
-            <div key={i} style={{ display: 'flex', fontSize: CUERPO, lineHeight: INTERLINEADO, marginBottom: 10, textAlign: 'justify' }}>
-              {el.texto}
-            </div>
-          );
-        })}
-      </div>,
-      <Pie key="pie" izquierda={datos.pie} derecha={`Página ${numero} de ${total}`} />
-  ]);
-}
-
-const ETIQUETA = { display: 'flex', fontSize: 8.5, color: '#6f6a86', width: 140, flexShrink: 0 } as const;
-const VALOR = { display: 'flex', fontSize: 9, color: '#14121f', flexGrow: 1, flexShrink: 1 } as const;
+// ---------------------------------------------------------------------------
+// Anexos
+// ---------------------------------------------------------------------------
 
 function Fila({ k, v, pequeno = false }: { k: string; v: string; pequeno?: boolean }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'row', marginBottom: 2 }}>
-      <div style={ETIQUETA}>{k}</div>
-      <div style={{ ...VALOR, ...(pequeno ? { fontSize: 7.5 } : {}) }}>{v}</div>
-    </div>
+    <View style={s.fila}>
+      <Text style={s.filaEtiqueta}>{k}</Text>
+      <Text style={[s.filaValor, pequeno ? { fontSize: 7 } : {}]}>{v}</Text>
+    </View>
   );
 }
 
-function encabezadoAnexo(titulo: string, subtitulo: string) {
+function CabeceraAnexo({ titulo, subtitulo }: { titulo: string; subtitulo: string }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', borderBottom: '1px solid #d6cfe8', paddingBottom: 10, marginBottom: 12 }}>
-      <div style={{ display: 'flex', fontSize: 9, fontWeight: 800, letterSpacing: 1.2, color: '#6f6a86' }}>ANEXO</div>
-      <div style={{ display: 'flex', fontSize: 15, fontWeight: 800, marginTop: 2 }}>{titulo}</div>
-      <div style={{ display: 'flex', fontSize: 9.5, color: '#5c5676', marginTop: 3 }}>{subtitulo}</div>
-    </div>
+    <View style={s.anexoCabecera}>
+      <Text style={s.anexoRotulo}>ANEXO</Text>
+      <Text style={s.anexoTitulo}>{titulo}</Text>
+      <Text style={s.anexoSubtitulo}>{subtitulo}</Text>
+    </View>
   );
 }
 
 const DECISION: Record<ParteConstancia['decision'], string> = {
-  APROBO: 'Aprobó esta versión',
-  NO_APROBO: 'No aprobó esta versión',
+  APROBO: 'Aprobó',
+  NO_APROBO: 'Pidió cambios',
   PENDIENTE: 'Pendiente',
   SIN_DECISION: 'Sin decisión: se envió una versión posterior',
 };
 
-function paginaAnexoAprobacion(a: AnexoAprobacion, numero: number, total: number) {
-  return marco([
-      <div key="contenido" style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-        {encabezadoAnexo('Constancia de aprobación de borrador', `Registro generado por Redinmo.io · ${a.nombreDocumento}`)}
+function TarjetaParte({ p }: { p: ParteConstancia }) {
+  const color = p.decision === 'APROBO' ? '#0b7568' : p.decision === 'NO_APROBO' ? '#b42318' : GRIS_CLARO;
+  return (
+    <View wrap={false} style={s.tarjeta}>
+      <View style={s.tarjetaCabecera}>
+        <Text style={s.tarjetaNombre}>
+          {p.nombre} — {p.rol}
+          {p.enNombreDe ? ` · por ${p.enNombreDe}` : ''}
+        </Text>
+        <Text style={[s.decision, { color }]}>
+          {DECISION[p.decision]}
+          {p.enVersion ? ` la versión ${p.enVersion}` : ''}
+        </Text>
+      </View>
+      <Fila k="Cédula" v={p.cedula} />
+      {p.correo ? <Fila k="Correo" v={p.correo} /> : null}
+      <Fila k="Envío del enlace" v={p.enviadoAt ?? '—'} />
+      <Fila k="Primer acceso" v={p.abiertoAt ?? '—'} />
+      <Fila k={p.decision === 'NO_APROBO' ? 'Pedido de cambios' : 'Aprobación registrada'} v={p.decisionAt ?? '—'} />
+      {p.motivo ? <Fila k="Lo que pidió" v={p.motivo} /> : null}
+      <Fila k="Dirección IP" v={p.ip ?? '—'} />
+      <Fila k="Navegador y dispositivo" v={p.navegador ?? '—'} />
+      <Fila k="Leyó hasta el final" v={p.decisionAt ? (p.leyoCompleto ? 'Sí' : 'No') : '—'} />
+    </View>
+  );
+}
 
-        <div style={{ display: 'flex', fontSize: 9.5, color: '#5c5676', lineHeight: 1.45, marginBottom: 10 }}>{NOTA_ANEXO_SEPARABLE}</div>
-        <Aviso texto={AVISO_APROBACION} fuerte />
+function PaginaAnexoAprobacion({ a }: { a: AnexoAprobacion }) {
+  return (
+    <Page size="A4" style={s.pagina}>
+      <CabeceraAnexo titulo="Constancia de aprobación de borrador" subtitulo={`Registro generado por Redinmo.io · ${a.nombreDocumento}`} />
+      <Text style={s.nota}>{NOTA_ANEXO_SEPARABLE}</Text>
+      <Text style={[s.aviso, { fontWeight: 600 }]}>{AVISO_APROBACION}</Text>
+      <View style={{ marginBottom: 8 }}>
+        <Fila k="Identificador" v={a.codigo} />
+        <Fila k="Versión" v={`${a.numero} · ${a.estadoVersion}`} />
+        <Fila k="Enviada" v={`${a.enviadaAt} por ${a.enviadaPor}`} />
+        <Fila k="Orden de revisión" v={a.envio} />
+        <Fila k="Huella del texto (SHA-256)" v={a.huella} pequeno />
+        <Fila k="Verificación" v={a.urlVerificacion} />
+      </View>
+      <Text style={s.nota}>La huella identifica el texto exacto de esta versión: un texto con una sola letra distinta tiene otra huella.</Text>
+      {a.etapas.map((etapa, i) => (
+        <View key={i}>
+          <Text style={s.etapaTitulo} minPresenceAhead={80}>
+            {etapa.titulo}
+          </Text>
+          {etapa.nota ? <Text style={s.nota}>{etapa.nota}</Text> : null}
+          {etapa.partes.map((p, j) => (
+            <TarjetaParte key={`${p.rol}-${j}`} p={p} />
+          ))}
+        </View>
+      ))}
+      {a.historial.length > 1 ? (
+        <View wrap={false} style={{ marginTop: 6 }}>
+          <Text style={s.etapaTitulo}>Recorrido del documento</Text>
+          {a.historial.slice(-12).map((h) => (
+            <Fila key={h.numero} k={`Versión ${h.numero} · ${h.enviadaAt}`} v={h.resultado} />
+          ))}
+        </View>
+      ) : null}
+      <Pie texto={AVISO_REDINMO_NO_ES_PARTE} prefijo="Anexo · " />
+    </Page>
+  );
+}
 
-        <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 10 }}>
-          <Fila k="Identificador" v={a.codigo} />
-          <Fila k="Versión" v={`${a.numero} · ${a.estadoVersion}`} />
-          <Fila k="Enviada" v={`${a.enviadaAt} por ${a.enviadaPor}`} />
-          <Fila k="Huella del texto (SHA-256)" v={a.huella} pequeno />
-          <Fila k="Verificación" v={a.urlVerificacion} />
-        </div>
-        <div style={{ display: 'flex', fontSize: 8.5, color: '#6f6a86', lineHeight: 1.4, marginBottom: 10 }}>
-          La huella identifica el texto exacto de esta versión: un texto con una sola letra distinta tiene otra huella.
-        </div>
+function PaginaAnexoFirmaLegado({ a }: { a: AnexoFirmaLegado }) {
+  return (
+    <Page size="A4" style={s.pagina}>
+      <CabeceraAnexo titulo="Constancia de firma electrónica" subtitulo={`Registro generado por Redinmo.io · ${a.nombreDocumento}`} />
+      <Text style={s.aviso}>{AVISO_FIRMA_ELECTRONICA}</Text>
+      {a.nota ? <Text style={[s.aviso, { fontWeight: 600 }]}>{a.nota}</Text> : null}
+      {a.firmantes.map((f) => (
+        <View key={f.rol + f.correo} wrap={false} style={s.tarjeta}>
+          <Text style={[s.tarjetaNombre, { marginBottom: 4 }]}>
+            {f.nombre} — {f.rol}
+          </Text>
+          <Fila k="Cédula / RUC" v={f.cedula} />
+          <Fila k="Correo notificado" v={f.correo} />
+          <Fila k="Envío del enlace" v={f.enviadoAt ?? '—'} />
+          <Fila k="Primer acceso" v={f.abiertoAt ?? '—'} />
+          <Fila k="Firma registrada" v={f.firmadoAt ?? '—'} />
+          <Fila k="Dirección IP" v={f.ip ?? '—'} />
+          <Fila k="Navegador y dispositivo" v={f.navegador ?? '—'} />
+          <Fila k="Leyó el texto hasta el final" v={f.leyoCompleto ? 'Sí' : 'No'} />
+        </View>
+      ))}
+      <View style={{ marginTop: 6 }}>
+        <Fila k="Identificador" v={a.codigo} />
+        <Fila k="Hash SHA-256" v={a.hash ?? '—'} pequeno />
+        <Fila k="Verificación" v={a.urlVerificacion} />
+      </View>
+      <Pie texto={AVISO_REDINMO_NO_ES_PARTE_LEGADO} prefijo="Anexo · " />
+    </Page>
+  );
+}
 
-        {a.partes.map((p) => (
-          <div
-            key={p.rol + p.correo}
-            style={{ display: 'flex', flexDirection: 'column', border: '1px solid #d6cfe8', borderRadius: 6, padding: '9px 12px', marginBottom: 8 }}
-          >
-            <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
-              <div style={{ display: 'flex', fontSize: 10.5, fontWeight: 700 }}>
-                {p.nombre} — {p.rol}
-                {p.enNombreDe ? ` · por ${p.enNombreDe}` : ''}
-              </div>
-              <div style={{ display: 'flex', fontSize: 9.5, fontWeight: 700, color: p.decision === 'APROBO' ? '#0b7568' : p.decision === 'NO_APROBO' ? '#b42318' : '#6f6a86' }}>
-                {DECISION[p.decision]}
-              </div>
-            </div>
-            <Fila k="Cédula" v={p.cedula} />
-            <Fila k="Correo notificado" v={p.correo} />
-            <Fila k="Envío del enlace" v={p.enviadoAt ?? '—'} />
-            <Fila k="Primer acceso" v={p.abiertoAt ?? '—'} />
-            <Fila k={p.decision === 'NO_APROBO' ? 'Decisión registrada' : 'Aprobación registrada'} v={p.decisionAt ?? '—'} />
-            {p.motivo ? <Fila k="Motivo indicado" v={p.motivo} /> : null}
-            <Fila k="Dirección IP" v={p.ip ?? '—'} />
-            <Fila k="Navegador y dispositivo" v={p.navegador ?? '—'} />
-            <Fila k="Leyó hasta el final" v={p.decisionAt ? (p.leyoCompleto ? 'Sí' : 'No') : '—'} />
-          </div>
-        ))}
-
-        {a.historial.length > 1 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', marginTop: 6 }}>
-            <div style={{ display: 'flex', fontSize: 10, fontWeight: 800, marginBottom: 4 }}>Recorrido del documento</div>
-            {a.historial.slice(-12).map((h) => (
-              <Fila key={h.numero} k={`Versión ${h.numero} · ${h.enviadaAt}`} v={h.resultado} />
-            ))}
-          </div>
+export function DocumentoContrato({ datos }: { datos: DatosPdfContrato }) {
+  return (
+    // Metadatos neutros: el archivo es del agente y de sus clientes.
+    <Document title={datos.nombreDocumento} author="" creator="" producer="" language="es">
+      <Page size="A4" style={s.pagina}>
+        {datos.borrador ? (
+          <Text fixed style={s.marca}>
+            BORRADOR
+          </Text>
         ) : null}
-      </div>,
-      <Pie key="pie" izquierda={AVISO_REDINMO_NO_ES_PARTE} derecha={`Anexo · ${numero} de ${total}`} />
-  ]);
-}
-
-function paginaAnexoFirmaLegado(a: AnexoFirmaLegado, numero: number, total: number) {
-  return marco([
-      <div key="contenido" style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-        {encabezadoAnexo('Constancia de firma electrónica', `Registro generado por Redinmo.io · ${a.nombreDocumento}`)}
-        <Aviso texto={AVISO_FIRMA_ELECTRONICA} />
-        {a.nota ? <Aviso texto={a.nota} fuerte /> : null}
-        {a.firmantes.map((f) => (
-          <div
-            key={f.rol + f.correo}
-            style={{ display: 'flex', flexDirection: 'column', border: '1px solid #d6cfe8', borderRadius: 6, padding: '10px 12px', marginBottom: 10 }}
-          >
-            <div style={{ display: 'flex', fontSize: 11, fontWeight: 700, marginBottom: 6 }}>
-              {f.nombre} — {f.rol}
-            </div>
-            <Fila k="Cédula / RUC" v={f.cedula} />
-            <Fila k="Correo notificado" v={f.correo} />
-            <Fila k="Envío del enlace" v={f.enviadoAt ?? '—'} />
-            <Fila k="Primer acceso" v={f.abiertoAt ?? '—'} />
-            <Fila k="Firma registrada" v={f.firmadoAt ?? '—'} />
-            <Fila k="Dirección IP" v={f.ip ?? '—'} />
-            <Fila k="Navegador y dispositivo" v={f.navegador ?? '—'} />
-            <Fila k="Leyó el texto hasta el final" v={f.leyoCompleto ? 'Sí' : 'No'} />
-          </div>
-        ))}
-        <div style={{ display: 'flex', flexDirection: 'column', marginTop: 6 }}>
-          <Fila k="Identificador" v={a.codigo} />
-          <Fila k="Hash SHA-256" v={a.hash ?? '—'} pequeno />
-          <Fila k="Verificación" v={a.urlVerificacion} />
-        </div>
-      </div>,
-      <Pie key="pie" izquierda={AVISO_REDINMO_NO_ES_PARTE_LEGADO} derecha={`Anexo · ${numero} de ${total}`} />
-  ]);
-}
-
-async function aPng(node: Parameters<typeof satori>[0]): Promise<Buffer> {
-  const fonts = loadFichaFonts();
-  const svg = await satori(node, { width: A4.width, height: A4.height, fonts });
-  return new Resvg(svg, { fitTo: { mode: 'width', value: RASTER }, background: '#ffffff' }).render().asPng();
-}
-
-async function agregarPagina(pdf: PDFDocument, node: Parameters<typeof satori>[0]) {
-  const jpg = await pngPageToJpeg(await aPng(node));
-  const img = await pdf.embedJpg(jpg);
-  pdf.addPage(A4_PT).drawImage(img, { x: 0, y: 0, width: A4_PT[0], height: A4_PT[1] });
+        <Cuerpo datos={datos} />
+        <Pie texto={datos.pie} prefijo="Página " />
+      </Page>
+      {datos.anexo?.tipo === 'aprobacion' ? <PaginaAnexoAprobacion a={datos.anexo} /> : null}
+      {datos.anexo?.tipo === 'firma-legado' ? <PaginaAnexoFirmaLegado a={datos.anexo} /> : null}
+    </Document>
+  );
 }
 
 export async function renderContratoPdf(datos: DatosPdfContrato): Promise<Buffer> {
-  const elementos = aElementos(datos.bloques);
-  // El aviso de plantilla sin revisar se inyecta arriba de todo y NO puede
-  // quitarse desde el formulario: viene del archivo de plantilla.
-  if (datos.avisoSinRevisar) elementos.unshift({ tipo: 'aviso', texto: datos.avisoSinRevisar });
-
-  const paginas = paginar(elementos);
-
-  const pdf = await PDFDocument.create();
-  // Metadatos neutros: el archivo es del agente y de sus clientes.
-  pdf.setProducer('');
-  pdf.setCreator('');
-  pdf.setTitle(datos.nombreDocumento);
-
-  for (let i = 0; i < paginas.length; i += 1) {
-    await agregarPagina(pdf, paginaCuerpo(datos, paginas[i], i + 1, paginas.length));
-  }
-
-  if (datos.anexo?.tipo === 'aprobacion') await agregarPagina(pdf, paginaAnexoAprobacion(datos.anexo, 1, 1));
-  else if (datos.anexo?.tipo === 'firma-legado') await agregarPagina(pdf, paginaAnexoFirmaLegado(datos.anexo, 1, 1));
-
-  return Buffer.from(await pdf.save());
+  registrarFuentes();
+  return renderToBuffer(<DocumentoContrato datos={datos} />);
 }

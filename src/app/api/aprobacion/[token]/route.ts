@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isEmailConfigured, sendEmailNotification } from '@/lib/real-estate/email';
-import { describirNavegador, hashToken, ipDeSolicitud } from '@/lib/real-estate/contratos/aprobacion';
-import { correoVersionAprobada, correoVersionNoAprobada } from '@/lib/real-estate/contratos/correos';
+import { hashToken } from '@/lib/real-estate/contratos/aprobacion';
+import { correoAprobacionPrincipal, correoVersionAprobada, correoVersionNoAprobada } from '@/lib/real-estate/contratos/correos';
+import { solicitudDe } from '@/lib/real-estate/contratos/eventos';
 import {
+  aprobacionesDeVersion,
   baseUrl,
   congelada,
   contratoDelAgente,
@@ -15,11 +17,14 @@ import {
   perfilAgente,
 } from '@/lib/real-estate/contratos/servidor';
 import { parteDeToken, registrarDecision } from '@/lib/real-estate/contratos/versiones';
-import { CONTRATO_DEFINICION, type ContratoTipo } from '@/lib/real-estate/contratos/tipos';
+import { CONTRATO_DEFINICION, etiquetasEtapas, type ContratoTipo } from '@/lib/real-estate/contratos/tipos';
 
 // API pública de la aprobación de borrador. SIN sesión: la credencial es el
-// acceso al correo donde llegó el enlace. El token nunca se guarda en claro,
-// así que se busca por su hash.
+// enlace personal. El token se busca por su hash.
+//
+// Lo que se notifica sale SOLO hacia el agente (su cliente aprobó, alguien
+// pidió cambios, la versión quedó aprobada). A los clientes no se les manda
+// nada automático: el agente decide cuándo y cómo seguir.
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -50,10 +55,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: 'Datos incompletos.', details: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const resultado = await registrarDecision(parte, parsed.data, {
-    ip: ipDeSolicitud(request.headers),
-    navegador: describirNavegador(request.headers.get('user-agent')),
-  });
+  const resultado = await registrarDecision(parte, parsed.data, solicitudDe(request.headers));
   if (!resultado.ok) return NextResponse.json({ error: resultado.error, code: resultado.code }, { status: resultado.status });
 
   const tipo = parte.contrato.tipo as ContratoTipo;
@@ -65,6 +67,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const contrato = await contratoDelAgente(parte.contratoId, parte.contrato.agentId);
       const version = contrato?.versiones.find((v) => v.numero === resultado.numero);
       const doc = version ? congelada(version) : null;
+      const etiquetas = etiquetasEtapas(tipo, version?.representa ?? null);
+      // El panel no tiene dirección propia por pestaña: se entra por el inicio.
+      const urlPanel = `${baseUrl()}/`;
 
       if (resultado.estado === 'RECHAZADO' && perfil.correo) {
         const correo = correoVersionNoAprobada({
@@ -77,39 +82,42 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         await sendEmailNotification({ to: perfil.correo, ...correo });
       }
 
-      // Aprobada por todas: cada parte y el agente reciben el PDF de esa
-      // versión con la constancia como anexo.
-      if (resultado.estado === 'APROBADO' && resultado.versionAprobada && contrato && version) {
-        const buffer = await pdfDeVersion(contrato, version.numero);
-        const partes = contrato.partes.filter((p) => p.versionId === version.id);
-        const nombres = partes.map((p) => nombreDeParte(doc, tipo, p));
-        const aprobadaPor = nombres.length > 1 ? `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}` : nombres[0];
-        const destinatarios = new Map<string, string>();
-        for (const p of partes) destinatarios.set(p.correo, p.nombre);
-        if (perfil.correo) destinatarios.set(perfil.correo, perfil.nombre);
+      // La parte principal terminó de aprobar y falta la contraparte: le toca
+      // al agente decidir cuándo enviársela.
+      if (resultado.estado === 'APROBADO' && resultado.contrato === 'APROBADO_PRINCIPAL' && perfil.correo && contrato && version) {
+        const principales = contrato.partes.filter((p) => p.versionId === version.id && p.etapa === 'PRINCIPAL');
+        const correo = correoAprobacionPrincipal({
+          nombreAgente: perfil.nombre,
+          nombreDocumento,
+          numero: resultado.numero,
+          quienes: principales.map((p) => nombreDeParte(doc, tipo, p)).join(' y '),
+          contraparte: (etiquetas.CONTRAPARTE ?? 'la contraparte').toLowerCase(),
+          urlPanel,
+        });
+        await sendEmailNotification({ to: perfil.correo, ...correo });
+      }
 
-        for (const [correoDestino, nombre] of destinatarios) {
-          const correo = correoVersionAprobada({
-            nombre,
-            nombreDocumento,
-            numero: version.numero,
-            aprobadaPor,
-            codigo: contrato.codigoVerificacion,
-            urlVerificacion: `${baseUrl()}/c/${contrato.codigoVerificacion}`,
-          });
-          await sendEmailNotification({
-            to: correoDestino,
-            ...correo,
-            fromName: perfil.nombre,
-            ...(buffer
-              ? {
-                  attachments: [
-                    { filename: nombreArchivoContrato(tipo, contrato.codigoVerificacion, { version: version.numero }), content: buffer },
-                  ],
-                }
-              : {}),
-          });
-        }
+      // Aprobación final: el agente recibe el PDF sin marca de borrador. Las
+      // partes lo descargan desde su enlace; el agente decide cuándo enviarlo.
+      if (resultado.estado === 'APROBADO' && resultado.final && perfil.correo && contrato && version) {
+        const buffer = await pdfDeVersion(contrato, version.numero);
+        const nombres = [...new Set(aprobacionesDeVersion(contrato, version).map(({ parte: p }) => nombreDeParte(doc, tipo, p)))];
+        const aprobadaPor = nombres.length > 1 ? `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}` : nombres[0];
+        const correo = correoVersionAprobada({
+          nombre: perfil.nombre,
+          nombreDocumento,
+          numero: version.numero,
+          aprobadaPor,
+          codigo: contrato.codigoVerificacion,
+          urlVerificacion: `${baseUrl()}/c/${contrato.codigoVerificacion}`,
+        });
+        await sendEmailNotification({
+          to: perfil.correo,
+          ...correo,
+          ...(buffer
+            ? { attachments: [{ filename: nombreArchivoContrato(tipo, contrato.codigoVerificacion, { version: version.numero }), content: buffer }] }
+            : {}),
+        });
       }
     } catch (error) {
       // La decisión ya quedó registrada: un correo que falla no la deshace.

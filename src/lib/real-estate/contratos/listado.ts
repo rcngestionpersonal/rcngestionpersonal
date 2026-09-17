@@ -1,4 +1,4 @@
-import { CONTRATO_DEFINICION, esEstadoDeFirmaLegado, esTipoArchivado, type ContratoTipo } from './tipos';
+import { CONTRATO_DEFINICION, esContratoDeFirmaLegado, esTipoArchivado, type ContratoTipo } from './tipos';
 
 // Preparación de las filas del listado para la pantalla del agente.
 //
@@ -38,7 +38,11 @@ function filaDeContrato(contrato: ContratoFila): FilaListado {
     // envia: la pantalla oculta esas acciones a partir de aqui.
     archivado: esTipoArchivado(contrato.tipo),
     // Contrato de la etapa de firma electronica, que la plataforma ya no ofrece.
-    deFirma: esEstadoDeFirmaLegado(String(contrato.estado ?? '')),
+    // Se reconoce por sus firmantes sin versión.
+    deFirma: esContratoDeFirmaLegado({
+      estado: String(contrato.estado ?? ''),
+      partes: Array.isArray(contrato.partes) ? (contrato.partes as Array<{ versionId: string | null }>) : [],
+    }),
   };
 }
 

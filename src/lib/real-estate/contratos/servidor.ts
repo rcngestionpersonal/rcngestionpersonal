@@ -11,12 +11,23 @@ import {
   descifrarEvidencia,
   fechaConZona,
   fechaLarga,
+  huellaTexto,
   type DocumentoCongelado,
 } from './aprobacion';
 import { compararVersiones, sinCambios, type BloqueFinal, type CambiosEntreVersiones, type LineaFirma } from './clausulas';
+import { datosConContraparteTapada } from './flujo';
 import { LEYENDA_FIRMAS_ELECTRONICAS, NOTA_FIRMA_RETIRADA } from './legado-firma';
 import { renderContratoPdf, type AnexoAprobacion, type ParteConstancia } from './pdf';
-import { CONTRATO_DEFINICION, PARTES_POR_TIPO, esEstadoDeFirmaLegado, esTipoArchivado, type ContratoTipo } from './tipos';
+import {
+  CONTRATO_DEFINICION,
+  PARTES_POR_TIPO,
+  esContratoDeFirmaLegado,
+  esTipoArchivado,
+  etiquetasEtapas,
+  rolBase,
+  type ContratoTipo,
+  type Etapa,
+} from './tipos';
 
 // Piezas compartidas por las rutas de contratos: la guarda de sesión + feature,
 // el documento de trabajo, las versiones congeladas y el armado de los PDF.
@@ -224,15 +235,45 @@ export function cambiosSinEnviar(contrato: ContratoCompleto, bloques: BloqueFina
 // Un contrato de la etapa de firma electrónica: se reimprime con su leyenda y
 // su constancia de firma, tal como se firmó.
 export function esContratoDeFirma(contrato: ContratoCompleto): boolean {
-  return esEstadoDeFirmaLegado(contrato.estado) || contrato.partes.some((p) => !p.versionId);
+  return esContratoDeFirmaLegado(contrato);
+}
+
+// Huella del documento con los datos de la contraparte tapados: dos versiones
+// con la misma huella de condiciones solo difieren en esos datos (ver
+// flujo.ts, corrección menor).
+export function huellaDeCondiciones(
+  contrato: ContratoCompleto,
+  datos: Record<string, string>,
+  perfil: PerfilAgente,
+  representa: string | null,
+): string {
+  const tapados = datosConContraparteTapada(contrato.tipo as ContratoTipo, representa, datos);
+  const preparado = prepararDocumento(entradaDocumento(contrato, tapados, perfil));
+  return huellaTexto(contrato.codigoVerificacion, preparado.texto);
+}
+
+// Cómo se nombra el inmueble en el mensaje para compartir el enlace: el título
+// con el que el agente lo publicó o, si no hay inmueble, su ubicación.
+export async function referenciaInmueble(
+  contrato: { listingId: string | null; agentId: string },
+  datos: Record<string, string>,
+): Promise<string> {
+  if (contrato.listingId) {
+    const l = await prisma.listing.findUnique({ where: { id: contrato.listingId }, select: { title: true, managingAgentId: true } });
+    if (l && l.managingAgentId === contrato.agentId && l.title) return `"${l.title}"`;
+  }
+  const ubicacion = (datos.__inmuebleUbicacion ?? '').trim();
+  return ubicacion && ubicacion !== '—' ? `ubicado en ${ubicacion}` : 'que conversamos';
 }
 
 // ---------------------------------------------------------------------------
 // Partes y rótulos
 // ---------------------------------------------------------------------------
 
+// "vendedor_2" se rotula como su lado: es otra persona de la parte vendedora.
 export function etiquetaRol(tipo: ContratoTipo, rol: string): string {
-  return PARTES_POR_TIPO[tipo]?.find((f) => f.rol === rol)?.etiqueta ?? rol;
+  const base = rolBase(rol);
+  return PARTES_POR_TIPO[tipo]?.find((f) => f.rol === rol || f.rol === base)?.etiqueta ?? rol;
 }
 
 // Compañía por la que aprueba una parte, leída del documento congelado: la
@@ -255,21 +296,42 @@ function unirNombres(nombres: string[]): string {
 const RESULTADO_VERSION: Record<string, string> = {
   EN_APROBACION: 'En revisión',
   APROBADA: 'Aprobada por todas las partes',
-  RECHAZADA: 'No aprobada',
+  RECHAZADA: 'Con cambios pedidos',
   REEMPLAZADA: 'Reemplazada por una versión posterior',
   ANULADA: 'Anulada',
 };
 
+// Quiénes aprobaron una versión, en orden de etapa. Con corrección menor, la
+// etapa principal aprobó la versión base (mismas condiciones).
+export function aprobacionesDeVersion(
+  contrato: ContratoCompleto,
+  version: VersionFila,
+): Array<{ parte: ParteFila; enVersion: number | null }> {
+  const propias = contrato.partes.filter((p) => p.versionId === version.id);
+  const base = version.principalHeredadaDe !== null ? contrato.versiones.find((v) => v.numero === version.principalHeredadaDe) : null;
+  const principal = base
+    ? contrato.partes.filter((p) => p.versionId === base.id && p.etapa === 'PRINCIPAL').map((parte) => ({ parte, enVersion: base.numero }))
+    : propias.filter((p) => p.etapa === 'PRINCIPAL').map((parte) => ({ parte, enVersion: null }));
+  const contraparte = propias.filter((p) => p.etapa === 'CONTRAPARTE').map((parte) => ({ parte, enVersion: null }));
+  return [...principal, ...contraparte];
+}
+
 // El pie de cada página del cuerpo: en qué estado está esa versión. Nunca marca
 // de la plataforma.
 export function pieDeVersion(contrato: ContratoCompleto, version: VersionFila, doc: DocumentoCongelado | null): string {
-  const partes = contrato.partes.filter((p) => p.versionId === version.id);
+  const tipo = contrato.tipo as ContratoTipo;
   if (version.estado === 'APROBADA' && version.aprobadaAt) {
-    const nombres = partes.map((p) => nombreDeParte(doc, contrato.tipo as ContratoTipo, p));
-    return `Versión ${version.numero} — aprobada por ${unirNombres(nombres)} el ${fechaLarga(version.aprobadaAt)}`;
+    const nombres = aprobacionesDeVersion(contrato, version).map(({ parte }) => nombreDeParte(doc, tipo, parte));
+    return `Versión ${version.numero} — aprobada por ${unirNombres([...new Set(nombres)])} el ${fechaLarga(version.aprobadaAt)}`;
   }
-  if (version.estado === 'EN_APROBACION') return `Borrador · versión ${version.numero}, en revisión por las partes`;
-  if (version.estado === 'RECHAZADA') return `Borrador · versión ${version.numero}, no aprobada`;
+  if (version.estado === 'EN_APROBACION') {
+    const etiquetas = etiquetasEtapas(tipo, version.representa);
+    const partes = contrato.partes.filter((p) => p.versionId === version.id);
+    const enContraparte = partes.some((p) => p.etapa === 'CONTRAPARTE') && !version.simultanea;
+    const quien = enContraparte ? etiquetas.CONTRAPARTE : etiquetas.PRINCIPAL;
+    return `Borrador · versión ${version.numero}, en revisión${quien ? ` por ${quien.toLowerCase()}` : ''}`;
+  }
+  if (version.estado === 'RECHAZADA') return `Borrador · versión ${version.numero}, con cambios pedidos`;
   if (version.estado === 'REEMPLAZADA') return `Borrador · versión ${version.numero}, reemplazada por una versión posterior`;
   return `Borrador · versión ${version.numero}, anulada`;
 }
@@ -305,9 +367,26 @@ export async function pdfDeVersion(contrato: ContratoCompleto, numero: number): 
   const tipo = contrato.tipo as ContratoTipo;
   const perfil = await perfilAgente(contrato.agentId);
 
-  const partes: ParteConstancia[] = contrato.partes
-    .filter((p) => p.versionId === version.id)
-    .map((p) => constanciaDeParte(p, version, doc, tipo));
+  const etiquetas = etiquetasEtapas(tipo, version.representa);
+  const aprobaciones = aprobacionesDeVersion(contrato, version);
+  const etapas: AnexoAprobacion['etapas'] = (['PRINCIPAL', 'CONTRAPARTE'] as Etapa[])
+    .filter((e) => (e === 'PRINCIPAL' ? version.requierePrincipal : version.requiereContraparte))
+    .map((e, i) => {
+      const partes = aprobaciones.filter(({ parte }) => parte.etapa === e);
+      const heredada = e === 'PRINCIPAL' && version.principalHeredadaDe !== null;
+      return {
+        titulo: `${i + 1}. ${etiquetas[e] ?? (e === 'PRINCIPAL' ? 'Parte principal' : 'Contraparte')}`,
+        nota: heredada
+          ? `Aprobó la versión ${version.principalHeredadaDe}. Esta versión solo corrige datos de la contraparte: las condiciones son las mismas (misma huella de condiciones), por eso su aprobación se conserva.`
+          : partes.length === 0
+            ? 'Todavía no recibió esta versión.'
+            : null,
+        partes: partes.map(({ parte, enVersion }): ParteConstancia => {
+          const deVersion = enVersion ? (contrato.versiones.find((v) => v.numero === enVersion) ?? version) : version;
+          return { ...constanciaDeParte(parte, deVersion, doc, tipo), enVersion };
+        }),
+      };
+    });
 
   const anexo: AnexoAprobacion = {
     tipo: 'aprobacion',
@@ -319,7 +398,12 @@ export async function pdfDeVersion(contrato: ContratoCompleto, numero: number): 
     enviadaAt: fechaConZona(version.enviadaAt) ?? '—',
     enviadaPor: perfil.nombre,
     huella: version.huella,
-    partes,
+    envio: version.simultanea
+      ? 'Envío simultáneo a todas las partes, elegido por el agente'
+      : etiquetas.PRINCIPAL && etiquetas.CONTRAPARTE
+        ? `Secuencial: primero ${etiquetas.PRINCIPAL.toLowerCase()}, después ${etiquetas.CONTRAPARTE.toLowerCase()}`
+        : `Revisión de ${(etiquetas.PRINCIPAL ?? etiquetas.CONTRAPARTE ?? 'las partes').toLowerCase()}`,
+    etapas,
     historial: contrato.versiones
       .filter((v) => v.numero <= version.numero)
       .map((v) => ({
@@ -334,13 +418,20 @@ export async function pdfDeVersion(contrato: ContratoCompleto, numero: number): 
     nombreDocumento: doc.nombreDocumento,
     ciudad: doc.ciudad,
     fechaLarga: doc.fechaLarga,
-    avisoSinRevisar: doc.avisoSinRevisar,
+    // Solo la versión que aprobaron todas las partes sale sin la marca: es la
+    // que se lleva a la notaría.
+    borrador: version.estado !== 'APROBADA',
     pie: pieDeVersion(contrato, version, doc),
     anexo,
   });
 }
 
-function constanciaDeParte(p: ParteFila, version: VersionFila, doc: DocumentoCongelado, tipo: ContratoTipo): ParteConstancia {
+function constanciaDeParte(
+  p: ParteFila,
+  version: VersionFila,
+  doc: DocumentoCongelado,
+  tipo: ContratoTipo,
+): Omit<ParteConstancia, 'enVersion'> {
   const evidencia = descifrarEvidencia(p.evidenciaCifrada);
   const decision: ParteConstancia['decision'] =
     p.estado === 'APROBADO'
@@ -352,6 +443,7 @@ function constanciaDeParte(p: ParteFila, version: VersionFila, doc: DocumentoCon
           : 'SIN_DECISION';
   return {
     rol: etiquetaRol(tipo, p.rol),
+    etapa: p.etapa,
     nombre: p.nombre,
     enNombreDe: enNombreDe(doc, tipo, p.rol),
     // Enmascarada: el PDF circula por correo y el número completo ya está en
@@ -375,11 +467,18 @@ export function resultadoDeVersion(contrato: ContratoCompleto, version: VersionF
   const tipo = contrato.tipo as ContratoTipo;
   const partes = contrato.partes.filter((p) => p.versionId === version.id);
   if (version.estado === 'APROBADA') {
-    return `Aprobada por ${unirNombres(partes.map((p) => nombreDeParte(doc, tipo, p)))}`;
+    const nombres = aprobacionesDeVersion(contrato, version).map(({ parte }) => nombreDeParte(doc, tipo, parte));
+    return `Aprobada por ${unirNombres([...new Set(nombres)])}`;
   }
   if (version.estado === 'RECHAZADA') {
     const quien = partes.find((p) => p.estado === 'RECHAZADO');
-    return quien ? `No aprobada por ${nombreDeParte(doc, tipo, quien)}: "${quien.motivoRechazo ?? ''}"` : 'No aprobada';
+    return quien ? `Cambios pedidos por ${nombreDeParte(doc, tipo, quien)}: "${quien.motivoRechazo ?? ''}"` : 'Con cambios pedidos';
+  }
+  if (version.estado === 'EN_APROBACION') {
+    const principal = partes.filter((p) => p.etapa === 'PRINCIPAL');
+    if (principal.length > 0 && principal.every((p) => p.estado === 'APROBADO') && !partes.some((p) => p.etapa === 'CONTRAPARTE')) {
+      return `Aprobada por ${unirNombres(principal.map((p) => nombreDeParte(doc, tipo, p)))}; falta enviarla a la contraparte`;
+    }
   }
   return RESULTADO_VERSION[version.estado] ?? version.estado;
 }
@@ -396,7 +495,7 @@ export async function pdfDeTrabajo(contrato: ContratoCompleto): Promise<Buffer> 
     nombreDocumento: trabajo.preparado.nombreDocumento,
     ciudad: trabajo.ciudad,
     fechaLarga: trabajo.fechaLarga,
-    avisoSinRevisar: trabajo.preparado.revisadaPorAbogado ? null : trabajo.preparado.avisoSinRevisar,
+    borrador: true,
     pie,
     anexo: null,
   });
@@ -423,16 +522,19 @@ export async function pdfDeFirmaLegado(contrato: ContratoCompleto): Promise<Buff
   });
 
   const hayFirmas = firmantes.some((f) => f.firmadoAt);
+  // Firmado por todos: se reconoce por las firmas y no por el estado, que la
+  // migración pasa a su equivalente del flujo nuevo.
+  const firmadoPorTodos = firmantes.length > 0 && firmantes.every((f) => f.firmadoAt);
   return renderContratoPdf({
     bloques: preparado.bloques,
     nombreDocumento: preparado.nombreDocumento,
     ciudad: perfil.documento.ciudad,
     fechaLarga: fechaLarga(contrato.createdAt),
-    avisoSinRevisar: preparado.revisadaPorAbogado ? null : preparado.avisoSinRevisar,
+    borrador: !firmadoPorTodos,
     pie:
-      contrato.estado === 'FIRMADO' && contrato.firmadoAt
+      firmadoPorTodos && contrato.firmadoAt
         ? `Documento firmado electrónicamente el ${fechaLarga(contrato.firmadoAt)}`
-        : contrato.estado === 'PENDIENTE_FIRMA'
+        : firmantes.length > 0
           ? 'Firma electrónica no concluida'
           : null,
     anexo: hayFirmas
@@ -442,7 +544,7 @@ export async function pdfDeFirmaLegado(contrato: ContratoCompleto): Promise<Buff
           codigo: contrato.codigoVerificacion,
           urlVerificacion: `${baseUrl().replace(/^https?:\/\//, '')}/c/${contrato.codigoVerificacion}`,
           hash: contrato.hashDocumento,
-          nota: contrato.estado === 'FIRMADO' ? null : NOTA_FIRMA_RETIRADA,
+          nota: firmadoPorTodos ? null : NOTA_FIRMA_RETIRADA,
           firmantes: firmantes.map((f) => {
             const evidencia = descifrarEvidencia(f.evidenciaCifrada);
             return {

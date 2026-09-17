@@ -12,7 +12,7 @@ import {
   hashToken,
   ultimos4,
 } from './aprobacion';
-import { APROBACION_VIGENCIA_DIAS } from './tipos';
+import { vigenciaPorDefectoHoras, vigenciaValida } from './tipos';
 
 // La aprobación remota es la parte del módulo donde un error se paga caro: un
 // token adivinable o una comparación floja de la cédula convertirían la
@@ -39,11 +39,16 @@ describe('contratos: tokens de los enlaces de revisión', () => {
     expect(hashToken(`${token}x`)).not.toBe(hash);
   });
 
-  it('los enlaces caducan a los días definidos', () => {
+  it('los enlaces caducan en la vigencia elegida: 72 h las reservas y 5 días el resto, por defecto', () => {
     const desde = new Date('2026-09-01T12:00:00Z');
-    const expira = fechaExpiracion(desde);
-    const dias = (expira.getTime() - desde.getTime()) / (24 * 60 * 60 * 1000);
-    expect(dias).toBe(APROBACION_VIGENCIA_DIAS);
+    const horas = (h: number) => (fechaExpiracion(h, desde).getTime() - desde.getTime()) / (60 * 60 * 1000);
+    expect(horas(vigenciaPorDefectoHoras('RESERVA_COMPRAVENTA'))).toBe(72);
+    expect(horas(vigenciaPorDefectoHoras('RESERVA_ARRIENDO'))).toBe(72);
+    expect(horas(vigenciaPorDefectoHoras('ARRENDAMIENTO_RESIDENCIAL'))).toBe(120);
+    expect(horas(vigenciaPorDefectoHoras('CORRETAJE'))).toBe(120);
+    // Solo las vigencias del selector: nada de enlaces eternos.
+    expect(vigenciaValida(72)).toBe(true);
+    expect(vigenciaValida(100000)).toBe(false);
   });
 
   it('el código público no usa caracteres que se confundan al dictarlo', () => {

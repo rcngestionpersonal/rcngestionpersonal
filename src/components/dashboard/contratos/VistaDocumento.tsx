@@ -53,6 +53,8 @@ export default function VistaDocumento({ bloques, ciudad, fechaLarga }: { bloque
             </div>
           );
         }
+        // Los avisos para quien revisa no son parte del documento.
+        if (b.tipo === 'aviso') return null;
         if (b.tipo === 'firmas') {
           return (
             <div key={i} className="mt-5 grid gap-4 border-t border-line pt-4 sm:grid-cols-2">

@@ -386,3 +386,124 @@ export function compararVersiones(anterior: BloqueFinal[], actual: BloqueFinal[]
 export function sinCambios(c: CambiosEntreVersiones): boolean {
   return c.modificadas.length === 0 && c.agregadas.length === 0 && c.retiradas.length === 0 && !c.otros;
 }
+
+// ---------------------------------------------------------------------------
+// Qué cambió, palabra por palabra
+//
+// Cuando una versión vuelve a quien ya aprobó la anterior, no basta con decirle
+// "cambió la cláusula quinta": tiene que ver qué palabras se agregaron y cuáles
+// salieron. Las cláusulas se emparejan por clave (no por número) y los párrafos
+// sueltos por su posición.
+// ---------------------------------------------------------------------------
+
+export type TramoDiff = { tipo: 'igual' | 'agregado' | 'quitado'; texto: string };
+
+// Más allá de esto la comparación fina no aporta y cuesta: se marca el texto
+// entero como reemplazado.
+const MAX_PALABRAS_DIFF = 2500;
+
+export function diffPalabras(antes: string, despues: string): TramoDiff[] {
+  if (antes === despues) return antes ? [{ tipo: 'igual', texto: antes }] : [];
+  const a = antes.split(/(\s+)/).filter((t) => t !== '');
+  const b = despues.split(/(\s+)/).filter((t) => t !== '');
+  if (a.length > MAX_PALABRAS_DIFF || b.length > MAX_PALABRAS_DIFF) {
+    return [
+      ...(antes ? [{ tipo: 'quitado' as const, texto: antes }] : []),
+      ...(despues ? [{ tipo: 'agregado' as const, texto: despues }] : []),
+    ];
+  }
+  // Subsecuencia común más larga, de atrás hacia adelante.
+  const n = a.length;
+  const m = b.length;
+  const lcs: Uint16Array[] = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1));
+  for (let i = n - 1; i >= 0; i -= 1) {
+    for (let j = m - 1; j >= 0; j -= 1) {
+      lcs[i][j] = a[i] === b[j] ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+    }
+  }
+  const tramos: TramoDiff[] = [];
+  const empujar = (tipo: TramoDiff['tipo'], texto: string) => {
+    const ultimo = tramos[tramos.length - 1];
+    if (ultimo && ultimo.tipo === tipo) ultimo.texto += texto;
+    else tramos.push({ tipo, texto });
+  };
+  let i = 0;
+  let j = 0;
+  while (i < n && j < m) {
+    if (a[i] === b[j]) {
+      empujar('igual', a[i]);
+      i += 1;
+      j += 1;
+    } else if (lcs[i + 1][j] >= lcs[i][j + 1]) {
+      empujar('quitado', a[i]);
+      i += 1;
+    } else {
+      empujar('agregado', b[j]);
+      j += 1;
+    }
+  }
+  while (i < n) empujar('quitado', a[i++]);
+  while (j < m) empujar('agregado', b[j++]);
+  return tramos;
+}
+
+export type MarcaCambio =
+  | { estado: 'igual' }
+  | { estado: 'agregado' }
+  | { estado: 'modificado'; tramos: TramoDiff[]; tituloAnterior?: string };
+
+export type ComparacionDocumento = {
+  // Una marca por cada bloque del documento NUEVO, en el mismo orden.
+  bloques: MarcaCambio[];
+  // Filas de ficha que cambiaron, por índice de bloque y etiqueta.
+  filas: Record<number, Record<string, TramoDiff[] | 'agregada'>>;
+  // Cláusulas que estaban y ya no están.
+  retiradas: string[];
+};
+
+export function compararDocumentos(anterior: BloqueFinal[], actual: BloqueFinal[]): ComparacionDocumento {
+  type C = Extract<BloqueFinal, { tipo: 'clausula' }>;
+  const previas = new Map(anterior.filter((x): x is C => x.tipo === 'clausula').map((c) => [c.clave, c]));
+  const parrafosPrevios = anterior.filter((x) => x.tipo === 'parrafo') as Array<{ tipo: 'parrafo'; texto: string }>;
+  const fichasPrevias = anterior.filter((x) => x.tipo === 'ficha') as Array<Extract<BloqueFinal, { tipo: 'ficha' }>>;
+  let parrafo = 0;
+  let ficha = 0;
+  const filas: ComparacionDocumento['filas'] = {};
+
+  const bloques = actual.map((b, indice): MarcaCambio => {
+    if (b.tipo === 'clausula') {
+      const previa = previas.get(b.clave);
+      if (!previa) return { estado: 'agregado' };
+      if (previa.texto === b.texto && previa.titulo === b.titulo) return { estado: 'igual' };
+      return {
+        estado: 'modificado',
+        tramos: diffPalabras(previa.texto, b.texto),
+        ...(previa.titulo !== b.titulo ? { tituloAnterior: previa.titulo } : {}),
+      };
+    }
+    if (b.tipo === 'parrafo') {
+      const previo = parrafosPrevios[parrafo++];
+      if (!previo) return { estado: 'agregado' };
+      return previo.texto === b.texto ? { estado: 'igual' } : { estado: 'modificado', tramos: diffPalabras(previo.texto, b.texto) };
+    }
+    if (b.tipo === 'ficha') {
+      const previa = fichasPrevias[ficha++];
+      if (!previa) return { estado: 'agregado' };
+      const antes = new Map(previa.filas.map((f) => [f.etiqueta, f.valor]));
+      const cambios: Record<string, TramoDiff[] | 'agregada'> = {};
+      for (const f of b.filas) {
+        const valor = antes.get(f.etiqueta);
+        if (valor === undefined) cambios[f.etiqueta] = 'agregada';
+        else if (valor !== f.valor) cambios[f.etiqueta] = diffPalabras(valor, f.valor);
+      }
+      if (Object.keys(cambios).length === 0) return { estado: 'igual' };
+      filas[indice] = cambios;
+      return { estado: 'modificado', tramos: [] };
+    }
+    return { estado: 'igual' };
+  });
+
+  const vigentes = new Set(actual.filter((x): x is C => x.tipo === 'clausula').map((c) => c.clave));
+  const retiradas = [...previas.values()].filter((c) => !vigentes.has(c.clave)).map((c) => c.titulo.trim());
+  return { bloques, filas, retiradas };
+}

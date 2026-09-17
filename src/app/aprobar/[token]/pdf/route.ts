@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hashToken } from '@/lib/real-estate/contratos/aprobacion';
 import { contratoDelAgente, nombreArchivoContrato, pdfDeVersion } from '@/lib/real-estate/contratos/servidor';
-import { parteDeToken } from '@/lib/real-estate/contratos/versiones';
+import { motivoCerrado, parteDeToken, textoCerrado } from '@/lib/real-estate/contratos/versiones';
 import type { ContratoTipo } from '@/lib/real-estate/contratos/tipos';
 
 // PDF de la versión que una parte tiene que revisar, o sobre la que ya decidió.
-// El token es la credencial: quien tiene el enlace ve ESA versión de SU
-// documento y ninguna otra.
+// El enlace es la credencial: quien lo tiene ve ESA versión de SU documento y
+// ninguna otra, y solo si la página también se la mostraría (una contraparte no
+// descarga lo que la parte principal todavía no aprobó).
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -15,14 +16,12 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   const parte = await parteDeToken(hashToken(token));
   if (!parte || !parte.version) return NextResponse.json({ error: 'Enlace no válido.' }, { status: 404 });
 
-  if (parte.contrato.estado === 'ANULADO') {
-    return NextResponse.json({ error: 'Este documento fue cancelado.' }, { status: 409 });
-  }
-  // Un enlace vencido deja de servir también para descargar, salvo que la
-  // persona ya haya decidido: en ese caso tiene derecho a su copia.
-  const decidio = parte.estado === 'APROBADO' || parte.estado === 'RECHAZADO';
-  if (parte.expiraAt.getTime() < Date.now() && !decidio) {
-    return NextResponse.json({ error: 'El enlace venció.' }, { status: 410 });
+  // Puede descargar quien puede decidir, y quien ya decidió (tiene derecho a su
+  // copia). Nadie más.
+  const motivo = motivoCerrado(parte);
+  if (motivo && motivo !== 'ya_aprobo' && motivo !== 'ya_rechazo') {
+    const status = motivo === 'no_disponible' ? 403 : motivo === 'vencido' ? 410 : 409;
+    return NextResponse.json({ error: textoCerrado(motivo), code: motivo }, { status });
   }
 
   const contrato = await contratoDelAgente(parte.contratoId, parte.contrato.agentId);

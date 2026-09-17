@@ -154,13 +154,15 @@ describe('plantillas de contrato', () => {
       }
     });
 
-    it('las reservas volvieron con la v3, y una de la primera etapa se sigue reimprimiendo con la v1', () => {
+    it('las reservas volvieron (compraventa ya en v4), y una de la primera etapa se sigue reimprimiendo con la v1', () => {
       for (const tipo of ['RESERVA_COMPRAVENTA', 'RESERVA_ARRIENDO'] as const) {
         expect(VIVOS).toContain(tipo);
         expect(esTipoArchivado(tipo), tipo).toBe(false);
-        expect(plantillaActual(tipo), tipo).toMatch(/-v3-2026-09$/);
+        expect(plantillaActual(tipo), tipo).toMatch(tipo === 'RESERVA_COMPRAVENTA' ? /-v4-2026-09$/ : /-v3-2026-09$/);
         expect(obtenerPlantilla(tipo, 'v1-2026-09').version).toBe('v1-2026-09');
       }
+      // La v3 de compraventa sigue registrada para los contratos que la usan.
+      expect(obtenerPlantilla('RESERVA_COMPRAVENTA', 'reserva-compraventa-v3-2026-09').version).toBe('reserva-compraventa-v3-2026-09');
     });
 
     it('no se listan como plantillas vigentes del módulo', () => {
@@ -372,7 +374,7 @@ describe('plantillas de contrato', () => {
       expect(plantillaActual('ARRENDAMIENTO_RESIDENCIAL')).toBe('arrendamiento-residencial-v1-2026-09');
       expect(plantillaActual('ARRENDAMIENTO_COMERCIAL')).toBe('arrendamiento-comercial-v1-2026-09');
       expect(plantillaActual('ARRENDAMIENTO_INDUSTRIAL')).toBe('arrendamiento-industrial-v1-2026-09');
-      expect(plantillaActual('RESERVA_COMPRAVENTA')).toBe('reserva-compraventa-v3-2026-09');
+      expect(plantillaActual('RESERVA_COMPRAVENTA')).toBe('reserva-compraventa-v4-2026-09');
       expect(plantillaActual('RESERVA_ARRIENDO')).toBe('reserva-arriendo-v3-2026-09');
       expect(plantillaActual('ARRENDAMIENTO')).toBe('arrendamiento-v3-2026-09');
     });

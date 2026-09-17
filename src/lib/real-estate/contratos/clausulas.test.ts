@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   MARCA_REFERENCIA_ROTA,
+  compararDocumentos,
+  diffPalabras,
   aplicarEdicion,
   clausulasParaEditor,
   compararVersiones,
@@ -228,5 +230,37 @@ describe('comparación entre versiones', () => {
     expect(texto).toContain('Precio: 100');
     expect(texto).toContain('Compañía de Prueba S.A. (RUC 0000000000001)');
     expect(texto).toContain('ARRENDADOR');
+  });
+});
+
+describe('comparación palabra por palabra', () => {
+  it('marca lo agregado y lo quitado sin tocar lo que sigue igual', () => {
+    const tramos = diffPalabras('El plazo es de 60 días calendario.', 'El plazo es de 90 días calendario.');
+    expect(tramos.filter((t) => t.tipo !== 'igual')).toEqual([
+      { tipo: 'quitado', texto: '60' },
+      { tipo: 'agregado', texto: '90' },
+    ]);
+    expect(tramos.filter((t) => t.tipo !== 'quitado').map((t) => t.texto).join('')).toBe('El plazo es de 90 días calendario.');
+    expect(tramos.filter((t) => t.tipo !== 'agregado').map((t) => t.texto).join('')).toBe('El plazo es de 60 días calendario.');
+  });
+
+  it('un texto igual es un solo tramo', () => {
+    expect(diffPalabras('igual', 'igual')).toEqual([{ tipo: 'igual', texto: 'igual' }]);
+  });
+
+  it('empareja cláusulas por clave, no por número, y lista las retiradas', () => {
+    const c = (clave: string, texto: string, encabezado = 'CLÁUSULA') => ({ tipo: 'clausula' as const, clave, encabezado, titulo: clave.toUpperCase(), texto });
+    const antes = [c('objeto', 'Texto A.'), c('plazo', 'Sesenta días.'), c('multa', 'Sin multa.')];
+    const despues = [c('objeto', 'Texto A.'), c('garantia', 'Nueva garantía.'), c('plazo', 'Noventa días.')];
+    const r = compararDocumentos(antes, despues);
+    expect(r.bloques.map((b) => b.estado)).toEqual(['igual', 'agregado', 'modificado']);
+    expect(r.retiradas).toEqual(['MULTA']);
+  });
+
+  it('en la ficha marca solo las filas que cambiaron', () => {
+    const ficha = (valor: string) => ({ tipo: 'ficha' as const, titulo: 'FICHA', filas: [{ etiqueta: 'Precio', valor }, { etiqueta: 'Plazo', valor: '60 días' }] });
+    const r = compararDocumentos([ficha('USD 100')], [ficha('USD 120')]);
+    expect(r.bloques[0].estado).toBe('modificado');
+    expect(Object.keys(r.filas[0])).toEqual(['Precio']);
   });
 });

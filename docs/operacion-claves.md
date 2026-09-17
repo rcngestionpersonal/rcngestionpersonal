@@ -13,6 +13,9 @@ el código no se lee el día que hace falta.
 | `ContratoVersion.documentoCifrado` | El texto completo de cada versión tal como se envió para aprobación |
 | `ContratoFirmante.cedulaCifrada` | La cédula completa de cada parte que aprueba (o que firmó, en la etapa de firma electrónica) |
 | `ContratoFirmante.evidenciaCifrada` | El registro de cada aprobación o firma: IP, navegador, si desplazó el documento, huella de la versión |
+| `ContratoVersion.datosCifrados` | Los datos del formulario con los que se congeló cada versión (para saber qué campos corrigió una corrección menor) |
+| `ContratoFirmante.tokenCifrado` | El token del enlace de revisión de cada persona, para que el agente pueda volver a compartirlo por WhatsApp (el enlace se busca por su hash) |
+| `ContratoEvento.detalleCifrado` | El detalle de cada evento del historial: nombre de quien actuó, comentario, IP y navegador |
 | `PaymentMethod` | El ctoken de Payphone del medio de pago guardado |
 | `ReporteVisita` | Nombre, cédula y acompañantes de cada visitante |
 | `ReporteVisitaFoto.datosCifrados` | La foto del visitante, en bytes. No existe copia en Vercel Blob ni ninguna URL pública |
