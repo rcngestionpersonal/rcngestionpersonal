@@ -15,6 +15,9 @@ import * as corretajeAbiertoV1 from './corretaje-abierto-v1';
 import * as arrendamientoV3 from './arrendamiento-v3';
 import * as corretajeV2 from './corretaje-v2';
 import * as corretajeV3 from './corretaje-v3';
+import * as arrendamientoResidencialV1 from './arrendamiento-residencial-v1';
+import * as arrendamientoComercialV1 from './arrendamiento-comercial-v1';
+import * as arrendamientoIndustrialV1 from './arrendamiento-industrial-v1';
 import type { ContratoTipo } from '../tipos';
 import type { EstiloNumeracion } from '../clausulas';
 import type { BloqueDocumento, DatosDocumento } from './base';
@@ -74,6 +77,18 @@ const REGISTRO: Record<ContratoTipo, LineaDeVersiones> = {
       [corretajeV2.PLANTILLA_VERSION]: deUnTipo(corretajeV2),
       [corretajeV3.PLANTILLA_VERSION]: deUnTipo(corretajeV3, true),
     },
+  },
+  ARRENDAMIENTO_RESIDENCIAL: {
+    actual: arrendamientoResidencialV1.PLANTILLA_VERSION,
+    versiones: { [arrendamientoResidencialV1.PLANTILLA_VERSION]: deUnTipo(arrendamientoResidencialV1, true) },
+  },
+  ARRENDAMIENTO_COMERCIAL: {
+    actual: arrendamientoComercialV1.PLANTILLA_VERSION,
+    versiones: { [arrendamientoComercialV1.PLANTILLA_VERSION]: deUnTipo(arrendamientoComercialV1, true) },
+  },
+  ARRENDAMIENTO_INDUSTRIAL: {
+    actual: arrendamientoIndustrialV1.PLANTILLA_VERSION,
+    versiones: { [arrendamientoIndustrialV1.PLANTILLA_VERSION]: deUnTipo(arrendamientoIndustrialV1, true) },
   },
   // --- RETIRADOS: solo lectura, se conservan para reimprimir ---
   // El arrendamiento se retiro el 2026-09-15. Se conserva unicamente la v3, que

@@ -107,8 +107,8 @@ function clausula(tipo: ContratoTipo, titulo: string, extra: Record<string, stri
 const VIVOS = CONTRATO_MENU.map((e) => e.tipo);
 
 describe('plantillas de contrato', () => {
-  it('solo se puede generar el corretaje', () => {
-    expect(VIVOS).toEqual(['CORRETAJE']);
+  it('se generan el corretaje y los tres arrendamientos', () => {
+    expect(VIVOS).toEqual(['CORRETAJE', 'ARRENDAMIENTO_RESIDENCIAL', 'ARRENDAMIENTO_COMERCIAL', 'ARRENDAMIENTO_INDUSTRIAL']);
     for (const tipo of VIVOS) expect(esTipoArchivado(tipo), tipo).toBe(false);
   });
 
@@ -156,7 +156,7 @@ describe('plantillas de contrato', () => {
 
     it('no se listan como plantillas vigentes del módulo', () => {
       const ofrecidas = plantillasVigentes().filter((p) => !CONTRATO_TIPOS_LEGADO.includes(p.tipo));
-      expect(ofrecidas.map((p) => p.tipo)).toEqual(['CORRETAJE']);
+      expect(ofrecidas.map((p) => p.tipo).sort()).toEqual(['ARRENDAMIENTO_COMERCIAL', 'ARRENDAMIENTO_INDUSTRIAL', 'ARRENDAMIENTO_RESIDENCIAL', 'CORRETAJE']);
     });
   });
 
@@ -341,6 +341,9 @@ describe('plantillas de contrato', () => {
   describe('versionado por tipo', () => {
     it('cada tipo vivo tiene su propia versión actual', () => {
       expect(plantillaActual('CORRETAJE')).toBe('corretaje-v3-2026-09');
+      expect(plantillaActual('ARRENDAMIENTO_RESIDENCIAL')).toBe('arrendamiento-residencial-v1-2026-09');
+      expect(plantillaActual('ARRENDAMIENTO_COMERCIAL')).toBe('arrendamiento-comercial-v1-2026-09');
+      expect(plantillaActual('ARRENDAMIENTO_INDUSTRIAL')).toBe('arrendamiento-industrial-v1-2026-09');
       expect(plantillaActual('ARRENDAMIENTO')).toBe('arrendamiento-v3-2026-09');
     });
 

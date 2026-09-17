@@ -41,12 +41,20 @@ type Paso = 'datos' | 'clausulas' | 'revisar';
 function autocompletar(tipo: ContratoTipo, datos: Record<string, string>, listing: ListingOpcion | undefined): Record<string, string> {
   if (!listing) return datos;
   const claves = new Set(CONTRATO_DEFINICION[tipo].secciones.flatMap((s) => s.campos.map((c) => c.clave)));
+  const precio = listing.price ? String(listing.price) : null;
   const sugeridos: Record<string, string | null | undefined> = {
+    // Corretaje: el dueño es el propietario que consigna.
     propietario_nombre: listing.ownerName,
     propietario_telefono: listing.ownerPhone,
     propiedadDireccion: listing.address,
     propiedadCiudad: listing.city,
-    precio: listing.operationType !== 'RENT' && listing.price ? String(listing.price) : null,
+    precio: listing.operationType !== 'RENT' ? precio : null,
+    // Arrendamientos: el dueño es el arrendador.
+    arrendador_nombre: listing.ownerName,
+    arrendador_telefono: listing.ownerPhone,
+    inmuebleDireccion: listing.address,
+    inmuebleCiudad: listing.city,
+    canon: listing.operationType !== 'SALE' ? precio : null,
   };
   const salida = { ...datos };
   for (const [clave, valor] of Object.entries(sugeridos)) {

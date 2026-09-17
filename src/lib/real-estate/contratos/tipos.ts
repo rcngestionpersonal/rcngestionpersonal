@@ -4,8 +4,8 @@
 
 import { DEFINICIONES_LEGADO, FIRMANTES_LEGADO } from './tipos-legado';
 
-// Los valores del enum en la base. Solo UNO se puede generar hoy: el corretaje.
-// El resto son tipos RETIRADOS que siguen en el enum porque hay (o puede haber)
+// Los valores del enum en la base. Se generan hoy el corretaje y los tres
+// arrendamientos (residencial, comercial e industrial). El resto son tipos RETIRADOS que siguen en el enum porque hay (o puede haber)
 // contratos que los usan, y esos contratos se abren, se imprimen y se descargan
 // igual que siempre. Lo que no se puede es crear otro.
 //
@@ -13,6 +13,9 @@ import { DEFINICIONES_LEGADO, FIRMANTES_LEGADO } from './tipos-legado';
 // valor de un enum sin recrear el tipo, y una fila que lo use quedaria huerfana.
 export const CONTRATO_TIPOS = [
   'CORRETAJE',
+  'ARRENDAMIENTO_RESIDENCIAL',
+  'ARRENDAMIENTO_COMERCIAL',
+  'ARRENDAMIENTO_INDUSTRIAL',
   'CORRETAJE_EXCLUSIVO',
   'CORRETAJE_ABIERTO',
   'ARRENDAMIENTO',
@@ -183,7 +186,7 @@ export const TIPO_PERSONA = [
 export function parte(
   rol: string,
   titulo: string,
-  extras: { tipoDocumento?: boolean } = {},
+  extras: { tipoDocumento?: boolean; juridicaPorDefecto?: boolean; descripcion?: string } = {},
 ): SeccionDefinicion {
   const natural = { clave: `${rol}_tipoPersona`, valores: ['NATURAL'] };
   const juridica = { clave: `${rol}_tipoPersona`, valores: ['JURIDICA'] };
@@ -193,7 +196,7 @@ export function parte(
       etiqueta: 'Comparece como',
       tipo: 'opcion',
       obligatorio: true,
-      porDefecto: 'NATURAL',
+      porDefecto: extras.juridicaPorDefecto ? 'JURIDICA' : 'NATURAL',
       opciones: TIPO_PERSONA,
     },
     { clave: `${rol}_nombre`, etiqueta: 'Nombre completo', tipo: 'texto', obligatorio: true, visibleSi: natural },
@@ -244,7 +247,7 @@ export function parte(
     { clave: `${rol}_telefono`, etiqueta: 'Teléfono', tipo: 'telefono', obligatorio: true },
     { clave: `${rol}_direccion`, etiqueta: 'Domicilio', tipo: 'texto', obligatorio: true },
   );
-  return { clave: rol, titulo, campos };
+  return { clave: rol, titulo, descripcion: extras.descripcion, campos };
 }
 
 // El agente también es parte en los documentos donde actúa como corredor, y
@@ -478,17 +481,401 @@ const DEFINICIONES_VIVAS: Record<string, TipoDefinicion> = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// ARRENDAMIENTOS
+//
+// Tres documentos según el tipo de inmueble, cada uno sobre un contrato real
+// usado en el mercado (con sus datos retirados): vivienda, local u oficina, y
+// bodega o galpón. Las renuncias de validez discutible no son campos: son
+// cláusulas opcionales, apagadas, que el agente activa en el editor de
+// cláusulas con la nota de consultar a un abogado.
+// ---------------------------------------------------------------------------
+
+const VIA_CONTROVERSIAS = (porDefecto: 'JUECES' | 'ARBITRAJE'): CampoDefinicion => ({
+  clave: 'viaControversias',
+  etiqueta: 'Si no hay acuerdo en mediación',
+  tipo: 'opcion',
+  obligatorio: true,
+  porDefecto,
+  opciones: [
+    { valor: 'JUECES', etiqueta: 'Jueces competentes' },
+    { valor: 'ARBITRAJE', etiqueta: 'Arbitraje' },
+  ],
+});
+
+// Solo lo usa la cláusula opcional de desalojo; si no se activa, no se imprime.
+const DESALOJO_DIAS: CampoDefinicion = {
+  clave: 'desalojoDias',
+  etiqueta: 'Días para restituir tras la terminación',
+  tipo: 'numero',
+  porDefecto: '8',
+  ayuda: 'Solo se usa si activas la cláusula opcional de desalojo en el paso de cláusulas.',
+};
+
+const DEFINICIONES_ARRENDAMIENTO: Record<string, TipoDefinicion> = {
+  ARRENDAMIENTO_RESIDENCIAL: {
+    titulo: 'Arrendamiento residencial',
+    descripcion: 'Cuando arriendas una casa, departamento o suite para que alguien viva ahí.',
+    nombreDocumento: 'CONTRATO DE ARRENDAMIENTO DE VIVIENDA',
+    requiereInmueble: true,
+    secciones: [
+      parte('arrendador', 'Arrendador (propietario)'),
+      parte('arrendatario', 'Arrendatario (inquilino)'),
+      {
+        clave: 'inmueble',
+        titulo: 'El inmueble',
+        campos: [
+          {
+            clave: 'inmuebleDescripcion',
+            etiqueta: 'Qué se arrienda',
+            tipo: 'texto',
+            obligatorio: true,
+            ayuda: 'Tipo y unidad, con estacionamientos y bodegas. Ej.: departamento 4B, con un estacionamiento y una bodega.',
+          },
+          { clave: 'inmuebleDireccion', etiqueta: 'Dirección', tipo: 'texto', obligatorio: true },
+          { clave: 'inmuebleEdificio', etiqueta: 'Edificio o conjunto', tipo: 'texto', ayuda: 'Déjalo vacío si es una casa independiente.' },
+          { clave: 'inmuebleParroquia', etiqueta: 'Parroquia', tipo: 'texto' },
+          { clave: 'inmuebleCiudad', etiqueta: 'Ciudad', tipo: 'texto', obligatorio: true },
+          { clave: 'inmuebleProvincia', etiqueta: 'Provincia', tipo: 'texto', obligatorio: true },
+          {
+            clave: 'tituloPropiedad',
+            etiqueta: 'Escritura e inscripción',
+            tipo: 'texto',
+            ayuda: 'Opcional. Ej.: escritura otorgada el 3 de mayo de 2019 ante la Notaría Vigésima Cuarta de Quito, inscrita el 20 de mayo de 2019.',
+          },
+        ],
+      },
+      {
+        clave: 'entrega',
+        titulo: 'Entrega',
+        campos: [
+          { clave: 'estadoEntrega', etiqueta: 'Estado en que se entrega', tipo: 'texto', obligatorio: true, porDefecto: 'en buenas condiciones de uso' },
+          { clave: 'amoblado', etiqueta: '¿Se entrega amoblado?', tipo: 'opcion', obligatorio: true, porDefecto: 'NO', opciones: SI_NO },
+          { clave: 'serviciosPagadosHasta', etiqueta: 'Servicios básicos pagados hasta (mes)', tipo: 'texto' },
+          { clave: 'ocupantesMaximo', etiqueta: 'Número máximo de ocupantes', tipo: 'numero' },
+        ],
+      },
+      {
+        clave: 'canon',
+        titulo: 'Canon y alícuota',
+        campos: [
+          { clave: 'canon', etiqueta: 'Canon mensual', tipo: 'dinero', obligatorio: true },
+          {
+            clave: 'alicuota',
+            etiqueta: 'La alícuota ordinaria',
+            tipo: 'opcion',
+            obligatorio: true,
+            porDefecto: 'ARRENDATARIO',
+            opciones: [
+              { valor: 'ARRENDATARIO', etiqueta: 'La paga el inquilino aparte' },
+              { valor: 'INCLUIDA', etiqueta: 'Está incluida en el canon' },
+              { valor: 'NO_APLICA', etiqueta: 'No hay alícuota' },
+            ],
+          },
+          { clave: 'diaPago', etiqueta: 'Pagar dentro de los primeros (días del mes)', tipo: 'numero', obligatorio: true, porDefecto: '5' },
+          { clave: 'reajusteAnual', etiqueta: 'Reajuste anual (%)', tipo: 'porcentaje', ayuda: 'Déjalo vacío si no se pacta reajuste.' },
+        ],
+      },
+      {
+        clave: 'garantia',
+        titulo: 'Garantía',
+        campos: [
+          { clave: 'garantia', etiqueta: 'Monto de la garantía', tipo: 'dinero', obligatorio: true },
+          { clave: 'garantiaDevolucionDias', etiqueta: 'Días para devolverla', tipo: 'numero', obligatorio: true, porDefecto: '30' },
+        ],
+      },
+      {
+        clave: 'plazo',
+        titulo: 'Plazo',
+        campos: [
+          { clave: 'plazoMeses', etiqueta: 'Plazo (meses)', tipo: 'numero', obligatorio: true, porDefecto: '12' },
+          { clave: 'fechaInicio', etiqueta: 'Fecha de inicio', tipo: 'fecha', obligatorio: true },
+          { clave: 'renovacionAvisoDias', etiqueta: 'Aviso para negociar la renovación (días)', tipo: 'numero', obligatorio: true, porDefecto: '90' },
+          { clave: 'desocupacionAvisoDias', etiqueta: 'Aviso si el inquilino se va antes (días)', tipo: 'numero', obligatorio: true, porDefecto: '60' },
+          {
+            clave: 'indemnizacionCanones',
+            etiqueta: 'Indemnización si se va antes (cánones)',
+            tipo: 'numero',
+            ayuda: 'Vacío o cero: basta con el aviso, sin indemnización.',
+          },
+        ],
+      },
+      {
+        clave: 'controversias',
+        titulo: 'Controversias',
+        campos: [VIA_CONTROVERSIAS('JUECES'), JURISDICCION, DESALOJO_DIAS],
+      },
+    ],
+  },
+
+  ARRENDAMIENTO_COMERCIAL: {
+    titulo: 'Arrendamiento comercial',
+    descripcion: 'Cuando el inquilino va a atender clientes o trabajar ahí: locales, oficinas, consultorios.',
+    nombreDocumento: 'CONTRATO DE ARRENDAMIENTO COMERCIAL',
+    requiereInmueble: true,
+    secciones: [
+      parte('arrendador', 'Arrendador (propietario)'),
+      parte('arrendatario', 'Arrendatario'),
+      {
+        clave: 'inmueble',
+        titulo: 'El inmueble',
+        campos: [
+          {
+            clave: 'tipoLocal',
+            etiqueta: 'Qué se arrienda',
+            tipo: 'opcion',
+            obligatorio: true,
+            porDefecto: 'LOCAL',
+            opciones: [
+              { valor: 'LOCAL', etiqueta: 'Local comercial' },
+              { valor: 'OFICINA', etiqueta: 'Oficina' },
+              { valor: 'CONSULTORIO', etiqueta: 'Consultorio' },
+            ],
+          },
+          { clave: 'inmuebleDireccion', etiqueta: 'Dirección', tipo: 'texto', obligatorio: true },
+          { clave: 'inmuebleParroquia', etiqueta: 'Parroquia', tipo: 'texto', obligatorio: true },
+          { clave: 'inmuebleCiudad', etiqueta: 'Cantón', tipo: 'texto', obligatorio: true },
+          { clave: 'inmuebleProvincia', etiqueta: 'Provincia', tipo: 'texto', obligatorio: true },
+          { clave: 'predio', etiqueta: 'Número de predio', tipo: 'texto' },
+          {
+            clave: 'areaArrendada',
+            etiqueta: 'Parte que se arrienda',
+            tipo: 'texto',
+            obligatorio: true,
+            porDefecto: 'la totalidad',
+            ayuda: 'Ej.: la totalidad; la planta baja y el tercer piso.',
+          },
+          { clave: 'areaM2', etiqueta: 'Área aproximada (m²)', tipo: 'numero', obligatorio: true },
+          { clave: 'areaDistribucion', etiqueta: 'Distribución', tipo: 'texto', ayuda: 'Opcional. Cómo se reparte el área.' },
+        ],
+      },
+      {
+        clave: 'destino',
+        titulo: 'Destino',
+        campos: [
+          { clave: 'giro', etiqueta: 'Actividad del arrendatario', tipo: 'texto', obligatorio: true, ayuda: 'Ej.: restaurante y cafetería; consultorio odontológico.' },
+          {
+            clave: 'destinoDetalle',
+            etiqueta: 'Uso declarado por áreas o marca',
+            tipo: 'texto',
+            ayuda: 'Opcional. Ej.: el tercer piso a la operación de un restaurante bajo la marca comercial "…".',
+          },
+        ],
+      },
+      {
+        clave: 'plazo',
+        titulo: 'Plazo y entrega',
+        campos: [
+          { clave: 'plazoMeses', etiqueta: 'Plazo (meses)', tipo: 'numero', obligatorio: true, porDefecto: '24' },
+          { clave: 'fechaInicio', etiqueta: 'Fecha de inicio', tipo: 'fecha', obligatorio: true },
+          { clave: 'fechaFin', etiqueta: 'Fecha de terminación', tipo: 'fecha', obligatorio: true },
+          { clave: 'fechaEntrega', etiqueta: 'Fecha de entrega material', tipo: 'fecha', obligatorio: true },
+          { clave: 'renovacionAvisoDias', etiqueta: 'Aviso para pedir renovación (días)', tipo: 'numero', obligatorio: true, porDefecto: '90' },
+        ],
+      },
+      {
+        clave: 'canon',
+        titulo: 'Canon',
+        campos: [
+          { clave: 'canon', etiqueta: 'Canon mensual (sin IVA)', tipo: 'dinero', obligatorio: true },
+          { clave: 'diaPago', etiqueta: 'Pagar dentro de los primeros (días del mes)', tipo: 'numero', obligatorio: true, porDefecto: '5' },
+          { clave: 'primerCanonMes', etiqueta: 'Mes del primer canon', tipo: 'texto', ayuda: 'Opcional. Ej.: octubre de 2026.' },
+          { clave: 'incrementoPorcentaje', etiqueta: 'Incremento anual (%)', tipo: 'porcentaje', ayuda: 'Déjalo vacío si no se pacta incremento.' },
+          { clave: 'incrementoDesde', etiqueta: 'Primer incremento desde', tipo: 'fecha' },
+          {
+            clave: 'alicuota',
+            etiqueta: 'Las alícuotas ordinarias',
+            tipo: 'opcion',
+            obligatorio: true,
+            porDefecto: 'ARRENDATARIO',
+            opciones: [
+              { valor: 'ARRENDATARIO', etiqueta: 'Las paga el arrendatario' },
+              { valor: 'ARRENDADOR', etiqueta: 'Las paga el arrendador' },
+              { valor: 'NO_APLICA', etiqueta: 'No hay alícuotas' },
+            ],
+          },
+        ],
+      },
+      {
+        clave: 'garantia',
+        titulo: 'Garantía',
+        campos: [
+          { clave: 'garantia', etiqueta: 'Monto de la garantía', tipo: 'dinero', obligatorio: true },
+          { clave: 'garantiaDevolucionDias', etiqueta: 'Días hábiles para devolverla', tipo: 'numero', obligatorio: true, porDefecto: '15' },
+        ],
+      },
+      {
+        clave: 'terminacion',
+        titulo: 'Terminación anticipada',
+        descripcion: 'Lo que paga quien termina el contrato antes de tiempo sin causa.',
+        campos: [
+          { clave: 'indemnizacionArrendatario', etiqueta: 'Si se va el arrendatario (cánones)', tipo: 'numero', obligatorio: true },
+          { clave: 'indemnizacionArrendador', etiqueta: 'Si lo termina el arrendador (cánones)', tipo: 'numero', obligatorio: true },
+        ],
+      },
+      {
+        clave: 'controversias',
+        titulo: 'Controversias',
+        campos: [JURISDICCION, DESALOJO_DIAS],
+      },
+    ],
+  },
+
+  ARRENDAMIENTO_INDUSTRIAL: {
+    titulo: 'Arrendamiento industrial',
+    descripcion: 'Cuando el inmueble es para almacenar, producir o distribuir: bodegas y galpones, casi siempre entre empresas.',
+    nombreDocumento: 'CONTRATO DE ARRENDAMIENTO INDUSTRIAL',
+    requiereInmueble: true,
+    secciones: [
+      parte('arrendador', 'Arrendadora', { juridicaPorDefecto: true }),
+      parte('arrendatario', 'Arrendataria', { juridicaPorDefecto: true }),
+      {
+        clave: 'antecedentes',
+        titulo: 'El inmueble y el uso',
+        campos: [
+          {
+            clave: 'tipoInmueble',
+            etiqueta: 'Qué se arrienda',
+            tipo: 'opcion',
+            obligatorio: true,
+            porDefecto: 'BODEGA',
+            opciones: [
+              { valor: 'BODEGA', etiqueta: 'Bodega' },
+              { valor: 'GALPON', etiqueta: 'Galpón' },
+              { valor: 'NAVE', etiqueta: 'Nave industrial' },
+            ],
+          },
+          { clave: 'inmuebleDescripcion', etiqueta: 'Descripción general', tipo: 'texto', obligatorio: true, ayuda: 'Ej.: un conjunto de bodegas.' },
+          { clave: 'inmuebleDireccion', etiqueta: 'Dirección', tipo: 'texto', obligatorio: true },
+          { clave: 'inmuebleParroquia', etiqueta: 'Parroquia', tipo: 'texto' },
+          { clave: 'inmuebleCiudad', etiqueta: 'Ciudad', tipo: 'texto', obligatorio: true },
+          {
+            clave: 'actividadArrendataria',
+            etiqueta: 'Actividad de la arrendataria',
+            tipo: 'texto',
+            obligatorio: true,
+            ayuda: 'Ej.: una empresa comercial e industrial.',
+          },
+          { clave: 'usoPrevisto', etiqueta: 'Uso del inmueble', tipo: 'texto', obligatorio: true, porDefecto: 'bodega', ayuda: 'Ej.: bodega; almacenamiento y distribución de mercadería.' },
+        ],
+      },
+      {
+        clave: 'tecnica',
+        titulo: 'Descripción técnica',
+        descripcion: 'Lo que dejes vacío no se imprime.',
+        campos: [
+          { clave: 'areaCubierta', etiqueta: 'Área cubierta total (m²)', tipo: 'numero', obligatorio: true },
+          { clave: 'areaOficina', etiqueta: 'Oficina (m²)', tipo: 'numero' },
+          { clave: 'areaAltillo', etiqueta: 'Altillo (m²)', tipo: 'numero' },
+          { clave: 'vestidores', etiqueta: 'Vestidores y baterías sanitarias', tipo: 'texto', ayuda: 'Ej.: vestidores externos de 16 m² con 2 inodoros, 2 duchas y 2 lavabos.' },
+          { clave: 'suministroElectrico', etiqueta: 'Suministro eléctrico', tipo: 'texto', porDefecto: '110/220 V' },
+          { clave: 'generador', etiqueta: '¿Generador de emergencia?', tipo: 'opcion', obligatorio: true, porDefecto: 'NO', opciones: SI_NO },
+          { clave: 'redHidrica', etiqueta: '¿Red hídrica y agua potable?', tipo: 'opcion', obligatorio: true, porDefecto: 'SI', opciones: SI_NO },
+          { clave: 'areaManiobras', etiqueta: 'Área exterior de maniobras (m²)', tipo: 'numero' },
+          {
+            clave: 'maniobrasUso',
+            etiqueta: 'Uso del área de maniobras',
+            tipo: 'opcion',
+            obligatorio: true,
+            porDefecto: 'EXCLUSIVO',
+            opciones: [
+              { valor: 'EXCLUSIVO', etiqueta: 'Exclusivo' },
+              { valor: 'COMPARTIDO', etiqueta: 'Compartido' },
+            ],
+          },
+          {
+            clave: 'sustanciasPermitidas',
+            etiqueta: 'Sustancias propias de la actividad permitidas',
+            tipo: 'texto',
+            ayuda: 'Opcional. Si lo dejas vacío, la prohibición de inflamables y explosivos es total.',
+          },
+        ],
+      },
+      {
+        clave: 'canon',
+        titulo: 'Canon y rubros',
+        campos: [
+          { clave: 'canon', etiqueta: 'Canon mensual (sin IVA)', tipo: 'dinero', obligatorio: true },
+          { clave: 'diaPago', etiqueta: 'Pagar dentro de los primeros (días del mes)', tipo: 'numero', obligatorio: true, porDefecto: '5' },
+          { clave: 'reajusteAnual', etiqueta: 'Reajuste anual (%)', tipo: 'porcentaje', ayuda: 'Déjalo vacío si no se pacta reajuste.' },
+          { clave: 'rubroAdicional', etiqueta: 'Rubro mensual aparte del canon', tipo: 'dinero', ayuda: 'Opcional. Guardianía, limpieza u otros servicios comunes.' },
+          {
+            clave: 'rubroConceptos',
+            etiqueta: 'Qué cubre ese rubro',
+            tipo: 'texto',
+            porDefecto: 'guardianía, limpieza y energía eléctrica de áreas comunes',
+          },
+        ],
+      },
+      {
+        clave: 'garantia',
+        titulo: 'Garantía',
+        campos: [
+          { clave: 'garantia', etiqueta: 'Monto del depósito', tipo: 'dinero', obligatorio: true },
+          { clave: 'garantiaCanones', etiqueta: 'Equivale a (cánones)', tipo: 'numero' },
+          { clave: 'garantiaDevolucionDias', etiqueta: 'Días para devolverlo', tipo: 'numero', obligatorio: true, porDefecto: '30' },
+        ],
+      },
+      {
+        clave: 'plazo',
+        titulo: 'Plazo',
+        campos: [
+          { clave: 'plazoTexto', etiqueta: 'Plazo', tipo: 'texto', obligatorio: true, porDefecto: 'un año', ayuda: 'Ej.: un año; dos años.' },
+          { clave: 'fechaInicio', etiqueta: 'Desde', tipo: 'fecha', obligatorio: true },
+          { clave: 'fechaFin', etiqueta: 'Hasta', tipo: 'fecha', obligatorio: true },
+        ],
+      },
+      {
+        clave: 'operacion',
+        titulo: 'Operación',
+        campos: [
+          { clave: 'respuestaMejorasDias', etiqueta: 'Días para responder una solicitud de mejora', tipo: 'numero', obligatorio: true, porDefecto: '5' },
+          { clave: 'ingresoInteresadosDias', etiqueta: 'Días finales con visitas de interesados', tipo: 'numero', obligatorio: true, porDefecto: '60' },
+          { clave: 'inutilizableDias', etiqueta: 'Días inutilizable por fuerza mayor para terminar', tipo: 'numero', obligatorio: true, porDefecto: '90' },
+        ],
+      },
+      {
+        clave: 'controversias',
+        titulo: 'Controversias',
+        campos: [
+          VIA_CONTROVERSIAS('ARBITRAJE'),
+          {
+            clave: 'numeroArbitros',
+            etiqueta: 'Árbitros',
+            tipo: 'opcion',
+            obligatorio: true,
+            porDefecto: 'UNO',
+            opciones: [
+              { valor: 'UNO', etiqueta: 'Uno' },
+              { valor: 'TRES', etiqueta: 'Tres' },
+            ],
+            visibleSi: { clave: 'viaControversias', valores: ['ARBITRAJE'] },
+          },
+          JURISDICCION,
+          DESALOJO_DIAS,
+        ],
+      },
+    ],
+  },
+};
+
 // Todas las definiciones: las vivas y las archivadas, que siguen aquí para que
 // un contrato retirado se abra e imprima igual que el día que se firmó.
 export const CONTRATO_DEFINICION: Record<ContratoTipo, TipoDefinicion> = {
   ...(DEFINICIONES_LEGADO as Record<ContratoTipo, TipoDefinicion>),
   ...(DEFINICIONES_VIVAS as Record<ContratoTipo, TipoDefinicion>),
+  ...(DEFINICIONES_ARRENDAMIENTO as Record<ContratoTipo, TipoDefinicion>),
 };
 
 // Selector de documento: solo lo que se puede generar hoy.
 export type MenuEntrada = { clase: 'tipo'; tipo: ContratoTipo };
 
-export const CONTRATO_MENU: MenuEntrada[] = [{ clase: 'tipo', tipo: 'CORRETAJE' }];
+export const CONTRATO_MENU: MenuEntrada[] = [
+  { clase: 'tipo', tipo: 'CORRETAJE' },
+  { clase: 'tipo', tipo: 'ARRENDAMIENTO_RESIDENCIAL' },
+  { clase: 'tipo', tipo: 'ARRENDAMIENTO_COMERCIAL' },
+  { clase: 'tipo', tipo: 'ARRENDAMIENTO_INDUSTRIAL' },
+];
 
 // ---------------------------------------------------------------------------
 // PARTES
@@ -504,6 +891,20 @@ export const PARTES_POR_TIPO: Record<ContratoTipo, ParteDefinicion[]> = {
   CORRETAJE: [
     { rol: 'propietario', etiqueta: 'Propietario' },
     { rol: 'corredor', etiqueta: 'Corredor', esAgente: true },
+  ],
+  // En los arrendamientos el agente no es parte: el contrato es entre
+  // propietario e inquilino, y ambos aprueban cada versión.
+  ARRENDAMIENTO_RESIDENCIAL: [
+    { rol: 'arrendador', etiqueta: 'Arrendador' },
+    { rol: 'arrendatario', etiqueta: 'Arrendatario' },
+  ],
+  ARRENDAMIENTO_COMERCIAL: [
+    { rol: 'arrendador', etiqueta: 'Arrendador' },
+    { rol: 'arrendatario', etiqueta: 'Arrendatario' },
+  ],
+  ARRENDAMIENTO_INDUSTRIAL: [
+    { rol: 'arrendador', etiqueta: 'Arrendadora' },
+    { rol: 'arrendatario', etiqueta: 'Arrendataria' },
   ],
 };
 
