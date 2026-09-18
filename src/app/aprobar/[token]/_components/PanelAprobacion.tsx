@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { BloqueFinal, MarcaCambio, TramoDiff } from '@/lib/real-estate/contratos/clausulas';
 import { AVISO_APROBACION, AVISO_PAGINA_APROBACION, DECLARACION_APROBACION } from '@/lib/real-estate/contratos/tipos';
+import BotonCerrar, { useCerrarConEscape } from '@/components/navegacion/BotonCerrar';
 
 // La pantalla donde una parte revisa una versión y decide. Móvil primero: el
 // documento ocupa la pantalla y las dos decisiones quedan fijas abajo.
@@ -72,6 +73,7 @@ export default function PanelAprobacion({
   const [error, setError] = useState('');
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const centinela = useRef<HTMLDivElement | null>(null);
+  useCerrarConEscape(() => setPaso(null), paso !== null);
 
   // Se marca "leído" cuando el final del documento entra en pantalla o ya quedó
   // atrás. Lo segundo importa: un deslizamiento rápido en el celular puede
@@ -325,7 +327,10 @@ export default function PanelAprobacion({
             className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-bg-alt p-5 pb-[max(env(safe-area-inset-bottom),20px)] sm:rounded-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg font-bold text-text">{paso === 'aprobar' ? `Aprobar la versión ${numero}` : 'Solicitar cambios'}</h2>
+            <div className="-mr-2 -mt-2 flex items-start justify-between gap-2">
+              <h2 className="pt-2 text-lg font-bold text-text">{paso === 'aprobar' ? `Aprobar la versión ${numero}` : 'Solicitar cambios'}</h2>
+              <BotonCerrar onCerrar={() => setPaso(null)} />
+            </div>
 
             {paso === 'aprobar' ? (
               <>

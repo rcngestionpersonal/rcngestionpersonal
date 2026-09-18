@@ -117,6 +117,7 @@ function DashboardPage() {
     if (activeTab !== 'contratos') {
       url.searchParams.delete('contrato');
       url.searchParams.delete('vista');
+      url.searchParams.delete('paso');
     }
     if (url.href !== window.location.href) window.history.replaceState(null, '', url);
   }, [activeTab, pestanaDeUrlLeida]);

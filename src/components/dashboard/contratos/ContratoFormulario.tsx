@@ -19,6 +19,7 @@ import {
 } from '@/lib/real-estate/contratos/tipos';
 import type { CambiosEntreVersiones } from '@/lib/real-estate/contratos/clausulas';
 import { propertyTypeLabelEs } from '@/lib/real-estate/labels';
+import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
 import ContratoClausulas from './ContratoClausulas';
 import { Dialogo, reemplazar as rellenar, textoVigencia } from './ContratoSeguimiento';
 import VistaDocumento from './VistaDocumento';
@@ -38,7 +39,7 @@ import type { ContratoCompleto, DocumentoTrabajo, ListingOpcion, PlantillaVigent
 const campoClase =
   'min-h-[44px] w-full rounded-xl border border-line-strong bg-surface-2 px-3.5 text-sm text-text outline-none transition placeholder:text-text-3 focus:border-brand';
 
-type Paso = 'datos' | 'clausulas' | 'revisar';
+export type Paso = 'datos' | 'clausulas' | 'revisar';
 
 // Lo que el inventario sabe y el formulario pide. Solo llena lo vacío: nunca
 // pisa lo que el agente ya escribió.
@@ -101,6 +102,7 @@ export default function ContratoFormulario({
   pasoInicial = 'datos',
   onCancelar,
   onEnviado,
+  onUbicacion,
 }: {
   t: (k: string) => string;
   listings: ListingOpcion[];
@@ -110,6 +112,9 @@ export default function ContratoFormulario({
   pasoInicial?: Paso;
   onCancelar: () => void;
   onEnviado: (id: string) => void;
+  // Dónde está el agente: el borrador (en cuanto existe) y el paso. La pestaña
+  // lo anota en la URL para volver al mismo lugar desde la guía o al recargar.
+  onUbicacion?: (id: string, paso: Paso) => void;
 }) {
   const [tipo, setTipo] = useState<ContratoTipo | null>(null);
   const [listingId, setListingId] = useState<string | null>(listings[0]?.id ?? null);
@@ -131,6 +136,22 @@ export default function ContratoFormulario({
   // Mientras se crea el borrador, los guardados siguientes esperan a que exista
   // en vez de crear otro.
   const creando = useRef<Promise<string | null> | null>(null);
+  // La ubicación se avisa en el momento, no en un efecto: si el agente toca un
+  // enlace a la guía justo después, la URL ya tiene que estar al día. Y solo
+  // con el formulario abierto: un guardado que termina después de salir no
+  // debe reescribir la URL de otra pantalla.
+  const pasoRef = useRef<Paso>(pasoInicial);
+  const avisar = useRef(onUbicacion);
+  const montado = useRef(false);
+  useEffect(() => {
+    avisar.current = onUbicacion;
+  });
+  useEffect(() => {
+    montado.current = true;
+    return () => {
+      montado.current = false;
+    };
+  }, []);
 
   // Carga de un contrato existente.
   useEffect(() => {
@@ -193,6 +214,7 @@ export default function ContratoFormulario({
             }
             idRef.current = d.contrato.id as string;
             setId(idRef.current);
+            if (montado.current) avisar.current?.(idRef.current, pasoRef.current);
             return idRef.current;
           })();
           try {
@@ -261,17 +283,59 @@ export default function ContratoFormulario({
       if (!guardado) return;
     }
     setPaso(siguiente);
+    pasoRef.current = siguiente;
+    if (idRef.current && montado.current) avisar.current?.(idRef.current, siguiente);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // "Volver" guarda lo pendiente antes de salir, como antes.
+  async function volver() {
+    await guardarAhora();
+    onCancelar();
+  }
+
+  // Los enlaces de ayuda llevan a otra página: si queda un guardado pendiente
+  // (o el borrador se está creando), se termina antes de salir, para volver al
+  // contrato tal como quedó.
+  async function salirA(e: React.MouseEvent<HTMLAnchorElement>) {
+    if (!timer.current && !creando.current) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    e.preventDefault();
+    const destino = e.currentTarget.href;
+    await guardarAhora();
+    window.location.assign(destino);
   }
 
   const pendientes = useMemo(() => (tipo ? camposFaltantes(tipo, datos) : []), [tipo, datos]);
 
-  if (cargando) return <p className="text-sm text-text-2">{t('contratos.cargando')}</p>;
+  // Fijo arriba también mientras carga o si falla: nunca sin salida.
+  const encabezado = (titulo: string) => (
+    <EncabezadoSecundario enPanel onVolver={() => void volver()} titulo={titulo} etiquetaVolver={t('contratos.volver')} />
+  );
+
+  if (cargando)
+    return (
+      <div className="space-y-5">
+        {encabezado(t('contratos.title'))}
+        <p className="text-sm text-text-2">{t('contratos.cargando')}</p>
+      </div>
+    );
+
+  // Un contrato que no se pudo cargar no ofrece elegir tipo: guardar desde ahí
+  // pisaría sus datos con los de un documento en blanco.
+  if (contratoId && !tipo)
+    return (
+      <div className="space-y-5">
+        {encabezado(t('contratos.title'))}
+        <p className="rounded-xl border border-danger bg-danger-dim px-3.5 py-2.5 text-sm text-danger">{error || t('contratos.error.cargar')}</p>
+      </div>
+    );
 
   // ---- Paso 0: qué documento ----------------------------------------------
   if (!tipo) {
     return (
       <div className="space-y-4">
+        {encabezado(t('contratos.nuevo'))}
         <h3 className="text-base font-bold text-text">{t('contratos.elegirTipo')}</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           {CONTRATO_MENU.map((entrada) => {
@@ -304,24 +368,11 @@ export default function ContratoFormulario({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="truncate text-base font-bold text-text">{definicion.titulo}</h3>
-          <p className="text-xs text-text-2">
-            {versionActual > 0 ? `${t('contratos.version').replace('{n}', String(versionActual))} · ` : ''}
-            {guardando ? t('contratos.guardando') : t('contratos.guardadoSolo')}
-          </p>
-        </div>
-        <button
-          onClick={async () => {
-            await guardarAhora();
-            onCancelar();
-          }}
-          className="min-h-[44px] rounded-xl border border-line px-4 text-sm font-semibold text-text-2 transition hover:bg-surface-2"
-        >
-          {t('contratos.volver')}
-        </button>
-      </div>
+      {encabezado(definicion.titulo)}
+      <p className="text-xs text-text-2">
+        {versionActual > 0 ? `${t('contratos.version').replace('{n}', String(versionActual))} · ` : ''}
+        {guardando ? t('contratos.guardando') : t('contratos.guardadoSolo')}
+      </p>
 
       {/* Los tres niveles, siempre a la vista. */}
       <nav className="grid grid-cols-3 gap-1.5 rounded-2xl border border-line bg-surface p-1.5" aria-label="Pasos">
@@ -472,10 +523,10 @@ export default function ContratoFormulario({
           un abogado, el otro le da al agente el guion para presentar el
           documento con seguridad en vez de disculparse por él. */}
       <p className="flex flex-wrap gap-x-5 gap-y-1 text-[12px] leading-relaxed text-text-3">
-        <a href={ENLACE_EXPLICAR_CLIENTE} className="font-semibold text-accent hover:underline">
+        <a href={ENLACE_EXPLICAR_CLIENTE} onClick={(e) => void salirA(e)} className="font-semibold text-accent hover:underline">
           {ENLACE_EXPLICAR_CLIENTE_ETIQUETA}
         </a>
-        <a href={ENLACE_REVISION_ABOGADO} className="font-semibold text-accent hover:underline">
+        <a href={ENLACE_REVISION_ABOGADO} onClick={(e) => void salirA(e)} className="font-semibold text-accent hover:underline">
           {ENLACE_REVISION_ABOGADO_ETIQUETA}
         </a>
       </p>

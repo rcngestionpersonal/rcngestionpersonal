@@ -6,7 +6,7 @@ import type { AccesoInput } from '@/lib/real-estate/access';
 import RequiereFeature from '../RequiereFeature';
 import { ModuleHeader } from '../CardKit';
 import { IconContract } from '../icons';
-import ContratoFormulario from '../contratos/ContratoFormulario';
+import ContratoFormulario, { type Paso as PasoFormulario } from '../contratos/ContratoFormulario';
 import ContratoSeguimiento from '../contratos/ContratoSeguimiento';
 import type { AlertaContrato, ContratoResumen, DatosPantallaContratos } from '../contratos/tipos-cliente';
 // Esta pantalla ya NO importa el catálogo de tipos a propósito: la etiqueta de
@@ -22,43 +22,20 @@ import { ENLACE_REVISION_ABOGADO, ENLACE_REVISION_ABOGADO_ETIQUETA } from '@/lib
 type Vista =
   | { modo: 'lista' }
   | { modo: 'nuevo' }
-  | { modo: 'editar'; id: string; paso?: 'datos' | 'revisar' }
+  | { modo: 'editar'; id: string; paso?: PasoFormulario }
   | { modo: 'seguimiento'; id: string };
 
 // ---------------------------------------------------------------------------
-// El contrato abierto también vive en la URL (?vista=&contrato=), junto a la
-// pestaña. Así, al volver desde la guía para explicar el documento o desde la
-// página del abogado (que son rutas aparte), o al recargar, se reabre el
-// mismo contrato en vez de caer en la lista.
+// El contrato abierto también vive en la URL (?vista=&contrato=&paso=), junto a
+// la pestaña. Así, al volver desde la guía para explicar el documento o desde
+// la página del abogado (que son rutas aparte), o al recargar, se reabre el
+// mismo contrato, en el mismo paso, en vez de caer en la lista.
 //
-// Un contrato NUEVO no tiene id hasta que el formulario lo guarda, y el
-// formulario no se lo informa a esta pestaña. Por eso, al tocar "Nuevo
-// contrato" se anotan los contratos que ya existían; al volver, el borrador
-// que apareció después es el que se estaba escribiendo.
+// Un contrato NUEVO no tiene id hasta que el formulario lo guarda por primera
+// vez; en ese momento el formulario lo avisa (onUbicacion) y la URL pasa a
+// ?vista=editar&contrato=<id>, igual que al cambiar de paso.
 // ---------------------------------------------------------------------------
-const FOTO_ANTES_DE_NUEVO = 'redinmo:contratos:antes-de-nuevo';
-
-function anotarContratosExistentes(ids: string[]): void {
-  try {
-    window.sessionStorage.setItem(FOTO_ANTES_DE_NUEVO, JSON.stringify(ids));
-  } catch {
-    // Sin almacenamiento (modo privado): al volver se abre un formulario nuevo.
-  }
-}
-
-function borradorCreadoDespues(contratos: ContratoResumen[]): string | null {
-  let antes: string[] | null = null;
-  try {
-    antes = JSON.parse(window.sessionStorage.getItem(FOTO_ANTES_DE_NUEVO) ?? 'null') as string[] | null;
-  } catch {
-    antes = null;
-  }
-  if (!antes) return null;
-  const nuevos = contratos
-    .filter((c) => !antes.includes(c.id) && c.estado === 'BORRADOR' && (c.versionActual ?? 0) === 0)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return nuevos[0]?.id ?? null;
-}
+const PASOS: PasoFormulario[] = ['datos', 'clausulas', 'revisar'];
 
 function vistaDesdeUrl(contratos: ContratoResumen[]): Vista {
   const q = new URLSearchParams(window.location.search);
@@ -66,11 +43,8 @@ function vistaDesdeUrl(contratos: ContratoResumen[]): Vista {
   const id = q.get('contrato');
   const existe = id !== null && contratos.some((c) => c.id === id);
   if (modo === 'seguimiento' && existe) return { modo: 'seguimiento', id };
-  if (modo === 'editar' && existe) return { modo: 'editar', id };
-  if (modo === 'nuevo') {
-    const creado = borradorCreadoDespues(contratos);
-    return creado ? { modo: 'editar', id: creado } : { modo: 'nuevo' };
-  }
+  if (modo === 'editar' && existe) return { modo: 'editar', id, paso: PASOS.find((p) => p === q.get('paso')) };
+  if (modo === 'nuevo') return { modo: 'nuevo' };
   return { modo: 'lista' };
 }
 
@@ -78,8 +52,11 @@ function escribirVistaEnUrl(vista: Vista): void {
   const url = new URL(window.location.href);
   url.searchParams.delete('vista');
   url.searchParams.delete('contrato');
+  url.searchParams.delete('paso');
   if (vista.modo !== 'lista') url.searchParams.set('vista', vista.modo);
   if (vista.modo === 'editar' || vista.modo === 'seguimiento') url.searchParams.set('contrato', vista.id);
+  // El primer paso es el de siempre: no hace falta anotarlo.
+  if (vista.modo === 'editar' && vista.paso && vista.paso !== 'datos') url.searchParams.set('paso', vista.paso);
   // replaceState: cambiar de contrato no crea entradas en el historial.
   if (url.href !== window.location.href) window.history.replaceState(null, '', url);
 }
@@ -229,6 +206,9 @@ function Panel({ t }: { t: (k: string) => string }) {
           void cargar();
           setVista({ modo: 'seguimiento', id });
         }}
+        // Solo la URL: la vista no cambia, para no recargar el formulario a
+        // mitad de la escritura.
+        onUbicacion={(id, paso) => escribirVistaEnUrl({ modo: 'editar', id, paso })}
       />
     );
   }
@@ -263,10 +243,7 @@ function Panel({ t }: { t: (k: string) => string }) {
         </p>
         <div className="flex flex-col items-stretch gap-1.5 sm:items-end">
           <button
-            onClick={() => {
-              anotarContratosExistentes(datos.contratos.map((c) => c.id));
-              setVista({ modo: 'nuevo' });
-            }}
+            onClick={() => setVista({ modo: 'nuevo' })}
             className="gradient-btn min-h-[44px] rounded-xl px-5 text-sm font-bold text-grad-contrast"
           >
             {t('contratos.nuevo')}
