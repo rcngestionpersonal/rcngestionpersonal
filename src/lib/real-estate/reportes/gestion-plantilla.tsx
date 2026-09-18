@@ -117,7 +117,7 @@ export function reporteGestionPagina({
           </Seccion>
 
           <Seccion palette={palette} titulo="Interesados y acercamientos">
-            <Parrafo palette={palette}>{partesInteresados.join(' · ')}</Parrafo>
+            <Parrafo palette={palette} angosto>{partesInteresados.join(' · ')}</Parrafo>
           </Seccion>
         </div>
 
@@ -153,7 +153,7 @@ export function reporteGestionPagina({
           {d.comparativo ? (
             <Seccion palette={palette} titulo="Comparativo de mercado">
               {d.comparativo.diasPromedioPublicados !== null ? (
-                <Parrafo palette={palette}>
+                <Parrafo palette={palette} angosto>
                   {`Los ${d.comparativo.similares} inmuebles similares publicados en el sector llevan en promedio ${plural(d.comparativo.diasPromedioPublicados, 'día', 'días')} en el mercado. Este lleva ${plural(gestion.diasPublicado, 'día', 'días')}.`}
                 </Parrafo>
               ) : null}
@@ -179,6 +179,9 @@ export function reporteGestionPagina({
               fontSize: 12.5,
               lineHeight: 1.55,
               color: palette.text,
+              // Texto del agente, a todo el ancho: va justificado como el resto
+              // del cuerpo.
+              textAlign: 'justify',
             }}
           >
             {gestion.observaciones}

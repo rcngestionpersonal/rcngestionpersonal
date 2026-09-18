@@ -167,8 +167,18 @@ export function Seccion({ palette, titulo, children, marginTop = 14 }: { palette
   );
 }
 
-export function Parrafo({ palette, children }: { palette: FichaPalette; children: ReactNode }) {
-  return <div style={{ display: 'flex', fontSize: 12.5, lineHeight: 1.55, color: palette.text }}>{children}</div>;
+export function Parrafo({ palette, angosto, children }: { palette: FichaPalette; angosto?: boolean; children: ReactNode }) {
+  // Justificado, igual que el cuerpo de los contratos. Solo los párrafos: los
+  // títulos, los datos sueltos y las tablas se alinean a la izquierda.
+  //
+  // "angosto" para los párrafos que viven en media columna: este render no
+  // parte palabras, y a ~40 caracteres por línea el justificado abre huecos
+  // entre palabras. Ahí se lee mejor alineado a la izquierda.
+  return (
+    <div style={{ display: 'flex', fontSize: 12.5, lineHeight: 1.55, color: palette.text, textAlign: angosto ? 'left' : 'justify' }}>
+      {children}
+    </div>
+  );
 }
 
 // Dato suelto: etiqueta arriba, valor abajo. Para grillas de 2 a 4 columnas.

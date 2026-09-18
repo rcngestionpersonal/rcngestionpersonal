@@ -178,7 +178,9 @@ export function reporteTasacionPagina({
             </Seccion>
           ) : null}
           <Seccion palette={palette} titulo="Conclusión">
-            <Parrafo palette={palette}>{datos.conclusion}</Parrafo>
+            <Parrafo palette={palette} angosto>
+              {datos.conclusion}
+            </Parrafo>
           </Seccion>
         </div>
       </div>
