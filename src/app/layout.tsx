@@ -50,7 +50,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "Redinmo",
+    title: "Redinmo.io",
   },
 };
 

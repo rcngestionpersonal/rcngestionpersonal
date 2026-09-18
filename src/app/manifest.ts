@@ -15,8 +15,8 @@ export default function manifest(): MetadataRoute.Manifest {
     // Identidad estable de la app instalada: si mañana cambia start_url, el
     // navegador la sigue reconociendo como la misma.
     id: '/',
-    name: 'Redinmo',
-    short_name: 'Redinmo',
+    name: 'Redinmo.io',
+    short_name: 'Redinmo.io',
     description: 'El hub que conecta inmuebles y pedidos de agentes',
     lang: 'es',
     start_url: '/',
