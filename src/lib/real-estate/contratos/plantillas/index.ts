@@ -15,6 +15,7 @@ import * as corretajeAbiertoV1 from './corretaje-abierto-v1';
 import * as arrendamientoV3 from './arrendamiento-v3';
 import * as corretajeV2 from './corretaje-v2';
 import * as corretajeV3 from './corretaje-v3';
+import * as corretajeV4 from './corretaje-v4';
 import * as arrendamientoResidencialV1 from './arrendamiento-residencial-v1';
 import * as arrendamientoComercialV1 from './arrendamiento-comercial-v1';
 import * as arrendamientoIndustrialV1 from './arrendamiento-industrial-v1';
@@ -73,12 +74,16 @@ const V1_GLOBAL: Plantilla = {
 type LineaDeVersiones = { actual: string; versiones: Record<string, Plantilla> };
 
 const REGISTRO: Record<ContratoTipo, LineaDeVersiones> = {
+  // La v4 (2026-09-17) saca la señal y los linderos, describe el inmueble con
+  // el texto del agente y arma la cláusula de controversias según el mecanismo
+  // elegido. Las anteriores siguen registradas.
   CORRETAJE: {
-    actual: corretajeV3.PLANTILLA_VERSION,
+    actual: corretajeV4.PLANTILLA_VERSION,
     versiones: {
       [v1.PLANTILLA_VERSION]: V1_GLOBAL,
       [corretajeV2.PLANTILLA_VERSION]: deUnTipo(corretajeV2),
       [corretajeV3.PLANTILLA_VERSION]: deUnTipo(corretajeV3, true),
+      [corretajeV4.PLANTILLA_VERSION]: deUnTipo(corretajeV4, true),
     },
   },
   ARRENDAMIENTO_RESIDENCIAL: {

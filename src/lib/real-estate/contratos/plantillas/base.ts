@@ -11,7 +11,7 @@
 // una version ya publicada. Se agregan helpers nuevos; no se editan los que
 // una version publicada esta usando.
 
-import type { IdentidadParte } from '../tipos';
+import { VIA_ARBITRAJE, VIA_JUECES, VIA_MEDIACION_JUECES, centroPorDefecto, ciudadDeJurisdiccion, type IdentidadParte } from '../tipos';
 
 // Un bloque del documento. "clausula" numera automaticamente; el resto no.
 //
@@ -251,4 +251,60 @@ export function comparecenciaParte(d: DatosDocumento, rol: string, denominacion:
   if (adicionales.length === 0) return `${persona}, a quien en adelante se denominará "${denominacion}"`;
   const ultima = adicionales[adicionales.length - 1];
   return `${[persona, ...adicionales.slice(0, -1)].join('; ')}; y ${ultima}, a quienes en adelante se denominará conjuntamente "${denominacion}"`;
+}
+
+// ---------------------------------------------------------------------------
+// Jurisdicción y solución de controversias
+// ---------------------------------------------------------------------------
+
+export type Jurisdiccion = { ciudad: string; centro: string; via: string };
+
+// Dónde y cómo se resuelve un desacuerdo, ya resuelto para la redacción: la
+// ciudad elegida (o la del inmueble) y el centro, que el agente pudo cambiar.
+export function jurisdiccionDe(d: DatosDocumento, ciudadDelInmueble: string): Jurisdiccion {
+  const elegida = ciudadDeJurisdiccion({
+    jurisdiccionCiudad: d.campo('jurisdiccionCiudad'),
+    jurisdiccionCiudadOtra: d.campo('jurisdiccionCiudadOtra'),
+    propiedadCiudad: ciudadDelInmueble,
+  });
+  // Si el agente no llenó la ciudad del inmueble, queda la de su perfil: un
+  // contrato sin ciudad de jurisdicción no se puede cumplir.
+  const ciudad = elegida || d.ciudad;
+  return {
+    ciudad,
+    centro: d.campo('centroMediacion').trim() || centroPorDefecto(ciudad),
+    via: d.campo('controversiasVia') || VIA_MEDIACION_JUECES,
+  };
+}
+
+// "Centro de Mediación X" se lee mal después de "en": lleva artículo. Si el
+// agente ya lo escribió (o escribió "la Cámara..."), no se duplica.
+function conArticulo(centro: string): string {
+  return /^(el|la|los|las)\s/i.test(centro.trim()) ? centro.trim() : `el ${centro.trim()}`;
+}
+
+// El texto de la cláusula según la vía elegida. Las tres dicen la misma ley
+// aplicable y cambian solo en cómo se resuelve el desacuerdo.
+export function textoControversias(j: Jurisdiccion): string {
+  const base = 'Este contrato se rige por la legislación ecuatoriana.';
+  const centro = j.centro.trim() ? conArticulo(j.centro) : j.centro;
+  if (j.via === VIA_ARBITRAJE) {
+    return `${base} Toda controversia que se derive de este contrato o que guarde relación con él se someterá primero a mediación en ${opcional(
+      centro,
+    )}, de la ciudad de ${opcional(
+      j.ciudad,
+    )}. Si las partes no llegan a un acuerdo, la controversia se resolverá definitivamente mediante arbitraje en derecho administrado por ese mismo centro, conforme a su reglamento y a la ley de la materia. El laudo será definitivo e inapelable y las partes se obligan a acatarlo, renunciando a fuero y a la jurisdicción ordinaria.`;
+  }
+  if (j.via === VIA_JUECES) {
+    return `${base} Para toda controversia que se derive de este contrato o que guarde relación con él, las partes se someten a los jueces competentes de ${opcional(
+      j.ciudad,
+    )} y al trámite que corresponda, renunciando a fuero y domicilio distintos.`;
+  }
+  return `${base} Toda controversia que se derive de este contrato o que guarde relación con él se someterá a mediación en ${opcional(
+    centro,
+  )}, de la ciudad de ${opcional(
+    j.ciudad,
+  )}. Si las partes no llegan a un acuerdo en la mediación, se someten a los jueces competentes de ${opcional(
+    j.ciudad,
+  )} y al trámite que corresponda, renunciando a fuero y domicilio distintos.`;
 }

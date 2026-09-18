@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { construirDocumento, prepararDocumento } from '../documento';
+import { PENDIENTES_REVISION_LEGAL } from '../revision-legal';
 import { obtenerPlantilla, plantillaActual, plantillasVigentes } from './index';
 import {
   AVISO_MODULO,
@@ -181,16 +182,127 @@ describe('plantillas de contrato', () => {
   // Un campo opcional vacío deja una marca visible, no un hueco que pase
   // desapercibido al revisar y termine en el documento firmado.
   it('los campos opcionales vacíos salen marcados, no en blanco', () => {
-    const texto = textoDe('CORRETAJE', { propiedadCatastro: '', linderoNorte: '', linderoSur: '' });
+    const texto = textoDe('CORRETAJE', { propiedadPredio: '', propiedadDireccion: '', propiedadProvincia: '' });
     expect(texto).toContain(MARCADOR_SIN_COMPLETAR);
   });
 
-  describe('corretaje: consignación para venta', () => {
+  describe('corretaje: encargo de venta', () => {
     it('emite las once cláusulas, siempre las mismas', () => {
       for (const exclusividad of ['CON', 'SIN']) {
         const clausulas = documentoDe('CORRETAJE', { exclusividad }).bloques.filter((b) => b.tipo === 'clausula');
         expect(clausulas, exclusividad).toHaveLength(11);
       }
+    });
+
+    // Lo que se sacó: la señal es de los contratos de reserva, no del encargo.
+    it('no menciona señal, arras, depósito ni desistimiento', () => {
+      const texto = textoDe('CORRETAJE').toLowerCase();
+      for (const palabra of ['señal', 'arras', 'depósito', 'depositario', 'desistimiento']) {
+        expect(texto, palabra).not.toContain(palabra);
+      }
+      const claves = documentoDe('CORRETAJE').bloques.filter((b) => b.tipo === 'clausula').map((c) => ('clave' in c ? c.clave : ''));
+      expect(claves).not.toContain('senal');
+      const campos = CONTRATO_DEFINICION.CORRETAJE.secciones.flatMap((x) => x.campos.map((c) => c.clave));
+      for (const campo of ['depositoEnPoderDe', 'siDesisteComprador', 'retencionDetalle', 'devolucionPlazoDias']) {
+        expect(campos, campo).not.toContain(campo);
+      }
+    });
+
+    it('no menciona linderos ni los pide en el formulario', () => {
+      expect(textoDe('CORRETAJE').toLowerCase()).not.toContain('lindero');
+      const campos = CONTRATO_DEFINICION.CORRETAJE.secciones.flatMap((x) => x.campos.map((c) => c.clave));
+      expect(campos.filter((c) => c.startsWith('lindero'))).toEqual([]);
+    });
+
+    it('dice "número de predio", no catastro, y conserva lo escrito con la clave anterior', () => {
+      const texto = textoDe('CORRETAJE', { propiedadPredio: '55-44-33' });
+      expect(texto).toContain('Número de predio');
+      expect(texto).toContain('55-44-33');
+      expect(texto.toLowerCase()).not.toContain('catastro');
+      // Un borrador guardado con la clave vieja no pierde el dato.
+      expect(textoDe('CORRETAJE', { propiedadPredio: '', propiedadCatastro: '99-88-77' })).toContain('99-88-77');
+    });
+
+    it('el inmueble se describe con el texto del agente, completo y sin recortar', () => {
+      const descripcion =
+        'Casa de tres pisos en la Av. Ficticia N45-67 y calle Inventada, sector norte, con 320 m² de terreno y 280 m² de construcción, 4 dormitorios, 3 baños y medio, 2 parqueaderos cubiertos, bodega y patio posterior.';
+      const doc = documentoDe('CORRETAJE', { inmuebleDescripcion: descripcion });
+      const inmueble = doc.bloques.find((b) => b.tipo === 'clausula' && 'clave' in b && b.clave === 'inmueble');
+      expect(inmueble && 'texto' in inmueble ? inmueble.texto : '').toContain(descripcion);
+    });
+
+    it('el formulario pide la descripción con un mínimo razonable y la puede traer del inmueble', () => {
+      const campo = CONTRATO_DEFINICION.CORRETAJE.secciones.flatMap((x) => x.campos).find((c) => c.clave === 'inmuebleDescripcion');
+      expect(campo?.tipo).toBe('area');
+      expect(campo?.obligatorio).toBe(true);
+      expect(campo?.minimo).toBe(120);
+      expect(campo?.desdeInmueble).toBe(true);
+      expect(camposFaltantes('CORRETAJE', { ...datosDe('CORRETAJE'), inmuebleDescripcion: 'Casa bonita.' })).toContain(
+        'Descripción del inmueble (al menos 120 caracteres)',
+      );
+    });
+
+    it('el cierre solo acepta y suscribe', () => {
+      const cierre = clausula('CORRETAJE', 'ACEPTACIÓN Y SUSCRIPCIÓN');
+      expect(cierre).toContain('han leído íntegramente este contrato');
+      expect(cierre).toContain('dos ejemplares de igual valor');
+      expect(cierre.toLowerCase()).not.toContain('señal');
+      expect(cierre.toLowerCase()).not.toContain('consignación');
+    });
+
+    describe('jurisdicción y controversias', () => {
+      const conVia = (via: string, extra: Record<string, string> = {}) =>
+        clausula('CORRETAJE', 'LEY APLICABLE Y SOLUCIÓN DE CONTROVERSIAS', { controversiasVia: via, ...extra });
+
+      it('por defecto: mediación y, si no hay acuerdo, jueces de la ciudad del inmueble', () => {
+        const campo = CONTRATO_DEFINICION.CORRETAJE.secciones.flatMap((x) => x.campos).find((c) => c.clave === 'controversiasVia');
+        expect(campo?.porDefecto).toBe('MEDIACION_JUECES');
+        const texto = conVia('MEDIACION_JUECES', { propiedadCiudad: 'Quito', jurisdiccionCiudad: 'INMUEBLE', centroMediacion: '' });
+        expect(texto).toContain('se someterá a mediación en el Centro de Arbitraje y Mediación de la Cámara de Comercio de Quito, de la ciudad de Quito');
+        expect(texto).toContain('se someten a los jueces competentes de Quito');
+      });
+
+      it('arbitraje: mediación previa, laudo definitivo y renuncia a la jurisdicción ordinaria', () => {
+        const texto = conVia('ARBITRAJE', { propiedadCiudad: 'Manta', jurisdiccionCiudad: 'INMUEBLE', centroMediacion: '' });
+        expect(texto).toContain('mediación en el Centro de Arbitraje y Mediación de la Cámara de Comercio de Manta');
+        expect(texto).toContain('arbitraje en derecho');
+        expect(texto).toContain('definitivo e inapelable');
+        expect(texto).toContain('renunciando a fuero y a la jurisdicción ordinaria');
+      });
+
+      it('solo jueces: sin mediación ni centro', () => {
+        const texto = conVia('JUECES', { propiedadCiudad: 'Cuenca', jurisdiccionCiudad: 'INMUEBLE' });
+        expect(texto).toContain('se someten a los jueces competentes de Cuenca');
+        expect(texto.toLowerCase()).not.toContain('mediación');
+        expect(texto.toLowerCase()).not.toContain('arbitraje');
+      });
+
+      it('la ciudad elegida manda sobre la del inmueble, y "Otra" usa lo escrito', () => {
+        expect(conVia('JUECES', { propiedadCiudad: 'Quito', jurisdiccionCiudad: 'GUAYAQUIL' })).toContain('jueces competentes de Guayaquil');
+        expect(conVia('JUECES', { propiedadCiudad: 'Quito', jurisdiccionCiudad: 'OTRA', jurisdiccionCiudadOtra: 'Loja' })).toContain(
+          'jueces competentes de Loja',
+        );
+      });
+
+      it('el centro que escribe el agente reemplaza al propuesto', () => {
+        expect(conVia('ARBITRAJE', { propiedadCiudad: 'Quito', centroMediacion: 'Centro de Mediación de la Función Judicial' })).toContain(
+          'Centro de Mediación de la Función Judicial',
+        );
+      });
+
+      it('el aviso del arbitraje es para la pantalla, no para el documento', () => {
+        const campo = CONTRATO_DEFINICION.CORRETAJE.secciones.flatMap((x) => x.campos).find((c) => c.clave === 'controversiasVia');
+        const arbitraje = campo?.opciones?.find((o) => o.valor === 'ARBITRAJE');
+        expect(arbitraje?.consecuencia).toBe('El arbitraje excluye la vía judicial ordinaria y tiene costos del centro.');
+        expect(textoDe('CORRETAJE', { controversiasVia: 'ARBITRAJE' })).not.toContain('costos del centro');
+      });
+
+      it('queda anotada en los pendientes legales, no en el PDF', () => {
+        const pendiente = PENDIENTES_REVISION_LEGAL.find((p) => p.tipo === 'CORRETAJE' && p.clausula === 'controversias');
+        expect(pendiente).toBeDefined();
+        expect(pendiente?.plantilla).toBe(plantillaActual('CORRETAJE'));
+        expect(textoDe('CORRETAJE').toLowerCase()).not.toContain('revisión del abogado');
+      });
     });
 
     it('la exclusividad cambia el título y la cláusula séptima, y nada más', () => {
@@ -228,37 +340,12 @@ describe('plantillas de contrato', () => {
       }
     });
 
-    it('la señal la devuelve quien la tiene', () => {
-      expect(clausula('CORRETAJE', 'DEPÓSITO O SEÑAL DE TRATO', { depositoEnPoderDe: 'CORREDOR' })).toContain(
-        'en poder del Corredor',
-      );
-      expect(clausula('CORRETAJE', 'DEPÓSITO O SEÑAL DE TRATO', { depositoEnPoderDe: 'PROPIETARIO' })).toContain(
-        'en poder del Propietario',
-      );
-      expect(
-        clausula('CORRETAJE', 'DEPÓSITO O SEÑAL DE TRATO', {
-          depositoEnPoderDe: 'PROPIETARIO',
-          siDesisteComprador: 'SE_PIERDE',
-        }),
-      ).toContain('sin que deba realizarse desembolso alguno');
-    });
-
-    it('la información de la propiedad va al final, con sus linderos', () => {
+    it('la información de la propiedad va al final, sin linderos y con el número de predio', () => {
       const doc = documentoDe('CORRETAJE');
       const ficha = doc.bloques.find((b) => b.tipo === 'ficha' && b.titulo === 'INFORMACIÓN DE LA PROPIEDAD');
       expect(ficha).toBeDefined();
       const etiquetas = ficha && 'filas' in ficha ? ficha.filas.map((f) => f.etiqueta) : [];
-      expect(etiquetas).toEqual([
-        'Precio de venta',
-        'Dirección',
-        'Ciudad',
-        'Provincia',
-        'Número de catastro',
-        'Lindero norte',
-        'Lindero sur',
-        'Lindero este',
-        'Lindero oeste',
-      ]);
+      expect(etiquetas).toEqual(['Precio de venta', 'Dirección', 'Ciudad', 'Provincia', 'Número de predio']);
     });
   });
 
@@ -370,7 +457,7 @@ describe('plantillas de contrato', () => {
 
   describe('versionado por tipo', () => {
     it('cada tipo vivo tiene su propia versión actual', () => {
-      expect(plantillaActual('CORRETAJE')).toBe('corretaje-v3-2026-09');
+      expect(plantillaActual('CORRETAJE')).toBe('corretaje-v4-2026-09');
       expect(plantillaActual('ARRENDAMIENTO_RESIDENCIAL')).toBe('arrendamiento-residencial-v1-2026-09');
       expect(plantillaActual('ARRENDAMIENTO_COMERCIAL')).toBe('arrendamiento-comercial-v1-2026-09');
       expect(plantillaActual('ARRENDAMIENTO_INDUSTRIAL')).toBe('arrendamiento-industrial-v1-2026-09');
@@ -392,6 +479,7 @@ describe('plantillas de contrato', () => {
       expect(obtenerPlantilla('CORRETAJE', 'corretaje-v2-2026-09').version).toBe('corretaje-v2-2026-09');
       expect(obtenerPlantilla('CORRETAJE', 'corretaje-v2-2026-09').admiteEdicion).toBe(false);
       expect(obtenerPlantilla('CORRETAJE', 'corretaje-v3-2026-09').admiteEdicion).toBe(true);
+      expect(obtenerPlantilla('CORRETAJE', 'corretaje-v4-2026-09').admiteEdicion).toBe(true);
     });
 
     it('una versión desconocida cae a la actual de su tipo en vez de reventar', () => {
@@ -404,7 +492,6 @@ describe('plantillas de contrato', () => {
   describe('las decisiones con consecuencia se eligen conscientemente', () => {
     const SIN_DEFAULT: Array<[ContratoTipo, string]> = [
       ['CORRETAJE', 'exclusividad'],
-      ['CORRETAJE', 'siDesisteComprador'],
       ['RESERVA_COMPRAVENTA', 'siDesisteComprador'],
       ['RESERVA_COMPRAVENTA', 'siDesisteVendedor'],
       ['RESERVA_ARRIENDO', 'siNoSeConcreta'],

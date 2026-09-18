@@ -1,5 +1,6 @@
 import React from 'react';
 import { Document, Font, Page, StyleSheet, Text, View, renderToBuffer } from '@react-pdf/renderer';
+import { syllables } from '@react-pdf/hyphenate/es';
 import { FICHA_FONT_BASE64 } from '@/lib/real-estate/ficha/fonts-data';
 import type { BloqueFinal, LineaFirma } from './clausulas';
 import { AVISO_FIRMA_ELECTRONICA, AVISO_REDINMO_NO_ES_PARTE_LEGADO } from './legado-firma';
@@ -41,9 +42,17 @@ function registrarFuentes() {
       fontWeight: peso,
     })),
   });
-  // Sin guiones de corte: el motor usa patrones del inglés y en un contrato en
-  // español partiría palabras donde no corresponde.
-  Font.registerHyphenationCallback((palabra) => [palabra]);
+  // Partición de palabras en ESPAÑOL. El motor trae patrones del inglés, que
+  // cortarían donde no corresponde; con los de español el texto justificado no
+  // abre huecos entre palabras al final de una línea corta.
+  //
+  // Se deja sin partir lo que no es una palabra corriente (cifras, códigos,
+  // cédulas) y las palabras cortas, para no ensuciar la lectura.
+  Font.registerHyphenationCallback((palabra) => {
+    if (palabra.length < 8 || /[\d@/]/.test(palabra)) return [palabra];
+    const trozos = syllables(palabra);
+    return trozos.length > 0 ? trozos : [palabra];
+  });
   fuentesRegistradas = true;
 }
 
@@ -76,10 +85,11 @@ const s = StyleSheet.create({
   },
   titulo: { fontSize: 14, fontWeight: 800, textAlign: 'center', lineHeight: 1.3 },
   fecha: { fontSize: 9.5, color: GRIS, textAlign: 'center', marginTop: 5, marginBottom: 18 },
-  // Alineado a la izquierda y no justificado: el motor, para justificar, separa
-  // también las letras cuando no le alcanza con los espacios, y esas líneas se
-  // ven estiradas.
-  cuerpo: { fontSize: CUERPO, lineHeight: 1.5, textAlign: 'left' },
+  // Justificado, como se escribe un contrato. Solo el cuerpo: los títulos, la
+  // ficha, las firmas y el pie se alinean a la izquierda. La partición de
+  // palabras en español (arriba) evita que una línea corta quede con huecos
+  // enormes entre palabras.
+  cuerpo: { fontSize: CUERPO, lineHeight: 1.5, textAlign: 'justify' },
   subtitulo: { fontWeight: 800, letterSpacing: 0.4 },
   encabezado: { fontWeight: 700 },
   pie: {
@@ -271,8 +281,14 @@ function Parrafo({ texto, subtitulo }: { texto: string; subtitulo: string | null
   );
 }
 
+// Una fila con un texto largo (la descripción del inmueble) puede pasar de
+// página: se la deja partir en vez de empujarla entera, que es lo que abre
+// huecos al pie. Las filas cortas siguen viajando enteras.
+const FILA_LARGA = 220;
+
 function Ficha({ bloque, subtitulo }: { bloque: Extract<BloqueFinal, { tipo: 'ficha' }>; subtitulo: string | null }) {
   const [primera, ...resto] = bloque.filas;
+  const larga = (f: { valor: string } | undefined) => (f ? f.valor.length > FILA_LARGA : false);
   const fila = (f: { etiqueta: string; valor: string }, ultima: boolean) => (
     <View style={[s.fichaFila, ultima ? {} : { borderBottomWidth: 0.5, borderBottomColor: '#ece9f2' }]}>
       <Text style={s.fichaEtiqueta}>{f.etiqueta}</Text>
@@ -282,7 +298,7 @@ function Ficha({ bloque, subtitulo }: { bloque: Extract<BloqueFinal, { tipo: 'fi
   return (
     <View style={{ marginBottom: 4 }}>
       {/* El título de la ficha viaja con su primera fila. */}
-      <View wrap={false}>
+      <View wrap={larga(primera)}>
         {subtitulo ? <Text style={[s.subtitulo, { marginBottom: 6 }]}>{subtitulo}</Text> : null}
         <View style={[s.ficha, { marginBottom: 0, borderBottomWidth: resto.length > 0 ? 0 : 0.8, borderBottomLeftRadius: resto.length > 0 ? 0 : 4, borderBottomRightRadius: resto.length > 0 ? 0 : 4 }]}>
           <Text style={s.fichaTitulo}>{bloque.titulo}</Text>
@@ -292,7 +308,7 @@ function Ficha({ bloque, subtitulo }: { bloque: Extract<BloqueFinal, { tipo: 'fi
       {resto.length > 0 ? (
         <View style={[s.ficha, { borderTopWidth: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 }]}>
           {resto.map((f, i) => (
-            <View key={f.etiqueta} wrap={false}>
+            <View key={f.etiqueta} wrap={larga(f)}>
               {fila(f, i === resto.length - 1)}
             </View>
           ))}

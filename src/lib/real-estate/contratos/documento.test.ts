@@ -37,9 +37,8 @@ const BASE: Record<string, string> = {
   vigenciaMeses: '6',
   prorrogaAvisoDias: '15',
   renunciaAvisoDias: '15',
-  depositoEnPoderDe: 'CORREDOR',
-  siDesisteComprador: 'SE_PIERDE',
-  devolucionPlazoDias: '5',
+  inmuebleDescripcion:
+    'Departamento de prueba en el tercer piso de un edificio inventado, con 95 m² de construcción, tres dormitorios, dos baños, un parqueadero cubierto y bodega, en buen estado de conservación.',
   precio: '185000',
   propiedadDireccion: 'Avenida Inventada 45',
   propiedadCiudad: 'Quito',
@@ -127,9 +126,9 @@ describe('personas naturales y jurídicas', () => {
     expect(camposFaltantes('CORRETAJE', BASE)).toEqual([]);
   });
 
-  it('el detalle de la retención solo se pide si la devolución es parcial', () => {
-    const plantilla = entrada({ siDesisteComprador: 'DEVOLUCION_PARCIAL' }).datos;
-    expect(camposFaltantes('CORRETAJE', plantilla)).toEqual([]);
+  it('la ciudad escrita a mano solo se pide si la jurisdicción es "Otra"', () => {
+    expect(camposFaltantes('CORRETAJE', { ...BASE, jurisdiccionCiudad: 'QUITO' })).toEqual([]);
+    expect(camposFaltantes('CORRETAJE', { ...BASE, jurisdiccionCiudad: 'OTRA' })).toContain('Escribe la ciudad');
   });
 });
 

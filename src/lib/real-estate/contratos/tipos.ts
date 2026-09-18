@@ -293,6 +293,12 @@ export type CampoDefinicion = {
   porDefecto?: string;
   opciones?: CampoOpcion[];
   ayuda?: string;
+  // Largo mínimo razonable de un texto que se imprime tal cual (la descripción
+  // del inmueble): dos líneas sueltas no describen nada.
+  minimo?: number;
+  // El campo se puede prellenar con los datos de un inmueble del inventario.
+  // La pantalla ofrece el botón; lo que quede escrito es del agente.
+  desdeInmueble?: boolean;
   // Legado: los tipos retirados marcaban así los datos de cada firmante.
   rolFirmante?: string;
   // El campo solo existe si otro campo tiene uno de estos valores (o, con una
@@ -524,6 +530,106 @@ export function parteAgente(rol: string, titulo: string): SeccionDefinicion {
   };
 }
 
+// ---------------------------------------------------------------------------
+// JURISDICCIÓN Y SOLUCIÓN DE CONTROVERSIAS
+//
+// Dónde se resuelve un problema y por qué vía. Las tres vías cambian el texto
+// de la cláusula, y el arbitraje cierra la puerta a los jueces ordinarios: por
+// eso su consecuencia se explica en la pantalla del agente (nunca en el PDF).
+// ---------------------------------------------------------------------------
+const CIUDADES: Array<{ valor: string; nombre: string }> = [
+  { valor: 'QUITO', nombre: 'Quito' },
+  { valor: 'GUAYAQUIL', nombre: 'Guayaquil' },
+  { valor: 'CUENCA', nombre: 'Cuenca' },
+  { valor: 'MANTA', nombre: 'Manta' },
+  { valor: 'PORTOVIEJO', nombre: 'Portoviejo' },
+  { valor: 'AMBATO', nombre: 'Ambato' },
+  { valor: 'SANTO_DOMINGO', nombre: 'Santo Domingo' },
+];
+
+export const CIUDAD_JURISDICCION_OPCIONES: CampoOpcion[] = [
+  { valor: 'INMUEBLE', etiqueta: 'La del inmueble' },
+  ...CIUDADES.map((c) => ({ valor: c.valor, etiqueta: c.nombre })),
+  { valor: 'OTRA', etiqueta: 'Otra' },
+];
+
+export function nombreDeCiudad(valor: string): string {
+  return CIUDADES.find((c) => c.valor === valor)?.nombre ?? '';
+}
+
+// El centro que corresponde a cada ciudad. Es solo el punto de partida: el
+// agente puede cambiarlo, porque cada cámara nombra al suyo a su manera.
+export function centroPorDefecto(ciudad: string): string {
+  const limpia = ciudad.trim();
+  return limpia ? `Centro de Arbitraje y Mediación de la Cámara de Comercio de ${limpia}` : '';
+}
+
+// La ciudad que gobierna el contrato: la elegida, la escrita a mano o, por
+// defecto, la del inmueble. La usan el formulario y la plantilla.
+export function ciudadDeJurisdiccion(datos: Record<string, string>): string {
+  const eleccion = (datos.jurisdiccionCiudad ?? '').trim() || 'INMUEBLE';
+  if (eleccion === 'OTRA') return (datos.jurisdiccionCiudadOtra ?? '').trim();
+  if (eleccion !== 'INMUEBLE') return nombreDeCiudad(eleccion);
+  return (datos.propiedadCiudad ?? '').trim();
+}
+
+export const VIA_MEDIACION_JUECES = 'MEDIACION_JUECES';
+export const VIA_ARBITRAJE = 'ARBITRAJE';
+export const VIA_JUECES = 'JUECES';
+
+// Los campos de jurisdicción, en el orden en que se leen.
+function jurisdiccionYControversias(): CampoDefinicion[] {
+  return [
+    {
+      clave: 'jurisdiccionCiudad',
+      etiqueta: 'Ciudad de jurisdicción y competencia',
+      tipo: 'opcion',
+      obligatorio: true,
+      porDefecto: 'INMUEBLE',
+      opciones: CIUDAD_JURISDICCION_OPCIONES,
+      ayuda: 'Dónde se resuelve el contrato si hay un problema. Por defecto, la ciudad del inmueble.',
+    },
+    {
+      clave: 'jurisdiccionCiudadOtra',
+      etiqueta: 'Escribe la ciudad',
+      tipo: 'texto',
+      obligatorio: true,
+      visibleSi: { clave: 'jurisdiccionCiudad', valores: ['OTRA'] },
+    },
+    {
+      clave: 'controversiasVia',
+      etiqueta: 'Mecanismo de solución de controversias',
+      tipo: 'opcionExplicada',
+      obligatorio: true,
+      porDefecto: VIA_MEDIACION_JUECES,
+      opciones: [
+        {
+          valor: VIA_MEDIACION_JUECES,
+          etiqueta: 'Mediación y, de no haber acuerdo, jueces competentes',
+          consecuencia: 'Primero se intenta un acuerdo en el centro de mediación. Si no lo hay, queda abierta la vía judicial de siempre.',
+        },
+        {
+          valor: VIA_ARBITRAJE,
+          etiqueta: 'Arbitraje y mediación',
+          consecuencia: 'El arbitraje excluye la vía judicial ordinaria y tiene costos del centro.',
+        },
+        {
+          valor: VIA_JUECES,
+          etiqueta: 'Solo jueces competentes',
+          consecuencia: 'Sin paso previo de mediación: cualquier desacuerdo va directo a los jueces de la ciudad elegida.',
+        },
+      ],
+    },
+    {
+      clave: 'centroMediacion',
+      etiqueta: 'Centro de mediación o arbitraje',
+      tipo: 'texto',
+      ayuda: 'Se propone el de la cámara de comercio de la ciudad elegida. Cámbialo si el centro se llama distinto.',
+      visibleSi: { clave: 'controversiasVia', valores: [VIA_MEDIACION_JUECES, VIA_ARBITRAJE] },
+    },
+  ];
+}
+
 const JURISDICCION: CampoDefinicion = {
   clave: 'ciudadJurisdiccion',
   etiqueta: 'Ciudad de los jueces competentes',
@@ -539,7 +645,9 @@ const DEFINICIONES_VIVAS: Record<string, TipoDefinicion> = {
     titulo: 'Corretaje inmobiliario',
     descripcion: 'Cuando un propietario te encarga vender su inmueble, con o sin exclusividad.',
     nombreDocumento: 'CONTRATO DE CORRETAJE INMOBILIARIO',
-    requiereInmueble: true,
+    // El inmueble se está captando: todavía no está en "Tus inmuebles", así que
+    // el contrato se describe con lo que escribe el agente.
+    requiereInmueble: false,
     secciones: [
       ...lado('propietario', 'Datos del propietario', { tipoDocumento: true }),
       parteAgente('corredor', 'Tú, como corredor'),
@@ -550,7 +658,9 @@ const DEFINICIONES_VIVAS: Record<string, TipoDefinicion> = {
         campos: [
           {
             clave: 'exclusividad',
-            etiqueta: 'La consignación se otorga',
+            // "La consignación se otorga" venía de la plantilla de reserva. Lo
+            // que se otorga aquí es el encargo de venta.
+            etiqueta: 'El encargo se otorga',
             tipo: 'opcionExplicada',
             // ----------------------------------------------------------------
             // SIN VALOR POR DEFECTO, A PROPÓSITO. NO AÑADIR UNO.
@@ -650,79 +760,31 @@ const DEFINICIONES_VIVAS: Record<string, TipoDefinicion> = {
         ],
       },
       {
-        clave: 'deposito',
-        titulo: 'Depósito o señal de trato',
-        descripcion: 'Qué pasa con el dinero que un interesado entregue para asegurar la negociación.',
-        campos: [
-          {
-            clave: 'depositoEnPoderDe',
-            etiqueta: 'La señal queda en poder de',
-            tipo: 'opcion',
-            obligatorio: true,
-            porDefecto: 'CORREDOR',
-            opciones: [
-              { valor: 'CORREDOR', etiqueta: 'El corredor' },
-              { valor: 'PROPIETARIO', etiqueta: 'El propietario' },
-            ],
-          },
-          {
-            clave: 'siDesisteComprador',
-            etiqueta: 'Si el interesado desiste, la señal',
-            tipo: 'opcionExplicada',
-            // Sin default, por lo mismo que la exclusividad.
-            obligatorio: true,
-            opciones: [
-              {
-                valor: 'SE_PIERDE',
-                etiqueta: 'Queda a favor del propietario',
-                consecuencia:
-                  'El interesado pierde lo entregado. Es lo más común, y también lo que más se discute si alega que se retiró por causa justificada.',
-              },
-              {
-                valor: 'DEVOLUCION_TOTAL',
-                etiqueta: 'Se devuelve completa',
-                consecuencia:
-                  'El interesado se retira sin costo. La señal deja de asegurar nada y el inmueble estuvo fuera del mercado a cambio de nada.',
-              },
-              {
-                valor: 'DEVOLUCION_PARCIAL',
-                etiqueta: 'Se devuelve en parte',
-                consecuencia:
-                  'Se retiene solo lo que definas abajo. Es el punto medio, y se sostiene mejor si lo retenido guarda relación con gastos reales.',
-              },
-            ],
-          },
-          {
-            clave: 'retencionDetalle',
-            etiqueta: 'Detalle de la retención parcial',
-            tipo: 'texto',
-            visibleSi: { clave: 'siDesisteComprador', valores: ['DEVOLUCION_PARCIAL'] },
-          },
-          {
-            clave: 'devolucionPlazoDias',
-            etiqueta: 'Plazo para devolver la señal (días hábiles)',
-            tipo: 'numero',
-            obligatorio: true,
-            porDefecto: '5',
-          },
-        ],
-      },
-      {
         clave: 'propiedad',
-        titulo: 'Información de la propiedad',
-        descripcion: 'Se imprime al final del contrato. Lo que dejes vacío sale marcado como pendiente.',
+        titulo: 'El inmueble',
+        descripcion: 'En el corretaje el inmueble todavía se está captando: lo que escribas aquí es lo que describe el contrato.',
         campos: [
+          {
+            clave: 'inmuebleDescripcion',
+            etiqueta: 'Descripción del inmueble',
+            tipo: 'area',
+            obligatorio: true,
+            minimo: 120,
+            desdeInmueble: true,
+            ayuda:
+              'Sale en el contrato tal como la escribas. Incluye tipo de inmueble, ubicación y referencia, área del terreno y de construcción, número de pisos, dormitorios, baños, parqueaderos, bodega, estado y demás características relevantes.',
+          },
           { clave: 'precio', etiqueta: 'Precio de venta', tipo: 'dinero', obligatorio: true },
           { clave: 'propiedadDireccion', etiqueta: 'Dirección', tipo: 'texto', obligatorio: true },
           { clave: 'propiedadCiudad', etiqueta: 'Ciudad', tipo: 'texto', obligatorio: true },
           { clave: 'propiedadProvincia', etiqueta: 'Provincia', tipo: 'texto', obligatorio: true },
-          { clave: 'propiedadCatastro', etiqueta: 'Número de catastro', tipo: 'texto' },
-          { clave: 'linderoNorte', etiqueta: 'Lindero norte', tipo: 'texto' },
-          { clave: 'linderoSur', etiqueta: 'Lindero sur', tipo: 'texto' },
-          { clave: 'linderoEste', etiqueta: 'Lindero este', tipo: 'texto' },
-          { clave: 'linderoOeste', etiqueta: 'Lindero oeste', tipo: 'texto' },
-          JURISDICCION,
+          { clave: 'propiedadPredio', etiqueta: 'Número de predio', tipo: 'texto' },
         ],
+      },
+      {
+        clave: 'jurisdiccion',
+        titulo: 'Jurisdicción y controversias',
+        campos: jurisdiccionYControversias(),
       },
     ],
   },
@@ -1507,6 +1569,9 @@ export function camposFaltantes(tipo: ContratoTipo, datos: Record<string, string
       // Un correo opcional no se exige, pero si se escribió tiene que servir.
       if (campo.tipo === 'correo' && valor && !correoValido(valor)) faltan.push(`${prefijo}${campo.etiqueta} (formato no válido)`);
       else if (campo.obligatorio && !valor) faltan.push(`${prefijo}${campo.etiqueta}`);
+      else if (campo.minimo && valor && valor.trim().length < campo.minimo) {
+        faltan.push(`${prefijo}${campo.etiqueta} (al menos ${campo.minimo} caracteres)`);
+      }
     }
   }
   return faltan;
