@@ -1,5 +1,5 @@
-// Migracion: en el CORRETAJE, "numero de catastro" pasa a llamarse "numero de
-// predio", y la senal, los linderos y sus campos asociados dejan de existir.
+// Migracion: en el CORRETAJE v4, "numero de catastro" pasa a llamarse "numero
+// de predio", y la senal, los linderos y sus campos asociados dejan de existir.
 //
 // No es una migracion de esquema: los datos del formulario viven cifrados en
 // Contrato.datosCifrados y ContratoVersion.datosCifrados, como un JSON de
@@ -14,21 +14,27 @@
 //               corre.
 //
 //   --datos     Renombra propiedadCatastro -> propiedadPredio en la COPIA DE
-//               TRABAJO (Contrato.datosCifrados). Idempotente: si la fila ya
-//               tiene propiedadPredio, no la toca. Guarda antes una copia del
-//               JSON original (tal cual, cifrado) en el archivo que indique
-//               --respaldo, para poder volver atras.
+//               TRABAJO (Contrato.datosCifrados) de los contratos en v4. Antes
+//               de la primera escritura guarda el JSON original (tal cual,
+//               cifrado) en el archivo de --respaldo, que no puede existir:
+//               nunca se pisa un respaldo anterior. Despues escribe todo en una
+//               sola transaccion: o se migran todas las filas o ninguna.
+//               Idempotente: una fila que ya tiene propiedadPredio no se toca.
+//
+// SOLO la v4. Un contrato guarda la version de plantilla con la que se creo y
+// sigue imprimiendose con ella: la v2 y la v3 del corretaje leen
+// propiedadCatastro, y renombrarles la clave les borraria el numero del
+// documento. Esas filas se cuentan y se dejan como estan.
 //
 // Lo que NO se toca: ContratoVersion. Cada version enviada imprime su
-// documentoCifrado, congelado, y sus plantillas (corretaje v2 y v3) leen
-// propiedadCatastro: renombrar ahi cambiaria lo que dice un documento ya
-// aprobado. Una version enviada no se corrige nunca; se emite otra.
+// documentoCifrado, congelado: renombrar ahi cambiaria lo que dice un
+// documento ya aprobado. Una version enviada no se corrige nunca; se emite
+// otra.
 //
 // Lo que NO hace, a proposito: no borra los campos de la senal ni los linderos
 // (depositoEnPoderDe, siDesisteComprador, retencionDetalle, devolucionPlazoDias,
 // linderoNorte/Sur/Este/Oeste). Quedan como datos huerfanos que ninguna
-// plantilla lee. Borrarlos no aporta nada y si perderia informacion de un
-// contrato ya firmado, que debe seguir diciendo lo que decia.
+// plantilla v4 lee. Borrarlos no aporta nada y si perderia informacion.
 //
 // La plantilla corretaje-v4 ademas lee propiedadCatastro como respaldo cuando
 // propiedadPredio esta vacio, asi que un contrato sin migrar tampoco se rompe:
@@ -48,6 +54,9 @@ const ALGORITMO = 'aes-256-gcm';
 const IV_BYTES = 12;
 const VIEJA = 'propiedadCatastro';
 const NUEVA = 'propiedadPredio';
+// La unica version cuyo formulario escribe propiedadPredio. Tiene que coincidir
+// con PLANTILLA_VERSION de src/lib/real-estate/contratos/plantillas/corretaje-v4.ts.
+const VERSION_V4 = 'corretaje-v4-2026-09';
 
 // Misma derivacion que src/lib/real-estate/payments/encryption.ts.
 function derivar(raw: string): Buffer {
@@ -70,7 +79,8 @@ function cifrar(texto: string, clave: Buffer): string {
   return `${iv.toString('hex')}:${c.getAuthTag().toString('hex')}:${ct.toString('hex')}`;
 }
 
-type Fila = { id: string; datosCifrados: string | null };
+type Fila = { id: string; datosCifrados: string | null; plantillaVersion: string };
+type Cambio = { id: string; original: string; nuevo: string };
 
 // Devuelve el JSON renombrado, o null si no habia nada que renombrar.
 function renombrar(datos: Record<string, string>): Record<string, string> | null {
@@ -99,50 +109,87 @@ async function main() {
   const clave = derivar(raw);
 
   const pool = new Pool({ connectionString: url });
-  const copias: Array<{ tabla: string; id: string; datosCifrados: string }> = [];
-  let conVieja = 0;
-  let migradas = 0;
-  let ilegibles = 0;
-
   try {
+    // 1. Leer y decidir. Nada se escribe en este paso.
     // Solo el tipo vivo: CORRETAJE_EXCLUSIVO y CORRETAJE_ABIERTO estan
     // archivados, se reimprimen como se generaron y sus plantillas leen la
     // clave vieja.
-    for (const tabla of ['Contrato'] as const) {
-      const { rows } = await pool.query<Fila>(`SELECT id, "datosCifrados" FROM "${tabla}" WHERE tipo = 'CORRETAJE'`);
-      for (const fila of rows) {
-        if (!fila.datosCifrados) continue;
-        let datos: Record<string, string>;
-        try {
-          datos = JSON.parse(descifrar(fila.datosCifrados, clave)) as Record<string, string>;
-        } catch {
-          // Cifrada con otra clave o corrupta: se informa y se deja intacta.
-          ilegibles++;
-          console.log(`  ! ${tabla} ${fila.id}: no se pudo descifrar, se deja como está`);
-          continue;
-        }
-        const nuevo = renombrar(datos);
-        if (!nuevo) {
-          if (datos[NUEVA] !== undefined) migradas++;
-          continue;
-        }
-        conVieja++;
-        if (!escribir) {
-          console.log(`  · ${tabla} ${fila.id}: ${VIEJA}="${datos[VIEJA]}" → ${NUEVA}`);
-          continue;
-        }
-        copias.push({ tabla, id: fila.id, datosCifrados: fila.datosCifrados });
-        await pool.query(`UPDATE "${tabla}" SET "datosCifrados" = $1 WHERE id = $2`, [cifrar(JSON.stringify(nuevo), clave), fila.id]);
-        console.log(`  ✓ ${tabla} ${fila.id}`);
+    const { rows } = await pool.query<Fila>(`SELECT id, "datosCifrados", "plantillaVersion" FROM "Contrato" WHERE tipo = 'CORRETAJE'`);
+    const cambios: Cambio[] = [];
+    let yaMigradas = 0;
+    let ilegibles = 0;
+    let otrasVersiones = 0;
+    for (const fila of rows) {
+      if (!fila.datosCifrados) continue;
+      let datos: Record<string, string>;
+      try {
+        datos = JSON.parse(descifrar(fila.datosCifrados, clave)) as Record<string, string>;
+      } catch {
+        // Cifrada con otra clave o corrupta: se informa y se deja intacta.
+        ilegibles++;
+        console.log(`  ! Contrato ${fila.id}: no se pudo descifrar, se deja como está`);
+        continue;
       }
+      if (fila.plantillaVersion !== VERSION_V4) {
+        // Su plantilla lee la clave vieja: se deja como está a propósito.
+        if (datos[VIEJA] !== undefined) {
+          otrasVersiones++;
+          console.log(`  - Contrato ${fila.id} (${fila.plantillaVersion}): su plantilla usa ${VIEJA}, no se toca`);
+        }
+        continue;
+      }
+      const nuevo = renombrar(datos);
+      if (!nuevo) {
+        if (datos[NUEVA] !== undefined) yaMigradas++;
+        continue;
+      }
+      // Ida y vuelta antes de escribir: si lo recifrado no devuelve exactamente
+      // lo mismo, se aborta en vez de guardar basura.
+      const recifrado = cifrar(JSON.stringify(nuevo), clave);
+      if (descifrar(recifrado, clave) !== JSON.stringify(nuevo)) throw new Error(`Contrato ${fila.id}: el recifrado no coincide; no se escribió nada.`);
+      cambios.push({ id: fila.id, original: fila.datosCifrados, nuevo: recifrado });
+      console.log(`  · Contrato ${fila.id}: ${VIEJA}="${datos[VIEJA]}" → ${NUEVA}`);
     }
 
-    if (escribir && copias.length > 0) {
-      writeFileSync(respaldo, JSON.stringify(copias, null, 2), 'utf8');
-      console.log(`\nRespaldo de ${copias.length} fila(s) en ${respaldo} (sigue cifrado: se restaura tal cual).`);
+    console.log(
+      `\nv4 con ${VIEJA}: ${cambios.length} · v4 ya con ${NUEVA}: ${yaMigradas} · otras versiones con ${VIEJA} (no se tocan): ${otrasVersiones} · ilegibles: ${ilegibles}`,
+    );
+    if (!escribir) {
+      console.log('Nada se escribió (--revisar).');
+      return;
     }
-    console.log(`\nCon ${VIEJA}: ${conVieja} · ya con ${NUEVA}: ${migradas} · ilegibles: ${ilegibles}`);
-    if (!escribir) console.log('Nada se escribió (--revisar).');
+    if (cambios.length === 0) {
+      console.log('No hay nada que migrar: no se escribió nada ni se creó respaldo.');
+      return;
+    }
+
+    // 2. Respaldo ANTES de la primera escritura. 'wx' falla si el archivo ya
+    // existe: un respaldo anterior nunca se pisa.
+    writeFileSync(respaldo, JSON.stringify(cambios.map((c) => ({ tabla: 'Contrato', id: c.id, datosCifrados: c.original })), null, 2), {
+      encoding: 'utf8',
+      flag: 'wx',
+    });
+    console.log(`\nRespaldo de ${cambios.length} fila(s) en ${respaldo} (sigue cifrado: se restaura tal cual).`);
+
+    // 3. Todo o nada. Cada UPDATE exige que la fila siga como se leyó: si el
+    // agente la guardó entre la lectura y la escritura, se aborta y no queda
+    // nada a medias.
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      for (const c of cambios) {
+        const r = await client.query(`UPDATE "Contrato" SET "datosCifrados" = $1 WHERE id = $2 AND "datosCifrados" = $3`, [c.nuevo, c.id, c.original]);
+        if (r.rowCount !== 1) throw new Error(`Contrato ${c.id} cambió desde la lectura. No se migró ninguna fila; vuelve a correr --revisar.`);
+        console.log(`  ✓ Contrato ${c.id}`);
+      }
+      await client.query('COMMIT');
+      console.log(`\n${cambios.length} fila(s) migradas.`);
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw error;
+    } finally {
+      client.release();
+    }
   } finally {
     await pool.end();
   }
