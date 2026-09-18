@@ -164,7 +164,23 @@ export function enlaceWhatsApp(telefono: string, mensaje: string): string {
 // notaría"
 // ---------------------------------------------------------------------------
 
-export type PasoIndicador = { clave: Etapa | 'NOTARIA'; etiqueta: string; estado: 'hecho' | 'actual' | 'pendiente' };
+// Cómo va cada etapa, en palabras, para Seguimiento:
+//   1. el lado del agente:  pendiente · aprobado · cambios pedidos
+//   2. la otra parte:       en espera · enviado · aprobado · cambios pedidos
+// "En espera" es que todavía no recibió esta versión: el cliente del agente no
+// la aprobó o el agente aún no se la envió.
+export type SituacionPaso = 'pendiente' | 'aprobado' | 'cambios_pedidos' | 'en_espera' | 'enviado';
+
+export type PasoIndicador = { clave: Etapa | 'NOTARIA'; etiqueta: string; estado: 'hecho' | 'actual' | 'pendiente'; situacion?: SituacionPaso };
+
+export function situacionDeEtapa(etapa: Etapa, version: VersionEnFlujo | null, partes: ParteEnFlujo[]): SituacionPaso {
+  if (!version) return etapa === 'PRINCIPAL' ? 'pendiente' : 'en_espera';
+  const deEtapa = partes.filter((p) => p.etapa === etapa);
+  if (deEtapa.some((p) => p.estado === 'RECHAZADO')) return 'cambios_pedidos';
+  if (etapa === 'PRINCIPAL') return etapaCompleta(version, partes, 'PRINCIPAL') ? 'aprobado' : 'pendiente';
+  if (deEtapa.length > 0 && deEtapa.every((p) => p.estado === 'APROBADO')) return 'aprobado';
+  return deEtapa.length > 0 && contraparteHabilitada(version, partes) ? 'enviado' : 'en_espera';
+}
 
 export function indicadorEtapas(input: {
   etiquetas: Record<Etapa, string | null>;
@@ -172,6 +188,9 @@ export function indicadorEtapas(input: {
   // Para un VENCIDO: si la etapa principal ya estaba completa, lo vencido es
   // de la contraparte.
   principalCompleta: boolean;
+  // La versión vigente y sus partes, para decir en palabras cómo va cada paso.
+  version?: VersionEnFlujo | null;
+  partes?: ParteEnFlujo[];
 }): PasoIndicador[] {
   const { etiquetas, estado } = input;
   const etapas = (['PRINCIPAL', 'CONTRAPARTE'] as Etapa[]).filter((e) => etiquetas[e]);
@@ -188,7 +207,12 @@ export function indicadorEtapas(input: {
       if (e === 'PRINCIPAL') paso = enContraparte ? 'hecho' : 'actual';
       else paso = enContraparte || !etiquetas.PRINCIPAL ? 'actual' : 'pendiente';
     }
-    return { clave: e, etiqueta: etiquetas[e] as string, estado: paso };
+    if (!('version' in input)) return { clave: e, etiqueta: etiquetas[e] as string, estado: paso };
+    let situacion = situacionDeEtapa(e, input.version ?? null, input.partes ?? []);
+    // Sin lado del agente (la reserva de arrendamiento), la otra parte es el
+    // paso 1 y se lee como tal: pendiente, no "en espera" ni "enviado".
+    if (e === 'CONTRAPARTE' && !etiquetas.PRINCIPAL && (situacion === 'en_espera' || situacion === 'enviado')) situacion = 'pendiente';
+    return { clave: e, etiqueta: etiquetas[e] as string, estado: paso, situacion };
   });
   pasos.push({ clave: 'NOTARIA', etiqueta: 'Listo para notaría', estado: final ? 'hecho' : 'pendiente' });
   return pasos;

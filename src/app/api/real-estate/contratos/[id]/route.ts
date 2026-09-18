@@ -218,6 +218,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             etiquetas: etiquetasEtapas(tipo, representaVigente),
             estado: contrato.estado,
             principalCompleta: vigente ? etapaCompleta(vigente, partesVigentes, 'PRINCIPAL') : false,
+            version: vigente ?? null,
+            partes: partesVigentes,
           }),
       vigenciaHoras: contrato.vigenciaHoras ?? vigenciaPorDefectoHoras(tipo),
       vigencias: VIGENCIAS_HORAS,

@@ -222,15 +222,21 @@ export default function ContratoSeguimiento({
             <li key={paso.clave} className="flex items-center gap-1.5">
               <span
                 className={`flex min-h-[36px] items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold ${
-                  paso.estado === 'hecho'
-                    ? 'border-accent-line bg-accent-dim text-accent'
-                    : paso.estado === 'actual'
-                      ? 'border-brand-line bg-brand-dim text-brand'
-                      : 'border-line text-text-3'
+                  paso.situacion === 'cambios_pedidos'
+                    ? 'border-danger bg-danger-dim text-danger'
+                    : paso.estado === 'hecho'
+                      ? 'border-accent-line bg-accent-dim text-accent'
+                      : paso.estado === 'actual'
+                        ? 'border-brand-line bg-brand-dim text-brand'
+                        : 'border-line text-text-3'
                 }`}
                 aria-current={paso.estado === 'actual' ? 'step' : undefined}
               >
-                {paso.estado === 'hecho' ? '✓' : paso.clave === 'NOTARIA' ? '' : `${i + 1}.`} {paso.etiqueta}
+                {paso.clave === 'NOTARIA'
+                  ? `${paso.estado === 'hecho' ? '✓ ' : ''}${paso.etiqueta}`
+                  : paso.situacion
+                    ? `${i + 1}. ${paso.etiqueta}: ${t(`contratos.situacion.${paso.situacion}`)}`
+                    : `${paso.estado === 'hecho' ? '✓' : `${i + 1}.`} ${paso.etiqueta}`}
               </span>
               {i < contrato.indicador.length - 1 ? <span className="text-text-3" aria-hidden="true">→</span> : null}
             </li>

@@ -171,6 +171,69 @@ describe('flujo: indicador de etapas', () => {
   });
 });
 
+// "1. Vendedor: aprobado" · "2. Comprador: en espera", como lo ve el agente en
+// Seguimiento.
+describe('flujo: cómo va cada paso, en palabras', () => {
+  const etiquetas = { PRINCIPAL: 'Vendedor', CONTRAPARTE: 'Comprador' };
+  const pasos = (v: VersionEnFlujo | null, partes: ParteEnFlujo[], e: Parameters<typeof indicadorEtapas>[0]['estado'] = 'EN_REVISION_PRINCIPAL', et = etiquetas) =>
+    indicadorEtapas({ etiquetas: et, estado: e, principalCompleta: false, version: v, partes })
+      .filter((p) => p.clave !== 'NOTARIA')
+      .map((p) => `${p.etiqueta}: ${p.situacion?.replace('_', ' ')}`);
+
+  it('sin enviar: el vendedor pendiente y el comprador en espera', () => {
+    expect(pasos(null, [], 'BORRADOR')).toEqual(['Vendedor: pendiente', 'Comprador: en espera']);
+  });
+
+  it('primero el vendedor; el comprador espera hasta que el agente se la envíe', () => {
+    expect(pasos(version(), [parte('PRINCIPAL', 'ABIERTO')])).toEqual(['Vendedor: pendiente', 'Comprador: en espera']);
+    expect(pasos(version(), [parte('PRINCIPAL', 'APROBADO')], 'APROBADO_PRINCIPAL')).toEqual(['Vendedor: aprobado', 'Comprador: en espera']);
+    const enviada = version({ contraparteEnviadaAt: new Date() });
+    expect(pasos(enviada, [parte('PRINCIPAL', 'APROBADO'), parte('CONTRAPARTE', 'ENVIADO')], 'EN_REVISION_CONTRAPARTE')).toEqual([
+      'Vendedor: aprobado',
+      'Comprador: enviado',
+    ]);
+    expect(pasos(enviada, [parte('PRINCIPAL', 'APROBADO'), parte('CONTRAPARTE', 'APROBADO')], 'APROBADO_FINAL')).toEqual([
+      'Vendedor: aprobado',
+      'Comprador: aprobado',
+    ]);
+  });
+
+  it('los cambios pedidos se ven en el paso de quien los pidió', () => {
+    const rechazada = version({ estado: 'RECHAZADA' });
+    expect(pasos(rechazada, [parte('PRINCIPAL', 'RECHAZADO')], 'CAMBIOS_SOLICITADOS_PRINCIPAL')).toEqual([
+      'Vendedor: cambios pedidos',
+      'Comprador: en espera',
+    ]);
+    const desdeComprador = version({ estado: 'RECHAZADA', contraparteEnviadaAt: new Date() });
+    expect(
+      pasos(desdeComprador, [parte('PRINCIPAL', 'APROBADO'), parte('CONTRAPARTE', 'RECHAZADO')], 'CAMBIOS_SOLICITADOS_CONTRAPARTE'),
+    ).toEqual(['Vendedor: aprobado', 'Comprador: cambios pedidos']);
+  });
+
+  it('la versión nueva tras los cambios del comprador vuelve primero al vendedor', () => {
+    expect(pasos(version(), [parte('PRINCIPAL', 'ENVIADO')])).toEqual(['Vendedor: pendiente', 'Comprador: en espera']);
+  });
+
+  it('con "Enviar a ambos a la vez", el comprador ya la tiene', () => {
+    const simultanea = version({ simultanea: true, contraparteEnviadaAt: new Date() });
+    expect(pasos(simultanea, [parte('PRINCIPAL', 'ENVIADO'), parte('CONTRAPARTE', 'ENVIADO')])).toEqual([
+      'Vendedor: pendiente',
+      'Comprador: enviado',
+    ]);
+  });
+
+  it('con una sola parte, un solo paso', () => {
+    expect(pasos(version({ requiereContraparte: false }), [parte('PRINCIPAL', 'ENVIADO')], 'EN_REVISION_PRINCIPAL', { PRINCIPAL: 'Propietario', CONTRAPARTE: null } as never)).toEqual([
+      'Propietario: pendiente',
+    ]);
+    // Reserva de arrendamiento: solo revisa el interesado, que es el paso 1.
+    const soloInteresado = version({ requierePrincipal: false, contraparteEnviadaAt: new Date() });
+    const et = { PRINCIPAL: null, CONTRAPARTE: 'Interesado' } as never;
+    expect(pasos(soloInteresado, [parte('CONTRAPARTE', 'ENVIADO')], 'EN_REVISION_CONTRAPARTE', et)).toEqual(['Interesado: pendiente']);
+    expect(pasos(soloInteresado, [parte('CONTRAPARTE', 'APROBADO')], 'APROBADO_FINAL', et)).toEqual(['Interesado: aprobado']);
+  });
+});
+
 describe('flujo: corrección menor comprobada por huella', () => {
   const agente = {
     nombre: 'Agente de Prueba',
