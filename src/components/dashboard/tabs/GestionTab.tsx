@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
+import { tCantidad } from '@/lib/i18n/plural';
 import { ProgressRing } from '../CardKit';
 import { IconBell, IconClipboard, IconHouse, IconPhoneCheck, IconStar, IconTarget, IconTrophy } from '../icons';
 import { evaluateNextPlay, type NextPlayInput, type NextPlayState } from '@/lib/real-estate/next-play';
@@ -243,10 +244,13 @@ function NextPlayCard({
 
   switch (state.kind) {
     case 'UNCONTACTED_MATCHES': {
-      title = t('gestion.nextplay.uncontacted.title').replace('{n}', String(state.count));
-      const namesText = state.names.length > 0 ? state.names.slice(0, 2).join(lang === 'es' ? ' y ' : ' and ') : lang === 'es' ? 'Tus contactos' : 'Your contacts';
-      subtitle = t('gestion.nextplay.uncontacted.sub').replace('{names}', namesText);
-      ctaLabel = t('gestion.nextplay.uncontacted.cta');
+      title = tCantidad(t, 'gestion.nextplay.uncontacted.title', state.count);
+      const shownNames = state.names.slice(0, 2);
+      const namesText = shownNames.length > 0 ? shownNames.join(lang === 'es' ? ' y ' : ' and ') : lang === 'es' ? 'Tus contactos' : 'Your contacts';
+      // El verbo concuerda con lo que se lee: un solo nombre "tiene"; dos
+      // nombres o "Tus contactos", "tienen".
+      subtitle = t(shownNames.length === 1 ? 'gestion.nextplay.uncontacted.sub.uno' : 'gestion.nextplay.uncontacted.sub').replace('{names}', namesText);
+      ctaLabel = tCantidad(t, 'gestion.nextplay.uncontacted.cta', state.count);
       ctaPoints = POINT_ACTIONS.MATCH_CONTACTED.points;
       perUnit = true;
       targetTab = 'matches';
@@ -696,7 +700,7 @@ function ConsumoGenerador({ datos }: { datos: ConsumoIA }) {
         ))}
       </div>
       <p className="mt-3 text-[11.5px] leading-relaxed text-text-2">
-        {total} llamadas de {datos.agentesActivos} agentes
+        {total} {total === 1 ? 'llamada' : 'llamadas'} de {datos.agentesActivos} {datos.agentesActivos === 1 ? 'agente' : 'agentes'}
         {porCarta > 0 ? `, ${porCarta} tokens de entrada por carta` : ''}.
       </p>
     </section>

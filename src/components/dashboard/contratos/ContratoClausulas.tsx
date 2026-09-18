@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { tCantidad } from '@/lib/i18n/plural';
 import { nuevaClaveClausula, type ClausulaEditable, type EdicionClausulas } from '@/lib/real-estate/contratos/clausulas';
 import type { DocumentoTrabajo } from './tipos-cliente';
 
@@ -117,10 +118,11 @@ export default function ContratoClausulas({ t, contratoId }: { t: (k: string) =>
       <div className="rounded-2xl border border-line bg-surface p-4">
         <p className="text-[13px] leading-relaxed text-text-2">{t('contratos.clausulas.intro')}</p>
         <p className="mt-2 text-xs font-semibold text-text-3">
-          {t('contratos.clausulas.resumen')
-            .replace('{n}', String(activas))
-            .replace('{m}', String(modificadas))
-            .replace('{a}', String(agregadas))}
+          {[
+            tCantidad(t, 'contratos.clausulas.resumen.activas', activas),
+            tCantidad(t, 'contratos.clausulas.resumen.modificadas', modificadas),
+            tCantidad(t, 'contratos.clausulas.resumen.agregadas', agregadas),
+          ].join(' · ')}
           {guardando ? ` · ${t('contratos.clausulas.guardando')}` : ''}
         </p>
       </div>

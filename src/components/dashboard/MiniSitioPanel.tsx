@@ -241,7 +241,7 @@ export default function MiniSitioPanel({ appUrl }: { appUrl?: string }) {
           {metricas.inmuebleMasVisto ? (
             <p className="mt-3 text-xs text-text-2">
               Más visto: <span className="font-semibold text-text">{metricas.inmuebleMasVisto.titulo}</span>{' '}
-              ({metricas.inmuebleMasVisto.visitas} visitas)
+              ({metricas.inmuebleMasVisto.visitas} {metricas.inmuebleMasVisto.visitas === 1 ? 'visita' : 'visitas'})
             </p>
           ) : null}
 
