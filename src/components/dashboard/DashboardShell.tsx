@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode, type SVGProps } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type SVGProps } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import { AvatarInitials } from './CardKit';
@@ -137,6 +137,24 @@ export default function DashboardShell({
   const { t } = useLanguage();
   const tabs = isAdmin ? ADMIN_TABS : AGENT_TABS;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const encabezado = useRef<HTMLElement>(null);
+
+  // Hasta dónde llega el encabezado fijo del panel (su altura más el top-2).
+  // Lo usan los encabezados de las subpantallas para pegarse justo debajo; la
+  // altura cambia al abrir el menú o si el nombre ocupa dos líneas.
+  useEffect(() => {
+    const el = encabezado.current;
+    if (!el) return;
+    const raiz = document.documentElement;
+    const publicar = () => raiz.style.setProperty('--alto-encabezado-panel', `${el.offsetHeight + 8}px`);
+    publicar();
+    const observador = new ResizeObserver(publicar);
+    observador.observe(el);
+    return () => {
+      observador.disconnect();
+      raiz.style.removeProperty('--alto-encabezado-panel');
+    };
+  }, []);
 
   function selectTab(tab: DashboardTab) {
     onTabChange(tab);
@@ -194,6 +212,7 @@ export default function DashboardShell({
 
         <div className="min-w-0 flex-1 space-y-6">
           <section
+            ref={encabezado}
             className="fade-up sticky top-2 z-30 rounded-2xl border border-line bg-bg-alt px-4 py-3 shadow-md [transform:translateZ(0)] [will-change:transform] sm:rounded-3xl sm:px-5"
           >
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-text sm:gap-3">

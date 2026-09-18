@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import RastreoNavegacion from "@/components/navegacion/RastreoNavegacion";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -63,6 +64,7 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className={`${plusJakartaSans.variable} ${plusJakartaSans.className}`}>
         <ThemeProvider attribute="data-theme" defaultTheme="light" enableSystem storageKey="redinmo-theme">
+          <RastreoNavegacion />
           {children}
         </ThemeProvider>
       </body>
