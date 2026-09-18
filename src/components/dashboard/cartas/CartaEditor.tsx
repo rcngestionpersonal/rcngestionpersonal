@@ -9,6 +9,8 @@ import {
 } from '@/lib/real-estate/cartas/tipos';
 import type { CartaCompleta, EstadoCuotaCliente } from './tipos-cliente';
 import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
+import BotonCerrar, { useCerrarConEscape } from '@/components/navegacion/BotonCerrar';
+import Superpuesto from '@/components/navegacion/Superpuesto';
 
 // Pasos 5 a 7: revision por bloques, vista previa en vivo del PDF y salida
 // (descarga o envio).
@@ -45,6 +47,8 @@ export default function CartaEditor({
   const [error, setError] = useState('');
   const [previaUrl, setPreviaUrl] = useState<string | null>(null);
   const [envio, setEnvio] = useState<Envio>({ abierto: false, para: '', asunto: '', mensaje: '' });
+  const cerrarEnvio = () => setEnvio((e) => ({ ...e, abierto: false }));
+  useCerrarConEscape(cerrarEnvio, envio.abierto);
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState('');
   const guardadoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -350,67 +354,72 @@ export default function CartaEditor({
 
       {/* ---- Confirmacion explicita antes de enviar (punto 5.3) ---- */}
       {envio.abierto ? (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-6"
-          role="dialog"
-          aria-modal="true"
-          aria-label={t('cartas.envio.titulo')}
-          onClick={() => setEnvio((e) => ({ ...e, abierto: false }))}
-        >
+        <Superpuesto>
           <div
-            className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-bg-alt p-5 sm:rounded-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('cartas.envio.titulo')}
+            onClick={cerrarEnvio}
           >
-            <h4 className="text-base font-bold text-text">{t('cartas.envio.titulo')}</h4>
-            <p className="mt-1 text-xs leading-relaxed text-text-2">{t('cartas.envio.detalle')}</p>
-
-            <label className="mt-4 block">
-              <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.1em] text-text-2">
-                {t('cartas.envio.para')}
-              </span>
-              <input
-                type="email"
-                value={envio.para}
-                onChange={(e) => setEnvio((v) => ({ ...v, para: e.target.value }))}
-                className="min-h-[44px] w-full rounded-xl border border-line-strong bg-surface-2 px-3.5 text-sm text-text outline-none focus:border-brand"
-              />
-            </label>
-            <label className="mt-3 block">
-              <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.1em] text-text-2">
-                {t('cartas.envio.asunto')}
-              </span>
-              <input
-                value={envio.asunto}
-                onChange={(e) => setEnvio((v) => ({ ...v, asunto: e.target.value }))}
-                placeholder={t('cartas.envio.asuntoPlaceholder')}
-                className="min-h-[44px] w-full rounded-xl border border-line-strong bg-surface-2 px-3.5 text-sm text-text outline-none focus:border-brand"
-              />
-            </label>
-
-            {previaUrl ? (
-              <div className="mt-4 overflow-hidden rounded-xl border border-line">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={previaUrl} alt={t('cartas.vistaPrevia')} className="max-h-64 w-full object-cover object-top" />
+            <div
+              className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-bg-alt px-5 pb-[max(env(safe-area-inset-bottom),1.25rem)] pt-3 sm:rounded-2xl sm:pb-5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="-mr-2 flex items-center justify-between gap-2">
+                <h4 className="text-base font-bold text-text">{t('cartas.envio.titulo')}</h4>
+                <BotonCerrar onCerrar={cerrarEnvio} />
               </div>
-            ) : null}
+              <p className="mt-1 text-xs leading-relaxed text-text-2">{t('cartas.envio.detalle')}</p>
 
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row-reverse">
-              <button
-                onClick={() => void enviarCorreo()}
-                disabled={enviando || !envio.para.includes('@')}
-                className="gradient-btn min-h-[44px] rounded-xl px-6 text-sm font-bold text-grad-contrast disabled:opacity-50 sm:min-w-[160px]"
-              >
-                {enviando ? t('cartas.enviando') : t('cartas.envio.confirmar')}
-              </button>
-              <button
-                onClick={() => setEnvio((e) => ({ ...e, abierto: false }))}
-                className="min-h-[44px] rounded-xl border border-line px-6 text-sm font-semibold text-text-2 transition hover:bg-surface-2"
-              >
-                {t('common.cancelar')}
-              </button>
+              <label className="mt-4 block">
+                <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.1em] text-text-2">
+                  {t('cartas.envio.para')}
+                </span>
+                <input
+                  type="email"
+                  value={envio.para}
+                  onChange={(e) => setEnvio((v) => ({ ...v, para: e.target.value }))}
+                  className="min-h-[44px] w-full rounded-xl border border-line-strong bg-surface-2 px-3.5 text-sm text-text outline-none focus:border-brand"
+                />
+              </label>
+              <label className="mt-3 block">
+                <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.1em] text-text-2">
+                  {t('cartas.envio.asunto')}
+                </span>
+                <input
+                  value={envio.asunto}
+                  onChange={(e) => setEnvio((v) => ({ ...v, asunto: e.target.value }))}
+                  placeholder={t('cartas.envio.asuntoPlaceholder')}
+                  className="min-h-[44px] w-full rounded-xl border border-line-strong bg-surface-2 px-3.5 text-sm text-text outline-none focus:border-brand"
+                />
+              </label>
+
+              {previaUrl ? (
+                <div className="mt-4 overflow-hidden rounded-xl border border-line">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={previaUrl} alt={t('cartas.vistaPrevia')} className="max-h-64 w-full object-cover object-top" />
+                </div>
+              ) : null}
+
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row-reverse">
+                <button
+                  onClick={() => void enviarCorreo()}
+                  disabled={enviando || !envio.para.includes('@')}
+                  className="gradient-btn min-h-[44px] rounded-xl px-6 text-sm font-bold text-grad-contrast disabled:opacity-50 sm:min-w-[160px]"
+                >
+                  {enviando ? t('cartas.enviando') : t('cartas.envio.confirmar')}
+                </button>
+                <button
+                  onClick={() => setEnvio((e) => ({ ...e, abierto: false }))}
+                  className="min-h-[44px] rounded-xl border border-line px-6 text-sm font-semibold text-text-2 transition hover:bg-surface-2"
+                >
+                  {t('common.cancelar')}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Superpuesto>
       ) : null}
     </div>
   );

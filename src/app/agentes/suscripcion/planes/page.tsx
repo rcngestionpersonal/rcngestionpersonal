@@ -8,6 +8,8 @@ import { PLANES, formatUsd, planTipoToParam, type Feature, type PlanTipo } from 
 import { IconCheck } from '@/components/dashboard/icons';
 import { PriceTag } from '@/components/PriceTag';
 import EncabezadoTraducido from '@/components/navegacion/EncabezadoTraducido';
+import BotonCerrar, { useCerrarConEscape } from '@/components/navegacion/BotonCerrar';
+import Superpuesto from '@/components/navegacion/Superpuesto';
 
 type MeAgent = {
   id: string;
@@ -55,6 +57,8 @@ function PlanesContent() {
   const [confirmDowngrade, setConfirmDowngrade] = useState(false);
   const [error, setError] = useState('');
   const [scheduled, setScheduled] = useState<{ plan: PlanTipo; effectiveAt: string | null } | null>(null);
+  const cerrarConfirmacion = () => setConfirmDowngrade(false);
+  useCerrarConEscape(cerrarConfirmacion, confirmDowngrade);
 
   useEffect(() => {
     void load();
@@ -193,26 +197,34 @@ function PlanesContent() {
       </div>
 
       {confirmDowngrade ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-sm rounded-[1.6rem] border border-line bg-surface p-6 shadow-xl">
-            <p className="text-sm text-text-2">{t('planes.downgradeAviso')}</p>
-            <div className="mt-5 flex flex-col gap-2">
-              <button
-                onClick={() => void programarCambio('BASICO')}
-                disabled={pendingPlan !== null}
-                className="rounded-full border border-danger bg-danger-dim px-4 py-2.5 text-sm font-semibold text-danger transition hover:brightness-110 disabled:opacity-60"
-              >
-                {t('planes.downgradeConfirmar')}
-              </button>
-              <button
-                onClick={() => setConfirmDowngrade(false)}
-                className="rounded-full border border-line px-4 py-2.5 text-sm font-semibold text-text-2 transition hover:bg-surface-2"
-              >
-                {t('planes.downgradeCancelar')}
-              </button>
+        <Superpuesto>
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+            role="dialog"
+            aria-modal="true"
+            onClick={cerrarConfirmacion}
+          >
+            <div className="relative w-full max-w-sm rounded-[1.6rem] border border-line bg-surface p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <BotonCerrar onCerrar={cerrarConfirmacion} etiqueta={lang === 'es' ? 'Cerrar' : 'Close'} className="absolute right-2 top-2" />
+              <p className="pr-10 text-sm text-text-2">{t('planes.downgradeAviso')}</p>
+              <div className="mt-5 flex flex-col gap-2">
+                <button
+                  onClick={() => void programarCambio('BASICO')}
+                  disabled={pendingPlan !== null}
+                  className="rounded-full border border-danger bg-danger-dim px-4 py-2.5 text-sm font-semibold text-danger transition hover:brightness-110 disabled:opacity-60"
+                >
+                  {t('planes.downgradeConfirmar')}
+                </button>
+                <button
+                  onClick={cerrarConfirmacion}
+                  className="rounded-full border border-line px-4 py-2.5 text-sm font-semibold text-text-2 transition hover:bg-surface-2"
+                >
+                  {t('planes.downgradeCancelar')}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Superpuesto>
       ) : null}
     </main>
   );

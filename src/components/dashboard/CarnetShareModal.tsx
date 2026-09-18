@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useTheme } from 'next-themes';
 import { BrokerCard, DEFAULT_CARNET_MESSAGE_ES, DEFAULT_CARNET_MESSAGE_EN, type BrokerCardData } from './BrokerCard';
 import { generateCarnetImage, generateCarnetPrintImage } from './carnet-image';
+import BotonCerrar, { useCerrarConEscape } from '@/components/navegacion/BotonCerrar';
+import Superpuesto from '@/components/navegacion/Superpuesto';
 
 // El carnet para compartir (imagen exportada) sigue el tema activo del
 // agente (Fase 7-bis, seccion 1.3): claro por defecto, oscuro si el agente
@@ -130,68 +132,66 @@ export default function CarnetShareModal({
     }
   }
 
+  useCerrarConEscape(onClose);
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4"
-      onClick={onClose}
-      role="presentation"
-    >
+    <Superpuesto>
       <div
-        className="max-h-[92vh] w-full max-w-[420px] overflow-y-auto rounded-t-[24px] border border-line bg-surface p-5 sm:rounded-[24px]"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('ranking.compartirCarnet')}
+        className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+        onClick={onClose}
+        role="presentation"
       >
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-[16px] font-bold text-text">{t('ranking.compartirCarnet')}</h3>
-          <button
-            onClick={onClose}
-            aria-label={lang === 'es' ? 'Cerrar' : 'Close'}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-text-2 transition-colors hover:bg-surface-2 hover:text-text"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-1.5 rounded-full border border-line bg-surface p-1">
-          {(['colegas', 'clientes'] as const).map((opt) => (
-            <button
-              key={opt}
-              onClick={() => setAudience(opt)}
-              className={`rounded-full py-2 text-[13px] font-bold transition-colors ${
-                audience === opt ? 'bg-accent-dim text-accent' : 'text-text-2 hover:text-text'
-              }`}
-            >
-              {opt === 'colegas' ? (lang === 'es' ? 'Para colegas' : 'For colleagues') : lang === 'es' ? 'Para clientes' : 'For clients'}
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-4">
-          <BrokerCard data={data} audience={audience} lang={lang} t={t} />
-        </div>
-
-        <button
-          onClick={handleShare}
-          disabled={sharing}
+        <div
+          className="max-h-[92vh] w-full max-w-[420px] overflow-y-auto rounded-t-[24px] border border-line bg-surface px-5 pb-[max(env(safe-area-inset-bottom),1.25rem)] pt-5 sm:rounded-[24px] sm:pb-5"
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
           aria-label={t('ranking.compartirCarnet')}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-[12px] bg-accent px-4 py-3 text-sm font-bold text-accent-contrast transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          ↗ {sharing ? t('ranking.carnet.generando') : t('ranking.compartirCarnet')}
-        </button>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-[16px] font-bold text-text">{t('ranking.compartirCarnet')}</h3>
+            <BotonCerrar onCerrar={onClose} etiqueta={lang === 'es' ? 'Cerrar' : 'Close'} className="-mr-2" />
+          </div>
 
-        <button
-          onClick={handleDownloadPrint}
-          disabled={printing}
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-[12px] border border-line-strong px-4 py-3 text-sm font-bold text-text-2 transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          ⬇ {printing ? t('ranking.carnet.generando') : t('ranking.carnet.descargarImprimir')}
-        </button>
-        <p className="mt-1.5 text-center text-[11px] text-text-3">{t('ranking.carnet.descargarImprimirAyuda')}</p>
+          <div className="mt-4 grid grid-cols-2 gap-1.5 rounded-full border border-line bg-surface p-1">
+            {(['colegas', 'clientes'] as const).map((opt) => (
+              <button
+                key={opt}
+                onClick={() => setAudience(opt)}
+                className={`rounded-full py-2 text-[13px] font-bold transition-colors ${
+                  audience === opt ? 'bg-accent-dim text-accent' : 'text-text-2 hover:text-text'
+                }`}
+              >
+                {opt === 'colegas' ? (lang === 'es' ? 'Para colegas' : 'For colleagues') : lang === 'es' ? 'Para clientes' : 'For clients'}
+              </button>
+            ))}
+          </div>
 
-        {toast ? <p className="mt-2 text-center text-xs text-accent">{toast}</p> : null}
+          <div className="mt-4">
+            <BrokerCard data={data} audience={audience} lang={lang} t={t} />
+          </div>
+
+          <button
+            onClick={handleShare}
+            disabled={sharing}
+            aria-label={t('ranking.compartirCarnet')}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-[12px] bg-accent px-4 py-3 text-sm font-bold text-accent-contrast transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            ↗ {sharing ? t('ranking.carnet.generando') : t('ranking.compartirCarnet')}
+          </button>
+
+          <button
+            onClick={handleDownloadPrint}
+            disabled={printing}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-[12px] border border-line-strong px-4 py-3 text-sm font-bold text-text-2 transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            ⬇ {printing ? t('ranking.carnet.generando') : t('ranking.carnet.descargarImprimir')}
+          </button>
+          <p className="mt-1.5 text-center text-[11px] text-text-3">{t('ranking.carnet.descargarImprimirAyuda')}</p>
+
+          {toast ? <p className="mt-2 text-center text-xs text-accent">{toast}</p> : null}
+        </div>
       </div>
-    </div>
+    </Superpuesto>
   );
 }

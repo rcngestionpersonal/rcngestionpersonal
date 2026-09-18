@@ -2,6 +2,8 @@
 
 import { levelColorFor } from '@/lib/real-estate/points';
 import type { RankingLevelClient } from './types';
+import BotonCerrar, { useCerrarConEscape } from '@/components/navegacion/BotonCerrar';
+import Superpuesto from '@/components/navegacion/Superpuesto';
 
 // Celebracion de subida de nivel: se muestra UNA vez por evento level_up (el
 // padre ya filtro por getUnseenLevelUp / solo el nivel mas alto alcanzado) y
@@ -28,58 +30,62 @@ export default function LevelUpCelebrationModal({
 }) {
   const levelLabel = lang === 'es' ? level.labelEs : level.labelEn;
   const levelColor = levelColorFor(level.key);
+  useCerrarConEscape(onDismiss);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" role="presentation" onClick={onDismiss}>
-      <div
-        className="w-full max-w-[360px] rounded-[16px] border-t-2 bg-[#141722] p-5 text-center shadow-2xl"
-        style={{ borderTopColor: '#2dd4bf' }}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('levelUp.titulo')}
-      >
-        <p className="text-[15px] font-bold text-text">🎉 {t('levelUp.titulo')}</p>
-
-        <p className="mt-3 text-xs text-text-2">{t('levelUp.ahoraEres')}</p>
-        <span
-          className="mt-2 inline-flex animate-[levelup-pulse_2.5s_ease-in-out_1] items-center gap-1 rounded-full border px-3 py-1.5 text-[13px] font-bold motion-reduce:animate-none"
-          style={{ borderColor: `${levelColor}55`, background: `${levelColor}1f`, color: levelColor }}
+    <Superpuesto>
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" role="presentation" onClick={onDismiss}>
+        <div
+          className="relative w-full max-w-[360px] rounded-[16px] border-t-2 bg-[#141722] p-5 text-center shadow-2xl"
+          style={{ borderTopColor: '#2dd4bf' }}
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('levelUp.titulo')}
         >
-          ● {levelLabel}
-        </span>
+          <BotonCerrar onCerrar={onDismiss} etiqueta={lang === 'es' ? 'Cerrar' : 'Close'} className="absolute right-1.5 top-1.5" />
+          <p className="px-10 text-[15px] font-bold text-text">🎉 {t('levelUp.titulo')}</p>
 
-        <p className="mt-4 text-[13px] leading-relaxed text-text-2">{t('levelUp.mensaje')}</p>
-
-        {!subscriptionActive ? <p className="mt-2 text-[11.5px] text-text-3">{t('levelUp.reactivar')}</p> : null}
-
-        <div className="mt-5 space-y-2">
-          {subscriptionActive ? (
-            <button
-              onClick={onShare}
-              className="w-full rounded-[10px] bg-[#2dd4bf] py-2.5 text-sm font-bold text-accent-contrast transition-opacity hover:opacity-90"
-            >
-              {t('levelUp.compartir')}
-            </button>
-          ) : null}
-          <button
-            onClick={onViewCarnet}
-            className="w-full rounded-[10px] border border-line py-2.5 text-sm font-semibold text-text-2 transition-colors hover:text-text"
+          <p className="mt-3 text-xs text-text-2">{t('levelUp.ahoraEres')}</p>
+          <span
+            className="mt-2 inline-flex animate-[levelup-pulse_2.5s_ease-in-out_1] items-center gap-1 rounded-full border px-3 py-1.5 text-[13px] font-bold motion-reduce:animate-none"
+            style={{ borderColor: `${levelColor}55`, background: `${levelColor}1f`, color: levelColor }}
           >
-            {t('levelUp.verCarnet')}
-          </button>
-          <button onClick={onDismiss} className="w-full py-1.5 text-xs font-semibold text-text-3 transition-colors hover:text-text-2">
-            {t('levelUp.ahoraNo')}
-          </button>
-        </div>
-      </div>
+            ● {levelLabel}
+          </span>
 
-      <style>{`
-        @keyframes levelup-pulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(45, 212, 191, 0); }
-          50% { box-shadow: 0 0 0 6px rgba(45, 212, 191, 0.18); }
-        }
-      `}</style>
-    </div>
+          <p className="mt-4 text-[13px] leading-relaxed text-text-2">{t('levelUp.mensaje')}</p>
+
+          {!subscriptionActive ? <p className="mt-2 text-[11.5px] text-text-3">{t('levelUp.reactivar')}</p> : null}
+
+          <div className="mt-5 space-y-2">
+            {subscriptionActive ? (
+              <button
+                onClick={onShare}
+                className="w-full rounded-[10px] bg-[#2dd4bf] py-2.5 text-sm font-bold text-accent-contrast transition-opacity hover:opacity-90"
+              >
+                {t('levelUp.compartir')}
+              </button>
+            ) : null}
+            <button
+              onClick={onViewCarnet}
+              className="w-full rounded-[10px] border border-line py-2.5 text-sm font-semibold text-text-2 transition-colors hover:text-text"
+            >
+              {t('levelUp.verCarnet')}
+            </button>
+            <button onClick={onDismiss} className="w-full py-1.5 text-xs font-semibold text-text-3 transition-colors hover:text-text-2">
+              {t('levelUp.ahoraNo')}
+            </button>
+          </div>
+        </div>
+
+        <style>{`
+          @keyframes levelup-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(45, 212, 191, 0); }
+            50% { box-shadow: 0 0 0 6px rgba(45, 212, 191, 0.18); }
+          }
+        `}</style>
+      </div>
+    </Superpuesto>
   );
 }

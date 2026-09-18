@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import type { CambiosEntreVersiones } from '@/lib/real-estate/contratos/clausulas';
 import type { ContratoCompleto, EventoResumen, ParteResumen, VersionResumen } from './tipos-cliente';
 import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
+import BotonCerrar, { useCerrarConEscape } from '@/components/navegacion/BotonCerrar';
+import Superpuesto from '@/components/navegacion/Superpuesto';
 
 // El recorrido de la negociación, etapa por etapa: primero revisa el cliente
 // del agente y, cuando aprueba y el agente lo decide, la contraparte.
@@ -454,12 +456,21 @@ export default function ContratoSeguimiento({
 }
 
 export function Dialogo({ children, onCerrar }: { children: React.ReactNode; onCerrar: () => void }) {
+  useCerrarConEscape(onCerrar);
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-6" role="dialog" aria-modal="true" onClick={onCerrar}>
-      <div className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-bg-alt p-5 sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        {children}
+    <Superpuesto>
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-6" role="dialog" aria-modal="true" onClick={onCerrar}>
+        <div
+          className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-bg-alt px-5 pb-[max(env(safe-area-inset-bottom),1.25rem)] pt-3 sm:rounded-2xl sm:pb-5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="-mr-2 flex justify-end">
+            <BotonCerrar onCerrar={onCerrar} />
+          </div>
+          {children}
+        </div>
       </div>
-    </div>
+    </Superpuesto>
   );
 }
 
