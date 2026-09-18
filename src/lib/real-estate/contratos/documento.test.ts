@@ -43,6 +43,9 @@ const BASE: Record<string, string> = {
   propiedadDireccion: 'Avenida Inventada 45',
   propiedadCiudad: 'Quito',
   propiedadProvincia: 'Pichincha',
+  // Obligatorio con la vía por defecto (mediación y jueces): el formulario lo
+  // propone solo según la ciudad.
+  centroMediacion: 'Centro de Arbitraje y Mediación de la Cámara de Comercio de Quito',
 };
 
 const COMPANIA: Record<string, string> = {

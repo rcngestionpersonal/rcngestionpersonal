@@ -10,8 +10,7 @@ import {
   ENLACE_REVISION_ABOGADO_ETIQUETA,
   campoVisible,
   camposFaltantes,
-  centroPorDefecto,
-  ciudadDeJurisdiccion,
+  conCentroPropuesto,
   ladosDelTipo,
   type CampoDefinicion,
   type ContratoTipo,
@@ -71,6 +70,12 @@ function autocompletar(tipo: ContratoTipo, datos: Record<string, string>, listin
   }
   return salida;
 }
+
+// Lo que mueve la propuesta del centro de mediación: la ciudad (elegida, escrita
+// o la del inmueble) y la vía, por si se vuelve a una que usa centro.
+const CAMBIAN_EL_CENTRO = ['jurisdiccionCiudad', 'jurisdiccionCiudadOtra', 'propiedadCiudad', 'controversiasVia'];
+const tieneCentro = (tipo: ContratoTipo) =>
+  CONTRATO_DEFINICION[tipo].secciones.some((s) => s.campos.some((c) => c.clave === 'centroMediacion'));
 
 // Lo que el inventario sabe del inmueble, redactado para que el agente lo
 // complete: es un punto de partida, no la descripción final.
@@ -167,7 +172,9 @@ export default function ContratoFormulario({
         const c = d.contrato as ContratoCompleto;
         setTipo(c.tipo);
         setListingId(c.listingId);
-        setDatos(c.datos);
+        // Un borrador con el centro vacío lo recibe propuesto; se guarda con
+        // el siguiente cambio o al pasar de paso.
+        setDatos(tieneCentro(c.tipo) ? conCentroPropuesto(c.datos, c.datos) : c.datos);
         setRepresenta(c.representa);
         representaRef.current = c.representa;
         setVersionActual(c.versionActual);
@@ -192,7 +199,7 @@ export default function ContratoFormulario({
     const listing = listings.find((l) => l.id === listingId);
     const completos = autocompletar(nuevo, iniciales, listing);
     setAutocompletado(Object.keys(completos).length > Object.keys(iniciales).length);
-    setDatos(completos);
+    setDatos(tieneCentro(nuevo) ? conCentroPropuesto({}, completos) : completos);
   }
 
   const guardar = useCallback(
@@ -246,12 +253,7 @@ export default function ContratoFormulario({
     let siguientes = { ...datos, [clave]: valor };
     // El centro de mediación sigue a la ciudad elegida hasta que el agente
     // escriba uno propio: ahí deja de tocarse.
-    if (clave === 'jurisdiccionCiudad' || clave === 'jurisdiccionCiudadOtra' || clave === 'propiedadCiudad') {
-      const escrito = (datos.centroMediacion ?? '').trim();
-      if (!escrito || escrito === centroPorDefecto(ciudadDeJurisdiccion(datos))) {
-        siguientes = { ...siguientes, centroMediacion: centroPorDefecto(ciudadDeJurisdiccion(siguientes)) };
-      }
-    }
+    if (tipo && tieneCentro(tipo) && CAMBIAN_EL_CENTRO.includes(clave)) siguientes = conCentroPropuesto(datos, siguientes);
     // Si comparece por su empresa, la razón social del perfil entra sola.
     if (clave === 'corredor_tipoPersona' && valor === 'JURIDICA' && empresaAgente && !(siguientes.corredor_razonSocial ?? '').trim()) {
       siguientes = { ...siguientes, corredor_razonSocial: empresaAgente };

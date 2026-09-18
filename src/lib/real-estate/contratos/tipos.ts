@@ -573,6 +573,17 @@ export function ciudadDeJurisdiccion(datos: Record<string, string>): string {
   return (datos.propiedadCiudad ?? '').trim();
 }
 
+// El centro se propone solo: el de la cámara de comercio de la ciudad que
+// gobierna el contrato. Sigue a esa ciudad mientras el agente no escriba uno
+// propio; si lo cambió, ya no se toca. "antes" son los datos previos al cambio,
+// para saber si lo que hay es la propuesta anterior o algo que escribió él.
+export function conCentroPropuesto(antes: Record<string, string>, despues: Record<string, string>): Record<string, string> {
+  const escrito = (despues.centroMediacion ?? '').trim();
+  if (escrito && escrito !== centroPorDefecto(ciudadDeJurisdiccion(antes))) return despues;
+  const propuesto = centroPorDefecto(ciudadDeJurisdiccion(despues));
+  return propuesto === escrito ? despues : { ...despues, centroMediacion: propuesto };
+}
+
 export const VIA_MEDIACION_JUECES = 'MEDIACION_JUECES';
 export const VIA_ARBITRAJE = 'ARBITRAJE';
 export const VIA_JUECES = 'JUECES';
@@ -624,6 +635,8 @@ function jurisdiccionYControversias(): CampoDefinicion[] {
       clave: 'centroMediacion',
       etiqueta: 'Centro de mediación o arbitraje',
       tipo: 'texto',
+      // Solo con las vías que pasan por un centro; con "solo jueces" no aparece.
+      obligatorio: true,
       ayuda: 'Se propone el de la cámara de comercio de la ciudad elegida. Cámbialo si el centro se llama distinto.',
       visibleSi: { clave: 'controversiasVia', valores: [VIA_MEDIACION_JUECES, VIA_ARBITRAJE] },
     },

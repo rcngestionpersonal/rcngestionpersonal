@@ -9,7 +9,9 @@ import {
   CONTRATO_TIPOS,
   CONTRATO_TIPOS_LEGADO,
   MARCADOR_SIN_COMPLETAR,
+  campoVisible,
   camposFaltantes,
+  conCentroPropuesto,
   esTipoArchivado,
   type ContratoTipo,
 } from '../tipos';
@@ -278,6 +280,30 @@ describe('plantillas de contrato', () => {
     describe('jurisdicción y controversias', () => {
       const conVia = (via: string, extra: Record<string, string> = {}) =>
         clausula('CORRETAJE', 'LEY APLICABLE Y SOLUCIÓN DE CONTROVERSIAS', { controversiasVia: via, ...extra });
+
+      it('el centro se propone según la ciudad, es obligatorio y no aparece con "solo jueces"', () => {
+        const centro = CONTRATO_DEFINICION.CORRETAJE.secciones.flatMap((x) => x.campos).find((c) => c.clave === 'centroMediacion')!;
+        expect(centro.obligatorio).toBe(true);
+        const base = { ...datosDe('CORRETAJE'), propiedadCiudad: 'Quito', jurisdiccionCiudad: 'INMUEBLE', centroMediacion: '' };
+        // Al empezar el contrato ya viene propuesto.
+        const inicial = conCentroPropuesto({}, base);
+        expect(inicial.centroMediacion).toBe('Centro de Arbitraje y Mediación de la Cámara de Comercio de Quito');
+        // Sigue a la ciudad elegida y a la escrita a mano.
+        const guayaquil = conCentroPropuesto(inicial, { ...inicial, jurisdiccionCiudad: 'GUAYAQUIL' });
+        expect(guayaquil.centroMediacion).toBe('Centro de Arbitraje y Mediación de la Cámara de Comercio de Guayaquil');
+        const loja = conCentroPropuesto(guayaquil, { ...guayaquil, jurisdiccionCiudad: 'OTRA', jurisdiccionCiudadOtra: 'Loja' });
+        expect(loja.centroMediacion).toBe('Centro de Arbitraje y Mediación de la Cámara de Comercio de Loja');
+        // Lo que escribe el agente manda: ya no se toca.
+        const propio = { ...inicial, centroMediacion: 'Centro de Mediación Ficticio' };
+        expect(conCentroPropuesto(propio, { ...propio, jurisdiccionCiudad: 'CUENCA' }).centroMediacion).toBe('Centro de Mediación Ficticio');
+        // Obligatorio con mediación o arbitraje; con solo jueces ni aparece ni se pide.
+        for (const via of ['MEDIACION_JUECES', 'ARBITRAJE']) {
+          expect(camposFaltantes('CORRETAJE', { ...base, controversiasVia: via }), via).toContain('Centro de mediación o arbitraje');
+        }
+        const soloJueces = { ...base, controversiasVia: 'JUECES', jurisdiccionCiudad: 'OTRA', jurisdiccionCiudadOtra: 'Loja' };
+        expect(campoVisible('CORRETAJE', centro, soloJueces)).toBe(false);
+        expect(camposFaltantes('CORRETAJE', soloJueces)).not.toContain('Centro de mediación o arbitraje');
+      });
 
       it('por defecto: mediación y, si no hay acuerdo, jueces de la ciudad del inmueble', () => {
         const campo = CONTRATO_DEFINICION.CORRETAJE.secciones.flatMap((x) => x.campos).find((c) => c.clave === 'controversiasVia');
