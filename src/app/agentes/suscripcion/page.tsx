@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { LanguageProvider } from '@/lib/i18n/LanguageProvider';
 import { TRIAL_DAYS } from '@/lib/real-estate/subscription-config';
+import EncabezadoTraducido from '@/components/navegacion/EncabezadoTraducido';
 
 type MeAgent = {
   id: string;
@@ -23,6 +24,7 @@ function daysRemaining(trialEndsAt?: string): number {
 export default function SuscripcionOnboardingPage() {
   return (
     <LanguageProvider>
+      <EncabezadoTraducido padre="/" titulo="Activa tu suscripción" />
       <SuscripcionOnboardingContent />
     </LanguageProvider>
   );

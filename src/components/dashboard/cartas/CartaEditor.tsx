@@ -8,6 +8,7 @@ import {
   type CartaPaleta,
 } from '@/lib/real-estate/cartas/tipos';
 import type { CartaCompleta, EstadoCuotaCliente } from './tipos-cliente';
+import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
 
 // Pasos 5 a 7: revision por bloques, vista previa en vivo del PDF y salida
 // (descarga o envio).
@@ -193,21 +194,11 @@ export default function CartaEditor({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="truncate text-base font-bold text-text">{carta.destinatarioNombre}</h3>
-          <p className="text-xs text-text-2">
-            {t(`cartas.destinatario.${carta.destinatarioTipo}`)}
-            {guardando ? ` · ${t('cartas.guardando')}` : ''}
-          </p>
-        </div>
-        <button
-          onClick={onVolver}
-          className="min-h-[44px] rounded-xl border border-line px-4 text-sm font-semibold text-text-2 transition hover:bg-surface-2"
-        >
-          {t('cartas.volverAlHistorial')}
-        </button>
-      </div>
+      <EncabezadoSecundario enPanel onVolver={onVolver} titulo={carta.destinatarioNombre} etiquetaVolver={t('cartas.volverAlHistorial')} />
+      <p className="text-xs text-text-2">
+        {t(`cartas.destinatario.${carta.destinatarioTipo}`)}
+        {guardando ? ` · ${t('cartas.guardando')}` : ''}
+      </p>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         {/* ---- Bloques editables (puntos 3.1 y 3.2) ---- */}

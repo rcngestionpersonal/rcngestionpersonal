@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { esPaleta } from '@/lib/real-estate/reportes/tipos';
 import CompartirReporte from './CompartirReporte';
 import type { GestionCompleta, InmuebleReporte } from './tipos-cliente';
+import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
 
 // Un reporte de gestion ya emitido: sus cifras quedaron congeladas al emitirse.
 
@@ -50,21 +51,24 @@ export default function GestionDetalle({
     else setError(t('reportes.errorEliminar'));
   }
 
-  const volver = (
-    <button onClick={onVolver} className="min-h-[44px] rounded-xl border border-line px-4 text-sm font-semibold text-text-2 hover:bg-surface-2">
-      {t('reportes.volver')}
-    </button>
-  );
+  // Fijo arriba en todos los estados: cargando, con error y con el reporte.
+  const encabezado = <EncabezadoSecundario enPanel onVolver={onVolver} titulo={t('reportes.gestion.titulo')} etiquetaVolver={t('reportes.volver')} />;
 
   if (error && !gestion) {
     return (
       <div className="space-y-3">
+        {encabezado}
         <p className="rounded-xl border border-danger bg-danger-dim px-3.5 py-2.5 text-sm text-danger">{error}</p>
-        {volver}
       </div>
     );
   }
-  if (!gestion) return <p className="text-sm text-text-2">{t('reportes.cargando')}</p>;
+  if (!gestion)
+    return (
+      <div className="space-y-3">
+        {encabezado}
+        <p className="text-sm text-text-2">{t('reportes.cargando')}</p>
+      </div>
+    );
 
   const base = `/api/real-estate/reportes/gestion/${gestion.id}`;
   const d = gestion.datos;
@@ -72,15 +76,14 @@ export default function GestionDetalle({
 
   return (
     <div className="space-y-5">
+      {encabezado}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-[0.1em] text-brand">{t('reportes.gestion.titulo')}</p>
           <h3 className="truncate text-lg font-bold text-text">{gestion.inmueble}</h3>
           <p className="text-xs text-text-2">
             {t(`reportes.gestion.periodicidad.${gestion.periodicidad}`)} · {rango}
           </p>
         </div>
-        {volver}
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">

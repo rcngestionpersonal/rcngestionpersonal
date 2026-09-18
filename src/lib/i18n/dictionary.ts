@@ -147,6 +147,7 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'nav.invitar': 'Invita a un Colega',
     'nav.misitio': 'Mi Sitio',
     'nav.perfil': 'Mi perfil',
+    'nav.volver': 'Volver',
 
     'misitio.title': 'Mi Sitio',
     'misitio.subtitle': 'Tu página pública: tu carnet verificado, tu inventario y un formulario para recibir pedidos.',
@@ -786,7 +787,6 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'planes.elegirPro': 'Elegir Pro',
     'planes.cambiarABasico': 'Cambiar a Básico',
     'planes.cambiarAPro': 'Cambiar a Pro',
-    'planes.volver': 'Volver a mi panel',
     'planes.downgradeAviso': 'Al cambiar a Básico perderás: tu mini-sitio público, la generación de fichas PDF y las cartas de presentación.',
     'planes.downgradeConfirmar': 'Sí, cambiar a Básico',
     'planes.downgradeCancelar': 'No, mantener mi plan',
@@ -1508,6 +1508,7 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'nav.invitar': 'Invite a Colleague',
     'nav.misitio': 'My Site',
     'nav.perfil': 'My profile',
+    'nav.volver': 'Back',
 
     'misitio.title': 'My Site',
     'misitio.subtitle': 'Your public page: your verified agent card, your listings, and a form to receive requests.',
@@ -2142,7 +2143,6 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'planes.elegirPro': 'Choose Pro',
     'planes.cambiarABasico': 'Switch to Basic',
     'planes.cambiarAPro': 'Switch to Pro',
-    'planes.volver': 'Back to my dashboard',
     'planes.downgradeAviso': "Switching to Basic will remove: your public mini-site, PDF listing sheets, and presentation letters.",
     'planes.downgradeConfirmar': 'Yes, switch to Basic',
     'planes.downgradeCancelar': 'No, keep my plan',

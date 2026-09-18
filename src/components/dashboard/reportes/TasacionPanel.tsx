@@ -9,6 +9,7 @@ import type { DatosTasacion, ResultadoTasacion } from '@/lib/real-estate/reporte
 import { ADVERTENCIA_TASACION } from '@/lib/real-estate/reportes/tipos';
 import CompartirReporte from './CompartirReporte';
 import type { DocumentoEnviado, InmuebleReporte, TasacionResumen } from './tipos-cliente';
+import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
 
 // Reporte de tasacion (punto 1). ESTADO: en construccion. La pantalla funciona
 // completa, pero con el volumen actual del Mapa de Cierres casi siempre va a
@@ -85,15 +86,8 @@ export default function TasacionPanel({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.1em] text-brand">{t('reportes.tasacion.titulo')}</p>
-          <h3 className="text-lg font-bold text-text">{t('reportes.tasacion.encabezado')}</h3>
-        </div>
-        <button onClick={onVolver} className="min-h-[44px] rounded-xl border border-line px-4 text-sm font-semibold text-text-2 hover:bg-surface-2">
-          {t('reportes.volver')}
-        </button>
-      </div>
+      <EncabezadoSecundario enPanel onVolver={onVolver} titulo={t('reportes.tasacion.titulo')} etiquetaVolver={t('reportes.volver')} />
+      <h3 className="text-lg font-bold text-text">{t('reportes.tasacion.encabezado')}</h3>
 
       <p className="rounded-xl border border-line bg-surface-2 px-3.5 py-2.5 text-xs leading-relaxed text-text-2">{t('reportes.tasacion.enConstruccion')}</p>
 

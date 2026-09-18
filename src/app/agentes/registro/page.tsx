@@ -7,6 +7,7 @@ import { compressImage } from '@/lib/real-estate/image-compress';
 import { buildPhoneE164 } from '@/lib/real-estate/phone';
 import { ECUADOR_PROVINCES } from '@/lib/real-estate/ecuador-provinces';
 import { TRIAL_DAYS } from '@/lib/real-estate/subscription-config';
+import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
 
 const PROPERTY_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'HOUSE', label: 'Casas' },
@@ -36,9 +37,12 @@ type FieldName = (typeof FIELD_ORDER)[number];
 
 export default function AgentRegisterPage() {
   return (
-    <Suspense fallback={null}>
-      <AgentRegisterForm />
-    </Suspense>
+    <>
+      <EncabezadoSecundario padre="/login" titulo="Crear cuenta" ancho="max-w-xl" />
+      <Suspense fallback={null}>
+        <AgentRegisterForm />
+      </Suspense>
+    </>
   );
 }
 

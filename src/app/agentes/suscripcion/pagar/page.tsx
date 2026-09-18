@@ -6,6 +6,7 @@ import Link from 'next/link';
 import PayphoneCheckoutBox, { isPayphoneCheckoutConfigured } from '@/components/dashboard/PayphoneCheckoutBox';
 import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageProvider';
 import { getCheckoutAmountsInCents, formatUsd, planParamToTipo } from '@/config/planes';
+import EncabezadoTraducido from '@/components/navegacion/EncabezadoTraducido';
 
 type MeAgent = {
   id: string;
@@ -21,6 +22,7 @@ type MeAgent = {
 export default function PagarSuscripcionPage() {
   return (
     <LanguageProvider>
+      <EncabezadoTraducido padre="/?tab=suscripcion" claveTitulo="suscripcion.pagar.titulo" />
       <Suspense fallback={<main className="min-h-screen bg-bg" />}>
         <PagarSuscripcionContent />
       </Suspense>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { CambiosEntreVersiones } from '@/lib/real-estate/contratos/clausulas';
 import type { ContratoCompleto, EventoResumen, ParteResumen, VersionResumen } from './tipos-cliente';
+import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
 
 // El recorrido de la negociación, etapa por etapa: primero revisa el cliente
 // del agente y, cuando aprueba y el agente lo decide, la contraparte.
@@ -147,8 +148,24 @@ export default function ContratoSeguimiento({
     }
   }
 
-  if (cargando) return <p className="text-sm text-text-2">{t('contratos.cargando')}</p>;
-  if (!contrato) return <p className="text-sm text-danger">{error || t('contratos.error.cargar')}</p>;
+  // Fijo arriba y también mientras carga o si falla: nunca sin salida.
+  const encabezado = (titulo: string) => (
+    <EncabezadoSecundario enPanel onVolver={onVolver} titulo={titulo} etiquetaVolver={t('contratos.volver')} />
+  );
+  if (cargando)
+    return (
+      <div className="space-y-5">
+        {encabezado(t('contratos.title'))}
+        <p className="text-sm text-text-2">{t('contratos.cargando')}</p>
+      </div>
+    );
+  if (!contrato)
+    return (
+      <div className="space-y-5">
+        {encabezado(t('contratos.title'))}
+        <p className="text-sm text-danger">{error || t('contratos.error.cargar')}</p>
+      </div>
+    );
 
   const n = contrato.versionActual;
   const legado = contrato.deFirma;
@@ -186,22 +203,12 @@ export default function ContratoSeguimiento({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="truncate text-base font-bold text-text">{contrato.tipoEtiqueta}</h3>
-          <p className="mt-0.5 text-xs text-text-2">
-            {t('contratos.identificador')} <span className="font-semibold tracking-[0.06em]">{contrato.codigoVerificacion}</span>
-            {' · '}
-            {legado ? t('contratos.filaDeFirma') : t(`contratos.estado.${contrato.estado}`)}
-          </p>
-        </div>
-        <button
-          onClick={onVolver}
-          className="min-h-[44px] rounded-xl border border-line px-4 text-sm font-semibold text-text-2 transition hover:bg-surface-2"
-        >
-          {t('contratos.volver')}
-        </button>
-      </div>
+      {encabezado(contrato.tipoEtiqueta)}
+      <p className="text-xs text-text-2">
+        {t('contratos.identificador')} <span className="font-semibold tracking-[0.06em]">{contrato.codigoVerificacion}</span>
+        {' · '}
+        {legado ? t('contratos.filaDeFirma') : t(`contratos.estado.${contrato.estado}`)}
+      </p>
 
       {/* Dónde está el contrato. */}
       {!legado && contrato.indicador.length > 0 && contrato.estado !== 'ANULADO' ? (

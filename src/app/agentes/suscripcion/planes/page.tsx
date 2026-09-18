@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageProvider';
 import { resolveEffectiveSubscriptionStatus } from '@/lib/real-estate/subscription-status';
 import { PLANES, formatUsd, planTipoToParam, type Feature, type PlanTipo } from '@/config/planes';
 import { IconCheck } from '@/components/dashboard/icons';
 import { PriceTag } from '@/components/PriceTag';
+import EncabezadoTraducido from '@/components/navegacion/EncabezadoTraducido';
 
 type MeAgent = {
   id: string;
@@ -35,6 +35,7 @@ const FEATURE_ORDER: Feature[] = [
 export default function PlanesPage() {
   return (
     <LanguageProvider>
+      <EncabezadoTraducido padre="/?tab=suscripcion" claveTitulo="planes.titulo" />
       <PlanesContent />
     </LanguageProvider>
   );
@@ -132,12 +133,6 @@ function PlanesContent() {
   return (
     <main className="violet-ambient-bg min-h-screen px-4 py-10 text-text sm:py-16">
       <div className="mx-auto max-w-4xl">
-        <div className="mb-6">
-          <Link href="/" className="text-sm text-text-2 underline decoration-dotted underline-offset-2 hover:text-text">
-            ← {t('planes.volver')}
-          </Link>
-        </div>
-
         <div className="mb-8 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-3">{t('planes.eyebrow')}</p>
           <h1 className="gradient-text mt-1 text-2xl font-bold leading-tight sm:text-3xl">{t('planes.titulo')}</h1>

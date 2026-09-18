@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import LeadChatWidget from '@/components/chat/LeadChatWidget';
+import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
 
 export const metadata: Metadata = {
   title: 'Cuéntanos qué propiedad buscas | Redinmo.io',
@@ -8,24 +9,27 @@ export const metadata: Metadata = {
 
 export default function ContactoPage() {
   return (
-    <main className="violet-ambient-bg min-h-screen px-4 py-8 text-text sm:py-10">
-      <div className="mx-auto max-w-3xl">
-        <section className="grain-overlay relative mb-6 overflow-hidden rounded-3xl border border-line bg-surface p-6 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-          <div className="absolute -right-10 top-0 h-40 w-40 rounded-full bg-violet-600/25 blur-2xl" />
-          <div className="absolute -left-12 bottom-0 h-36 w-36 rounded-full bg-cyan-500/20 blur-2xl" />
-          <div className="relative z-10 space-y-3">
-            <p className="inline-flex rounded-full border border-violet-400/40 bg-violet-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-violet-200">
-              Redinmo.io
-            </p>
-            <h1 className="gradient-text text-3xl font-bold leading-tight sm:text-4xl">Cuéntanos qué propiedad buscas</h1>
-            <p className="max-w-2xl text-sm text-text-2">
-              Responde unas preguntas rápidas y te conectamos con un agente inmobiliario especializado en tu zona.
-            </p>
-          </div>
-        </section>
+    <>
+      <EncabezadoSecundario padre="/login" titulo="Contacto" />
+      <main className="violet-ambient-bg min-h-screen px-4 py-8 text-text sm:py-10">
+        <div className="mx-auto max-w-3xl">
+          <section className="grain-overlay relative mb-6 overflow-hidden rounded-3xl border border-line bg-surface p-6 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+            <div className="absolute -right-10 top-0 h-40 w-40 rounded-full bg-violet-600/25 blur-2xl" />
+            <div className="absolute -left-12 bottom-0 h-36 w-36 rounded-full bg-cyan-500/20 blur-2xl" />
+            <div className="relative z-10 space-y-3">
+              <p className="inline-flex rounded-full border border-violet-400/40 bg-violet-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-violet-200">
+                Redinmo.io
+              </p>
+              <h1 className="gradient-text text-3xl font-bold leading-tight sm:text-4xl">Cuéntanos qué propiedad buscas</h1>
+              <p className="max-w-2xl text-sm text-text-2">
+                Responde unas preguntas rápidas y te conectamos con un agente inmobiliario especializado en tu zona.
+              </p>
+            </div>
+          </section>
 
-        <LeadChatWidget />
-      </div>
-    </main>
+          <LeadChatWidget />
+        </div>
+      </main>
+    </>
   );
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
 
 // Guion para que el agente presente el documento a su cliente.
 //
@@ -67,61 +68,64 @@ const REGLAS = [
 
 export default function ExplicarElContratoPage() {
   return (
-    <main className="min-h-screen bg-bg px-4 py-12 text-text sm:py-16">
-      <div className="mx-auto max-w-2xl">
-        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-accent">✦ Redinmo.io</p>
-        <h1 className="mt-3 text-2xl font-extrabold sm:text-3xl">Cómo explicarle el contrato a tu cliente</h1>
-        <p className="mt-3 text-sm leading-relaxed text-text-2">
-          El documento que generas es sólido. Lo que suele fallar no es el texto, es cómo se presenta. Aquí tienes qué
-          decir.
-        </p>
-
-        <section className="mt-9">
-          <h2 className="text-lg font-bold text-text">El guion, en treinta segundos</h2>
-          <blockquote className="mt-4 rounded-2xl border-l-4 border-accent bg-surface p-5 text-[15px] leading-relaxed text-text">
-            Este es el modelo que usamos para formalizar la operación. Recoge lo que acordamos: el precio, el plazo y qué
-            pasa si alguna de las partes se retira. Léelo con calma y, si quieres consultarlo con tu abogado, adelante.
-            Está redactado con las cláusulas que se usan habitualmente en este tipo de operaciones.
-          </blockquote>
-          <p className="mt-3 text-[13.5px] leading-relaxed text-text-2">
-            Cambia &laquo;la operación&raquo; por lo que corresponda. El resto funciona igual para cualquiera de los
-            documentos.
+    <>
+      <EncabezadoSecundario padre="/?tab=contratos" titulo="Cómo explicarle el contrato" />
+      <main className="min-h-screen bg-bg px-4 py-12 text-text sm:py-16">
+        <div className="mx-auto max-w-2xl">
+          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-accent">✦ Redinmo.io</p>
+          <h1 className="mt-3 text-2xl font-extrabold sm:text-3xl">Cómo explicarle el contrato a tu cliente</h1>
+          <p className="mt-3 text-sm leading-relaxed text-text-2">
+            El documento que generas es sólido. Lo que suele fallar no es el texto, es cómo se presenta. Aquí tienes qué
+            decir.
           </p>
-        </section>
 
-        <section className="mt-10">
-          <h2 className="text-lg font-bold text-text">Cuatro reglas que cambian el resultado</h2>
-          <ul className="mt-4 space-y-4">
-            {REGLAS.map((r) => (
-              <li key={r.titulo} className="rounded-2xl border border-line bg-surface p-4">
-                <p className="text-sm font-bold text-text">{r.titulo}</p>
-                <p className="mt-1.5 text-[13.5px] leading-relaxed text-text-2">{r.detalle}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
+          <section className="mt-9">
+            <h2 className="text-lg font-bold text-text">El guion, en treinta segundos</h2>
+            <blockquote className="mt-4 rounded-2xl border-l-4 border-accent bg-surface p-5 text-[15px] leading-relaxed text-text">
+              Este es el modelo que usamos para formalizar la operación. Recoge lo que acordamos: el precio, el plazo y qué
+              pasa si alguna de las partes se retira. Léelo con calma y, si quieres consultarlo con tu abogado, adelante.
+              Está redactado con las cláusulas que se usan habitualmente en este tipo de operaciones.
+            </blockquote>
+            <p className="mt-3 text-[13.5px] leading-relaxed text-text-2">
+              Cambia &laquo;la operación&raquo; por lo que corresponda. El resto funciona igual para cualquiera de los
+              documentos.
+            </p>
+          </section>
 
-        <section className="mt-10">
-          <h2 className="text-lg font-bold text-text">Lo que te van a preguntar</h2>
-          <dl className="mt-4 space-y-5">
-            {PREGUNTAS.map((p) => (
-              <div key={p.pregunta}>
-                <dt className="text-sm font-bold text-text">{p.pregunta}</dt>
-                <dd className="mt-1.5 text-[13.5px] leading-relaxed text-text-2">{p.respuesta}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
+          <section className="mt-10">
+            <h2 className="text-lg font-bold text-text">Cuatro reglas que cambian el resultado</h2>
+            <ul className="mt-4 space-y-4">
+              {REGLAS.map((r) => (
+                <li key={r.titulo} className="rounded-2xl border border-line bg-surface p-4">
+                  <p className="text-sm font-bold text-text">{r.titulo}</p>
+                  <p className="mt-1.5 text-[13.5px] leading-relaxed text-text-2">{r.detalle}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
 
-        <p className="mt-10 rounded-2xl border border-line bg-surface-2 px-4 py-3 text-[13px] leading-relaxed text-text-2">
-          Esto es material de apoyo para la conversación, no asesoría legal. Si quieres saber cuándo conviene que un
-          abogado revise el documento antes de enviarlo,{' '}
-          <a href="/legal/revision-abogado" className="font-semibold text-accent hover:underline">
-            está explicado aquí
-          </a>
-          .
-        </p>
-      </div>
-    </main>
+          <section className="mt-10">
+            <h2 className="text-lg font-bold text-text">Lo que te van a preguntar</h2>
+            <dl className="mt-4 space-y-5">
+              {PREGUNTAS.map((p) => (
+                <div key={p.pregunta}>
+                  <dt className="text-sm font-bold text-text">{p.pregunta}</dt>
+                  <dd className="mt-1.5 text-[13.5px] leading-relaxed text-text-2">{p.respuesta}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+
+          <p className="mt-10 rounded-2xl border border-line bg-surface-2 px-4 py-3 text-[13px] leading-relaxed text-text-2">
+            Esto es material de apoyo para la conversación, no asesoría legal. Si quieres saber cuándo conviene que un
+            abogado revise el documento antes de enviarlo,{' '}
+            <a href="/legal/revision-abogado" className="font-semibold text-accent hover:underline">
+              está explicado aquí
+            </a>
+            .
+          </p>
+        </div>
+      </main>
+    </>
   );
 }

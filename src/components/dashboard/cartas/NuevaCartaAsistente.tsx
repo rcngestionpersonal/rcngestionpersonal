@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { CARTA_DESTINATARIOS, type CartaDestinatarioTipo, type CartaImagenTipo, type CartaPaleta } from '@/lib/real-estate/cartas/tipos';
 import { cropImageToSquare } from '@/lib/real-estate/image-compress';
 import type { CartaCompleta, DatosPantallaCartas } from './tipos-cliente';
+import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
 
 // Pasos 1 a 4 del flujo (destinatario, sus datos, imagen del encabezado y
 // generacion). Mobile-first: un paso por pantalla, con el avance abajo, para
@@ -99,8 +100,13 @@ export default function NuevaCartaAsistente({
     }
   }
 
+  // Arriba, lo mismo que el botón del pie: en el primer paso sale al
+  // historial; en los siguientes, vuelve al paso anterior.
+  const volver = () => (paso === 1 ? onCancelar() : setPaso((p) => (p - 1) as Paso));
+
   return (
     <div className="space-y-5">
+      <EncabezadoSecundario enPanel onVolver={volver} titulo={t('cartas.nueva')} etiquetaVolver={t('cartas.volver')} />
       <ol className="flex items-center gap-2" aria-label={t('cartas.pasos.aria')}>
         {([1, 2, 3] as const).map((n) => (
           <li key={n} className="flex flex-1 items-center gap-2">
@@ -315,7 +321,7 @@ export default function NuevaCartaAsistente({
           </button>
         )}
         <button
-          onClick={() => (paso === 1 ? onCancelar() : setPaso((p) => (p - 1) as Paso))}
+          onClick={volver}
           className="min-h-[44px] rounded-xl border border-line px-6 text-sm font-semibold text-text-2 transition hover:bg-surface-2"
         >
           {paso === 1 ? t('common.cancelar') : t('cartas.volver')}

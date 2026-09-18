@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
 
 // Orientación sobre cuándo conviene que un abogado revise un documento
 // (punto 4.6). Es una página de criterio, no un directorio: aquí NO se
@@ -48,68 +49,71 @@ const QUE_PREGUNTAR = [
 
 export default function RevisionAbogadoPage() {
   return (
-    <main className="min-h-screen bg-bg px-4 py-12 text-text sm:py-16">
-      <div className="mx-auto max-w-2xl">
-        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-accent">✦ Redinmo.io</p>
-        <h1 className="mt-3 text-2xl font-extrabold sm:text-3xl">¿Necesitas que un abogado lo revise?</h1>
-        <p className="mt-3 text-sm leading-relaxed text-text-2">
-          Los documentos que genera Redinmo son modelos referenciales: están redactados con base en la práctica habitual del
-          mercado inmobiliario ecuatoriano, pero no conocen tu operación. Esta página te ayuda a decidir cuándo esa diferencia
-          importa.
-        </p>
-        <p className="mt-3 rounded-2xl border border-line bg-surface px-4 py-3 text-[13.5px] leading-relaxed text-text-2">
-          La respuesta corta: una revisión legal nunca sobra, y hay casos en los que directamente no es opcional. Abajo están
-          esos casos.
-        </p>
-
-        <section className="mt-9">
-          <h2 className="text-lg font-bold text-text">Cuándo conviene, sin dudarlo</h2>
-          <ul className="mt-4 space-y-4">
-            {CUANDO_SI.map((caso) => (
-              <li key={caso.titulo} className="rounded-2xl border border-line bg-surface p-4">
-                <p className="text-sm font-bold text-text">{caso.titulo}</p>
-                <p className="mt-1.5 text-[13.5px] leading-relaxed text-text-2">{caso.detalle}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="mt-9">
-          <h2 className="text-lg font-bold text-text">Qué pedirle que mire</h2>
-          <p className="mt-2 text-sm leading-relaxed text-text-2">
-            Llegar con preguntas concretas hace la revisión más corta y más barata. Estas cinco cubren casi todo:
+    <>
+      <EncabezadoSecundario padre="/?tab=contratos" titulo="¿Cuándo conviene un abogado?" />
+      <main className="min-h-screen bg-bg px-4 py-12 text-text sm:py-16">
+        <div className="mx-auto max-w-2xl">
+          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-accent">✦ Redinmo.io</p>
+          <h1 className="mt-3 text-2xl font-extrabold sm:text-3xl">¿Necesitas que un abogado lo revise?</h1>
+          <p className="mt-3 text-sm leading-relaxed text-text-2">
+            Los documentos que genera Redinmo son modelos referenciales: están redactados con base en la práctica habitual del
+            mercado inmobiliario ecuatoriano, pero no conocen tu operación. Esta página te ayuda a decidir cuándo esa diferencia
+            importa.
           </p>
-          <ul className="mt-4 space-y-2">
-            {QUE_PREGUNTAR.map((pregunta) => (
-              <li key={pregunta} className="flex gap-3 text-[13.5px] leading-relaxed text-text-2">
-                <span aria-hidden="true" className="text-accent">
-                  ·
-                </span>
-                <span>{pregunta}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-4 text-[13.5px] leading-relaxed text-text-2">
-            Descarga el borrador en PDF o en Word desde el módulo de contratos y envíaselo tal cual. Es el mismo texto que van a
-            leer las partes cuando les llegue el enlace para aprobarlo.
+          <p className="mt-3 rounded-2xl border border-line bg-surface px-4 py-3 text-[13.5px] leading-relaxed text-text-2">
+            La respuesta corta: una revisión legal nunca sobra, y hay casos en los que directamente no es opcional. Abajo están
+            esos casos.
           </p>
-        </section>
 
-        <section className="mt-9">
-          <h2 className="text-lg font-bold text-text">Qué no hacemos</h2>
-          <p className="mt-2 text-sm leading-relaxed text-text-2">
-            Redinmo no presta asesoría legal, no revisa documentos, no recomienda profesionales concretos ni intermedia en su
-            contratación. No somos parte de los contratos que generas: la responsabilidad por su contenido y sus efectos es de
-            quienes los suscriben. La elección del profesional es tuya y de tu cliente.
+          <section className="mt-9">
+            <h2 className="text-lg font-bold text-text">Cuándo conviene, sin dudarlo</h2>
+            <ul className="mt-4 space-y-4">
+              {CUANDO_SI.map((caso) => (
+                <li key={caso.titulo} className="rounded-2xl border border-line bg-surface p-4">
+                  <p className="text-sm font-bold text-text">{caso.titulo}</p>
+                  <p className="mt-1.5 text-[13.5px] leading-relaxed text-text-2">{caso.detalle}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="mt-9">
+            <h2 className="text-lg font-bold text-text">Qué pedirle que mire</h2>
+            <p className="mt-2 text-sm leading-relaxed text-text-2">
+              Llegar con preguntas concretas hace la revisión más corta y más barata. Estas cinco cubren casi todo:
+            </p>
+            <ul className="mt-4 space-y-2">
+              {QUE_PREGUNTAR.map((pregunta) => (
+                <li key={pregunta} className="flex gap-3 text-[13.5px] leading-relaxed text-text-2">
+                  <span aria-hidden="true" className="text-accent">
+                    ·
+                  </span>
+                  <span>{pregunta}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 text-[13.5px] leading-relaxed text-text-2">
+              Descarga el borrador en PDF o en Word desde el módulo de contratos y envíaselo tal cual. Es el mismo texto que van a
+              leer las partes cuando les llegue el enlace para aprobarlo.
+            </p>
+          </section>
+
+          <section className="mt-9">
+            <h2 className="text-lg font-bold text-text">Qué no hacemos</h2>
+            <p className="mt-2 text-sm leading-relaxed text-text-2">
+              Redinmo no presta asesoría legal, no revisa documentos, no recomienda profesionales concretos ni intermedia en su
+              contratación. No somos parte de los contratos que generas: la responsabilidad por su contenido y sus efectos es de
+              quienes los suscriben. La elección del profesional es tuya y de tu cliente.
+            </p>
+          </section>
+
+          <p className="mt-10 text-[11.5px] text-text-3">
+            <a href="/legal/terminos" className="hover:underline">
+              Términos y Condiciones
+            </a>
           </p>
-        </section>
-
-        <p className="mt-10 text-[11.5px] text-text-3">
-          <a href="/legal/terminos" className="hover:underline">
-            Términos y Condiciones
-          </a>
-        </p>
-      </div>
-    </main>
+        </div>
+      </main>
+    </>
   );
 }

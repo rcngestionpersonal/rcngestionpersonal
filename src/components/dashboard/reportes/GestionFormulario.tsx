@@ -10,6 +10,7 @@ import {
   type Periodicidad,
 } from '@/lib/real-estate/reportes/tipos';
 import type { BorradorGestion, GestionCompleta, InmuebleReporte } from './tipos-cliente';
+import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
 
 // Reporte de gestion (punto 2.4): en menos de dos minutos. Lo automatico ya
 // viene calculado y no se toca; la difusion y las observaciones vienen del
@@ -136,15 +137,11 @@ export default function GestionFormulario({
   const d = borrador?.datos;
 
   return (
-    <div className="mx-auto max-w-2xl pb-28 sm:pb-0">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="text-lg font-bold text-text">{t('reportes.gestion.nuevo')}</h3>
-        <button onClick={onCancelar} className="min-h-[44px] rounded-xl px-3 text-sm font-semibold text-text-2 hover:bg-surface-2">
-          {t('reportes.cancelar')}
-        </button>
-      </div>
+    <div className="mx-auto max-w-2xl pb-[calc(7rem+env(safe-area-inset-bottom))] sm:pb-0">
+      {/* Hijo directo del contenedor del formulario: así queda fijo mientras se baja. */}
+      <EncabezadoSecundario enPanel onVolver={onCancelar} titulo={t('reportes.gestion.nuevo')} etiquetaVolver={t('reportes.volver')} />
 
-      <div className="space-y-5">
+      <div className="mt-4 space-y-5">
         <div className="grid gap-3 sm:grid-cols-[1fr_220px]">
           <div>
             <label className={etiqueta} htmlFor="gestion-inmueble">
@@ -307,7 +304,7 @@ export default function GestionFormulario({
         {error ? <p className="rounded-xl border border-danger bg-danger-dim px-3.5 py-2.5 text-sm text-danger">{error}</p> : null}
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur sm:static sm:mt-6 sm:border-0 sm:bg-transparent sm:p-0">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-3 backdrop-blur sm:static sm:mt-6 sm:border-0 sm:bg-transparent sm:p-0">
         <button
           onClick={() => void emitir()}
           disabled={!listo || emitiendo}

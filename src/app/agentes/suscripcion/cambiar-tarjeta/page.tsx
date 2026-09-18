@@ -5,12 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import PayphoneCheckoutBox, { isPayphoneCheckoutConfigured } from '@/components/dashboard/PayphoneCheckoutBox';
 import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageProvider';
 import { formatUsd, type PlanTipo } from '@/config/planes';
+import EncabezadoTraducido from '@/components/navegacion/EncabezadoTraducido';
 
 type MeAgent = { id: string; email?: string | null; phone?: string | null; idNumber?: string | null; plan: PlanTipo };
 
 export default function CambiarTarjetaPage() {
   return (
     <LanguageProvider>
+      <EncabezadoTraducido padre="/?tab=suscripcion" claveTitulo="cambiarTarjeta.titulo" />
       <Suspense fallback={<main className="min-h-screen bg-bg" />}>
         <CambiarTarjetaContent />
       </Suspense>

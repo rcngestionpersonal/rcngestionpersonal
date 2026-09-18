@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { validateResetToken } from '@/lib/real-estate/password-reset';
 import ResetPasswordForm from './_components/ResetPasswordForm';
+import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
 
 export const metadata: Metadata = {
   title: 'Restablecer contraseña | Redinmo.io',
@@ -9,19 +10,22 @@ export const metadata: Metadata = {
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <main className="violet-ambient-bg flex min-h-screen items-center justify-center px-4 py-10 text-text">
-      <div className="mx-auto w-full max-w-sm">
-        <section className="grain-overlay relative overflow-hidden rounded-3xl border border-line bg-surface p-6 shadow-md backdrop-blur-xl sm:p-7">
-          <div className="pointer-events-none absolute -right-10 top-0 h-40 w-40 rounded-full bg-[var(--glow-brand)] blur-2xl" />
-          <div className="relative z-10">
-            <p className="text-xs font-bold">
-              <span className="text-accent">✦</span> <span className="text-text">REDINMO.IO</span>
-            </p>
-            {children}
-          </div>
-        </section>
-      </div>
-    </main>
+    <>
+      <EncabezadoSecundario padre="/login" titulo="Restablecer contraseña" ancho="max-w-sm" />
+      <main className="violet-ambient-bg flex min-h-screen items-center justify-center px-4 py-10 text-text">
+        <div className="mx-auto w-full max-w-sm">
+          <section className="grain-overlay relative overflow-hidden rounded-3xl border border-line bg-surface p-6 shadow-md backdrop-blur-xl sm:p-7">
+            <div className="pointer-events-none absolute -right-10 top-0 h-40 w-40 rounded-full bg-[var(--glow-brand)] blur-2xl" />
+            <div className="relative z-10">
+              <p className="text-xs font-bold">
+                <span className="text-accent">✦</span> <span className="text-text">REDINMO.IO</span>
+              </p>
+              {children}
+            </div>
+          </section>
+        </div>
+      </main>
+    </>
   );
 }
 
@@ -55,9 +59,6 @@ function InvalidLinkCard() {
       </p>
       <a href="/recuperar-acceso" className="gradient-btn block h-[47px] w-full rounded-lg text-center text-sm font-bold leading-[47px] text-grad-contrast">
         Solicitar uno nuevo
-      </a>
-      <a href="/login" className="mt-[18px] inline-block text-xs font-semibold text-text-3 hover:text-text-2">
-        ← Volver al login
       </a>
     </Card>
   );

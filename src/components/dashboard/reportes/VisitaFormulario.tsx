@@ -10,6 +10,7 @@ import {
   type ReaccionVisita,
 } from '@/lib/real-estate/reportes/tipos';
 import type { InmuebleReporte, VisitaCompleta } from './tipos-cliente';
+import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
 
 // Reporte de visita desde el celular (punto 3.1). Pensado para llenarse de pie,
 // en el inmueble, en menos de un minuto:
@@ -170,15 +171,11 @@ export default function VisitaFormulario({
   }
 
   return (
-    <div className="mx-auto max-w-xl pb-28 sm:pb-0">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="text-lg font-bold text-text">{t('reportes.visita.nuevo')}</h3>
-        <button onClick={onCancelar} className="min-h-[44px] rounded-xl px-3 text-sm font-semibold text-text-2 hover:bg-surface-2">
-          {t('reportes.cancelar')}
-        </button>
-      </div>
+    <div className="mx-auto max-w-xl pb-[calc(7rem+env(safe-area-inset-bottom))] sm:pb-0">
+      {/* Hijo directo del contenedor del formulario: así queda fijo mientras se baja. */}
+      <EncabezadoSecundario enPanel onVolver={onCancelar} titulo={t('reportes.visita.nuevo')} etiquetaVolver={t('reportes.volver')} />
 
-      <div className="space-y-5">
+      <div className="mt-4 space-y-5">
         <div>
           <label className={etiqueta} htmlFor="visita-inmueble">
             {t('reportes.visita.inmueble')}
@@ -363,7 +360,7 @@ export default function VisitaFormulario({
       </div>
 
       {/* Fijo abajo en el celular, en linea en escritorio. */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur sm:static sm:mt-6 sm:border-0 sm:bg-transparent sm:p-0">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-3 backdrop-blur sm:static sm:mt-6 sm:border-0 sm:bg-transparent sm:p-0">
         <button
           onClick={() => void guardar()}
           disabled={!listo || guardando}
