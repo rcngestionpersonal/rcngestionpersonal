@@ -180,6 +180,8 @@ export default function ContratoSeguimiento({
     principal: principal?.toLowerCase() ?? t('contratos.tuCliente'),
     contraparte: contraparte?.toLowerCase() ?? t('contratos.laContraparte'),
   };
+  // "Enviar a Juan Pérez": por nombre si el servidor lo conoce; si no, el lado.
+  const aContraparte = contrato.destinos?.CONTRAPARTE || valores.contraparte;
   const cambiosPendientes = hayCambios(contrato.cambiosSinEnviar);
   const rechazo = vigente?.partes.find((p) => p.estado === 'RECHAZADO') ?? null;
   const pendientesVigentes = vigente?.partes.filter((p) => p.estado === 'ENVIADO' || p.estado === 'ABIERTO') ?? [];
@@ -260,7 +262,7 @@ export default function ContratoSeguimiento({
                 }}
                 className="gradient-btn min-h-[48px] w-full rounded-xl px-5 text-sm font-bold text-grad-contrast sm:w-auto"
               >
-                {reemplazar(t('contratos.enviarA'), { etapa: valores.contraparte })}
+                {reemplazar(t('contratos.enviarA'), { etapa: aContraparte })}
               </button>
             ) : null}
             {(contrato.estado === 'CAMBIOS_SOLICITADOS_PRINCIPAL' || contrato.estado === 'CAMBIOS_SOLICITADOS_CONTRAPARTE' || contrato.estado === 'BORRADOR') &&
@@ -415,7 +417,7 @@ export default function ContratoSeguimiento({
 
       {enviarContraparte ? (
         <Dialogo onCerrar={() => setEnviarContraparte(false)}>
-          <h4 className="text-base font-bold text-text">{reemplazar(t('contratos.enviarA'), { etapa: valores.contraparte })}</h4>
+          <h4 className="text-base font-bold text-text">{reemplazar(t('contratos.enviarA'), { etapa: aContraparte })}</h4>
           <p className="mt-1 text-[13px] leading-relaxed text-text-2">{reemplazar(t('contratos.enviarContraparte.detalle'), valores)}</p>
           <label className="mt-4 block">
             <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.1em] text-text-2">{t('contratos.vigencia')}</span>

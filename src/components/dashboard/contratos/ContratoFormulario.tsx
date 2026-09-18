@@ -12,6 +12,7 @@ import {
   camposFaltantes,
   conCentroPropuesto,
   ladosDelTipo,
+  listaDeNombres,
   type CampoDefinicion,
   type ContratoTipo,
   type Etapa,
@@ -654,6 +655,9 @@ function Revisar({
   const enRevisionSinCambios = !envio.hayCambios && envio.vigente?.estado === 'EN_APROBACION' && !envio.puedeEnviarContraparte;
   const destinatariosDe = (etapa: Etapa) => envio.destinatarios[etapa];
   const hayCorreo = (etapa: Etapa) => destinatariosDe(etapa).some((d) => d.correo);
+  // "Enviar a Juan Pérez": los nombres de quienes reciben; si faltan, el lado.
+  const aQuien = (etapa: Etapa) =>
+    listaDeNombres(destinatariosDe(etapa).map((d) => d.nombre.trim()).filter(Boolean)) || (envio.etiquetas[etapa] ?? '').toLowerCase();
 
   return (
     <div className="space-y-4">
@@ -747,7 +751,7 @@ function Revisar({
               disabled={!completo}
               className="gradient-btn min-h-[52px] rounded-xl px-6 text-base font-bold text-grad-contrast disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {reemplazar(t('contratos.enviarA'), { etapa: valores.contraparte })}
+              {reemplazar(t('contratos.enviarA'), { etapa: aQuien('CONTRAPARTE') || valores.contraparte })}
             </button>
           </>
         ) : envio.correccionMenorPosible ? (
@@ -783,7 +787,7 @@ function Revisar({
               disabled={!completo || (!envio.hayCambios && envio.vigente?.estado === 'APROBADA')}
               className="gradient-btn min-h-[52px] rounded-xl px-6 text-base font-bold text-grad-contrast disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {reemplazar(t('contratos.enviarA'), { etapa: (envio.etiquetas[primera] ?? '').toLowerCase() })}
+              {reemplazar(t('contratos.enviarA'), { etapa: aQuien(primera) })}
             </button>
           </>
         ) : null}
@@ -831,7 +835,7 @@ function Revisar({
       {confirmar ? (
         <Dialogo onCerrar={() => setConfirmar(null)}>
           <h4 className="text-base font-bold text-text">
-            {reemplazar(t('contratos.enviarA'), { etapa: (envio.etiquetas[confirmar.destino] ?? '').toLowerCase() })}
+            {reemplazar(t('contratos.enviarA'), { etapa: aQuien(confirmar.destino) })}
           </h4>
           <p className="mt-1 text-[13px] leading-relaxed text-text-2">
             {t('contratos.confirmar.detalle').replace('{n}', String(confirmar.destino === 'CONTRAPARTE' && !confirmar.correccionMenor ? valores.n : siguiente))}

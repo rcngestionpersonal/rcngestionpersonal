@@ -107,6 +107,9 @@ export type ContratoCompleto = ContratoResumen & {
   representa: string | null;
   lados: Lado[];
   etiquetas: EtiquetasEtapas;
+  // Nombres de quienes reciben cada etapa ("Juan Pérez y Ana Ruiz"); vacío si
+  // faltan en los datos.
+  destinos?: Record<Etapa, string>;
   indicador: PasoIndicador[];
   vigenciaHoras: number;
   vigencias: number[];
@@ -184,6 +187,8 @@ export type AlertaContrato = {
   tipoEtiqueta: string;
   quien: string;
   etapa: string | null;
+  // A quién enviarla, por nombre (solo en "enviar_contraparte").
+  destino?: string;
   horas?: number;
 };
 

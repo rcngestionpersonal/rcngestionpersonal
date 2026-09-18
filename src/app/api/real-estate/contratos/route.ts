@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { agenteConContratos, contratoDelAgente, describirInmueble, logContratos } from '@/lib/real-estate/contratos/servidor';
 import { filasTolerantes, type ContratoFila } from '@/lib/real-estate/contratos/listado';
-import { cifrarDatos, generarCodigoVerificacion } from '@/lib/real-estate/contratos/aprobacion';
+import { cifrarDatos, descifrarDatos, generarCodigoVerificacion } from '@/lib/real-estate/contratos/aprobacion';
 import { registrarEvento, solicitudDe } from '@/lib/real-estate/contratos/eventos';
 import { estaPendiente, estadoDelContrato } from '@/lib/real-estate/contratos/flujo';
 import { sincronizarVencimiento } from '@/lib/real-estate/contratos/versiones';
@@ -17,6 +17,8 @@ import {
   esContratoDeFirmaLegado,
   etiquetasEtapas,
   ladosDelTipo,
+  listaDeNombres,
+  nombresDeEtapa,
   type ContratoTipo,
 } from '@/lib/real-estate/contratos/tipos';
 import { plantillaActual, plantillasVigentes } from '@/lib/real-estate/contratos/plantillas';
@@ -57,6 +59,7 @@ type Alerta = {
   quien: string;
   etapa: string | null;
   horas?: number;
+  destino?: string;
 };
 
 type FilaListado = Awaited<ReturnType<typeof leerContratos>>[number];
@@ -84,7 +87,7 @@ async function leerContratos(agentId: string) {
   });
 }
 
-function alertasDe(c: FilaListado): Alerta[] {
+function alertasDe(c: FilaListado, destino?: string): Alerta[] {
   const tipo = c.tipo as ContratoTipo;
   const vigente = c.versiones.find((v) => v.numero === c.versionActual);
   if (!vigente || esContratoDeFirmaLegado(c)) return [];
@@ -98,10 +101,10 @@ function alertasDe(c: FilaListado): Alerta[] {
           .filter((p) => p.versionId === vigente.id && p.bloqueadoAt && estaPendiente(p))
           .map((p) => ({ contratoId: c.id, tipoEtiqueta, tipo: 'enlace_bloqueado', quien: p.nombre, etapa: etiquetasVigentes[p.etapa] }))
       : [];
-  return [...bloqueadas, ...alertasDelEstado(c, vigente)];
+  return [...bloqueadas, ...alertasDelEstado(c, vigente, destino)];
 }
 
-function alertasDelEstado(c: FilaListado, vigente: FilaListado['versiones'][number]): Alerta[] {
+function alertasDelEstado(c: FilaListado, vigente: FilaListado['versiones'][number], destino?: string): Alerta[] {
   const tipo = c.tipo as ContratoTipo;
   // Los enlaces bloqueados ya tienen su propia alerta.
   const partes = c.partes.filter((p) => p.versionId === vigente.id && !p.bloqueadoAt);
@@ -117,6 +120,7 @@ function alertasDelEstado(c: FilaListado, vigente: FilaListado['versiones'][numb
           tipo: 'enviar_contraparte',
           quien: partes.filter((p) => p.etapa === 'PRINCIPAL').map((p) => p.nombre).join(' y '),
           etapa: etiquetas.CONTRAPARTE,
+          ...(destino ? { destino } : {}),
         },
       ];
     case 'CAMBIOS_SOLICITADOS_PRINCIPAL':
@@ -142,6 +146,25 @@ function alertasDelEstado(c: FilaListado, vigente: FilaListado['versiones'][numb
     default:
       return [];
   }
+}
+
+async function destinosDeContraparte(contratos: FilaListado[]): Promise<Map<string, string>> {
+  const salida = new Map<string, string>();
+  const esperando = contratos.filter((c) => c.estado === 'APROBADO_PRINCIPAL' && CONTRATO_DEFINICION[c.tipo as ContratoTipo]);
+  const ids = esperando.map((c) => c.versiones.find((v) => v.numero === c.versionActual)?.id).filter((id): id is string => Boolean(id));
+  if (ids.length === 0) return salida;
+  const versiones = await prisma.contratoVersion.findMany({ where: { id: { in: ids } }, select: { contratoId: true, representa: true, datosCifrados: true } });
+  for (const v of versiones) {
+    const c = esperando.find((x) => x.id === v.contratoId);
+    if (!c || !v.datosCifrados) continue;
+    try {
+      const nombres = nombresDeEtapa(c.tipo as ContratoTipo, v.representa, descifrarDatos(v.datosCifrados), 'CONTRAPARTE');
+      if (nombres.length > 0) salida.set(c.id, listaDeNombres(nombres));
+    } catch {
+      // Sin nombres, la alerta nombra el lado ("el comprador").
+    }
+  }
+  return salida;
 }
 
 async function listar(agentId: string) {
@@ -179,6 +202,10 @@ async function listar(agentId: string) {
     contratos = await leerContratos(agentId);
   }
 
+  // "Envíasela a Juan Pérez": para los contratos cuyo cliente ya aprobó, los
+  // nombres de la otra parte salen de los datos con que se envió la versión.
+  const destinos = await destinosDeContraparte(contratos);
+
   // En la fila solo viajan las partes de la versión vigente (o los firmantes
   // de un contrato de la etapa de firma): es lo que el agente necesita ver de
   // un vistazo. El historial completo está en el detalle.
@@ -202,7 +229,7 @@ async function listar(agentId: string) {
     ),
     alertas: contratos.flatMap((c) => {
       try {
-        return alertasDe(c);
+        return alertasDe(c, destinos.get(c.id));
       } catch {
         return [];
       }

@@ -41,8 +41,11 @@ import {
   identidadParte,
   ladoRepresentado,
   ladosDelTipo,
+  listaDeNombres,
+  nombresDeEtapa,
   vigenciaPorDefectoHoras,
   type ContratoTipo,
+  type Etapa,
 } from '@/lib/real-estate/contratos/tipos';
 
 export const runtime = 'nodejs';
@@ -80,6 +83,19 @@ const editarSchema = z.object({
 const anularSchema = z.object({ nota: z.string().trim().min(3, 'Indica el motivo.').max(500) });
 
 type ParteFila = ContratoCompleto['partes'][number];
+
+// Los nombres de quienes reciben cada etapa. Un tipo que este despliegue no
+// conozca no rompe el detalle: queda sin nombres y la pantalla usa el lado.
+function destinosPorEtapa(tipo: ContratoTipo, representa: string | null, datos: Record<string, string>): Record<Etapa, string> {
+  try {
+    return {
+      PRINCIPAL: listaDeNombres(nombresDeEtapa(tipo, representa, datos, 'PRINCIPAL')),
+      CONTRAPARTE: listaDeNombres(nombresDeEtapa(tipo, representa, datos, 'CONTRAPARTE')),
+    };
+  } catch {
+    return { PRINCIPAL: '', CONTRAPARTE: '' };
+  }
+}
 
 function parteResumen(contrato: ContratoCompleto, p: ParteFila) {
   return {
@@ -194,6 +210,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       representa: ladoRepresentado(tipo, contrato.representa)?.clave ?? null,
       lados: (ladosDelTipo(tipo)?.lados ?? []).map((l) => ({ clave: l.clave, etiqueta: l.etiqueta })),
       etiquetas: etiquetasEtapas(tipo, representaVigente),
+      // A quién se envía cada etapa, por nombre: "Enviar a Juan Pérez".
+      destinos: destinosPorEtapa(tipo, representaVigente, visibles),
       indicador: deFirma
         ? []
         : indicadorEtapas({

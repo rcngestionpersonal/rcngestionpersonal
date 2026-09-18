@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isEmailConfigured, sendEmailNotification } from '@/lib/real-estate/email';
-import { hashToken, MAX_INTENTOS_CEDULA } from '@/lib/real-estate/contratos/aprobacion';
+import { descifrarDatos, hashToken, MAX_INTENTOS_CEDULA } from '@/lib/real-estate/contratos/aprobacion';
 import {
   correoAprobacionPrincipal,
   correoEnlaceBloqueado,
@@ -22,7 +22,7 @@ import {
   perfilAgente,
 } from '@/lib/real-estate/contratos/servidor';
 import { parteDeToken, registrarDecision } from '@/lib/real-estate/contratos/versiones';
-import { CONTRATO_DEFINICION, etiquetasEtapas, type ContratoTipo } from '@/lib/real-estate/contratos/tipos';
+import { CONTRATO_DEFINICION, etiquetasEtapas, listaDeNombres, nombresDeEtapa, type ContratoTipo } from '@/lib/real-estate/contratos/tipos';
 
 // API pública de la aprobación de borrador. SIN sesión: la credencial es el
 // enlace personal. El token se busca por su hash.
@@ -97,8 +97,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const version = contrato?.versiones.find((v) => v.numero === resultado.numero);
       const doc = version ? congelada(version) : null;
       const etiquetas = etiquetasEtapas(tipo, version?.representa ?? null);
-      // El panel no tiene dirección propia por pestaña: se entra por el inicio.
-      const urlPanel = `${baseUrl()}/`;
 
       if (resultado.estado === 'RECHAZADO' && perfil.correo) {
         const correo = correoVersionNoAprobada({
@@ -115,13 +113,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       // al agente decidir cuándo enviársela.
       if (resultado.estado === 'APROBADO' && resultado.contrato === 'APROBADO_PRINCIPAL' && perfil.correo && contrato && version) {
         const principales = contrato.partes.filter((p) => p.versionId === version.id && p.etapa === 'PRINCIPAL');
+        // "Enviar a Juan Pérez": la otra parte por nombre, con los datos con que
+        // se envió esta versión; si faltan, el lado.
+        const nombresContraparte = nombresDeEtapa(tipo, version.representa, descifrarDatos(version.datosCifrados ?? contrato.datosCifrados), 'CONTRAPARTE');
         const correo = correoAprobacionPrincipal({
           nombreAgente: perfil.nombre,
           nombreDocumento,
           numero: resultado.numero,
           quienes: principales.map((p) => nombreDeParte(doc, tipo, p)).join(' y '),
-          contraparte: (etiquetas.CONTRAPARTE ?? 'la contraparte').toLowerCase(),
-          urlPanel,
+          contraparte: listaDeNombres(nombresContraparte) || (etiquetas.CONTRAPARTE ?? 'la contraparte').toLowerCase(),
+          urlPanel: `${baseUrl()}/?tab=contratos&vista=seguimiento&contrato=${contrato.id}`,
         });
         await sendEmailNotification({ to: perfil.correo, ...correo });
       }

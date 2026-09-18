@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { prepararDocumento, type EntradaDocumento } from '../documento';
 import { plantillaActual } from './index';
-import { CONTRATO_DEFINICION, CONTRATO_MENU, camposFaltantes, personasEnLado, type ContratoTipo } from '../tipos';
+import { CONTRATO_DEFINICION, CONTRATO_MENU, camposFaltantes, listaDeNombres, nombresDeEtapa, personasEnLado, type ContratoTipo } from '../tipos';
 
 // Varias personas en un mismo lado (cónyuges, copropietarios): comparecen
 // juntas, firman una línea cada una y todas aprueban. Con una sola persona el
@@ -108,5 +108,41 @@ describe('personas adicionales en un lado', () => {
     expect(camposFaltantes('RESERVA_COMPRAVENTA', datosDe('RESERVA_COMPRAVENTA', { comprador_correo: 'no-es-correo' }))).toContain(
       'Correo electrónico (formato no válido)',
     );
+  });
+});
+
+// "Enviar a Juan Pérez": el botón, el correo al agente y la alerta nombran a
+// quienes reciben, con todas las personas de su lado.
+describe('a quién se envía cada etapa', () => {
+  const datos = datosDe('RESERVA_COMPRAVENTA', {
+    vendedor_nombre: 'Vendedora Ficticia',
+    comprador_nombre: 'Comprador Ficticio',
+    comprador_personas: '2',
+    comprador_2_nombre: 'Compradora Ficticia',
+  });
+
+  it('por defecto, primero el vendedor y después el comprador con todas sus personas', () => {
+    expect(nombresDeEtapa('RESERVA_COMPRAVENTA', null, datos, 'PRINCIPAL')).toEqual(['Vendedora Ficticia']);
+    expect(listaDeNombres(nombresDeEtapa('RESERVA_COMPRAVENTA', null, datos, 'CONTRAPARTE'))).toBe('Comprador Ficticio y Compradora Ficticia');
+  });
+
+  it('si el agente representa al comprador, la otra parte es el vendedor', () => {
+    expect(nombresDeEtapa('RESERVA_COMPRAVENTA', 'COMPRADOR', datos, 'CONTRAPARTE')).toEqual(['Vendedora Ficticia']);
+  });
+
+  it('por una compañía recibe su representante', () => {
+    const compania = { ...datos, vendedor_tipoPersona: 'JURIDICA', vendedor_razonSocial: 'Inmobiliaria Ficticia S.A.', vendedor_representante: 'Representante Ficticio' };
+    expect(nombresDeEtapa('RESERVA_COMPRAVENTA', null, compania, 'PRINCIPAL')).toEqual(['Representante Ficticio']);
+  });
+
+  it('el corretaje no tiene otra parte', () => {
+    expect(nombresDeEtapa('CORRETAJE', null, datosDe('CORRETAJE'), 'CONTRAPARTE')).toEqual([]);
+  });
+
+  it('une los nombres como se dicen', () => {
+    expect(listaDeNombres([])).toBe('');
+    expect(listaDeNombres(['Ana'])).toBe('Ana');
+    expect(listaDeNombres(['Ana', 'Luis'])).toBe('Ana y Luis');
+    expect(listaDeNombres(['Ana', 'Luis', 'Eva'])).toBe('Ana, Luis y Eva');
   });
 });

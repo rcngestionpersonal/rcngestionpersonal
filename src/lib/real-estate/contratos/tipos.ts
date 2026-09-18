@@ -1698,6 +1698,22 @@ export function rolesAdicionales(tipo: ContratoTipo, datos: Record<string, strin
   return salida;
 }
 
+// Quiénes aprueban en una etapa, con las demás personas de su lado, tal como
+// figuran en los datos: "Enviar a Juan Pérez". En una compañía, su
+// representante. Vacío si la etapa no tiene partes o faltan los nombres.
+export function nombresDeEtapa(tipo: ContratoTipo, representa: string | null | undefined, datos: Record<string, string>, etapa: Etapa): string[] {
+  return rolesPorEtapa(tipo, representa)[etapa]
+    .flatMap((base) => [base, ...rolesAdicionales(tipo, datos, base)])
+    .map((rol) => identidadParte(tipo, datos, rol).aprobador.nombre.trim())
+    .filter(Boolean);
+}
+
+// "Ana", "Ana y Luis", "Ana, Luis y Eva".
+export function listaDeNombres(nombres: string[]): string {
+  if (nombres.length <= 1) return nombres[0] ?? '';
+  return `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}`;
+}
+
 export type ParteDocumento = ParteDefinicion & { rolBase: string };
 
 // Quiénes comparecen de verdad en este documento, en el orden de las líneas de

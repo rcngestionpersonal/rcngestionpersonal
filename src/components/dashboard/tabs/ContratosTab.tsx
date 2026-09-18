@@ -388,6 +388,7 @@ function Alertas({ t, alertas, onAbrir }: { t: (k: string) => string; alertas: A
                 .replace('{quien}', a.quien || t('contratos.alguien'))
                 .replace('{tipo}', a.tipoEtiqueta.toLowerCase())
                 .replace('{etapa}', (a.etapa ?? t('contratos.laContraparte')).toLowerCase())
+                .replace('{destino}', a.destino || (a.etapa ?? t('contratos.laContraparte')).toLowerCase())
                 .replace('{horas}', String(a.horas ?? ''))}
             </p>
             <button
