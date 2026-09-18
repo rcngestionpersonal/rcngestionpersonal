@@ -25,6 +25,65 @@ type Vista =
   | { modo: 'editar'; id: string; paso?: 'datos' | 'revisar' }
   | { modo: 'seguimiento'; id: string };
 
+// ---------------------------------------------------------------------------
+// El contrato abierto también vive en la URL (?vista=&contrato=), junto a la
+// pestaña. Así, al volver desde la guía para explicar el documento o desde la
+// página del abogado (que son rutas aparte), o al recargar, se reabre el
+// mismo contrato en vez de caer en la lista.
+//
+// Un contrato NUEVO no tiene id hasta que el formulario lo guarda, y el
+// formulario no se lo informa a esta pestaña. Por eso, al tocar "Nuevo
+// contrato" se anotan los contratos que ya existían; al volver, el borrador
+// que apareció después es el que se estaba escribiendo.
+// ---------------------------------------------------------------------------
+const FOTO_ANTES_DE_NUEVO = 'redinmo:contratos:antes-de-nuevo';
+
+function anotarContratosExistentes(ids: string[]): void {
+  try {
+    window.sessionStorage.setItem(FOTO_ANTES_DE_NUEVO, JSON.stringify(ids));
+  } catch {
+    // Sin almacenamiento (modo privado): al volver se abre un formulario nuevo.
+  }
+}
+
+function borradorCreadoDespues(contratos: ContratoResumen[]): string | null {
+  let antes: string[] | null = null;
+  try {
+    antes = JSON.parse(window.sessionStorage.getItem(FOTO_ANTES_DE_NUEVO) ?? 'null') as string[] | null;
+  } catch {
+    antes = null;
+  }
+  if (!antes) return null;
+  const nuevos = contratos
+    .filter((c) => !antes.includes(c.id) && c.estado === 'BORRADOR' && (c.versionActual ?? 0) === 0)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return nuevos[0]?.id ?? null;
+}
+
+function vistaDesdeUrl(contratos: ContratoResumen[]): Vista {
+  const q = new URLSearchParams(window.location.search);
+  const modo = q.get('vista');
+  const id = q.get('contrato');
+  const existe = id !== null && contratos.some((c) => c.id === id);
+  if (modo === 'seguimiento' && existe) return { modo: 'seguimiento', id };
+  if (modo === 'editar' && existe) return { modo: 'editar', id };
+  if (modo === 'nuevo') {
+    const creado = borradorCreadoDespues(contratos);
+    return creado ? { modo: 'editar', id: creado } : { modo: 'nuevo' };
+  }
+  return { modo: 'lista' };
+}
+
+function escribirVistaEnUrl(vista: Vista): void {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('vista');
+  url.searchParams.delete('contrato');
+  if (vista.modo !== 'lista') url.searchParams.set('vista', vista.modo);
+  if (vista.modo === 'editar' || vista.modo === 'seguimiento') url.searchParams.set('contrato', vista.id);
+  // replaceState: cambiar de contrato no crea entradas en el historial.
+  if (url.href !== window.location.href) window.history.replaceState(null, '', url);
+}
+
 export default function ContratosTab({ suscripcion }: { suscripcion: AccesoInput | null }) {
   const { t } = useLanguage();
   return (
@@ -111,6 +170,18 @@ function Panel({ t }: { t: (k: string) => string }) {
     void cargar();
   }, [cargar]);
 
+  // Con la lista ya cargada, se abre lo que pida la URL (una sola vez); desde
+  // ahí, la URL sigue a la vista.
+  const [urlAplicada, setUrlAplicada] = useState(false);
+  useEffect(() => {
+    if (!datos || urlAplicada) return;
+    setVista(vistaDesdeUrl(datos.contratos));
+    setUrlAplicada(true);
+  }, [datos, urlAplicada]);
+  useEffect(() => {
+    if (urlAplicada) escribirVistaEnUrl(vista);
+  }, [vista, urlAplicada]);
+
   async function eliminar(id: string) {
     await fetch(`/api/real-estate/contratos/${id}`, { method: 'DELETE' });
     void cargar();
@@ -137,6 +208,9 @@ function Panel({ t }: { t: (k: string) => string }) {
   }
 
   if (!datos) return null;
+  // Un instante, mientras se aplica la URL: evita mostrar la lista y saltar
+  // enseguida al contrato.
+  if (!urlAplicada) return <p className="text-sm text-text-2">{t('contratos.cargando')}</p>;
 
   if (vista.modo === 'nuevo' || vista.modo === 'editar') {
     return (
@@ -189,7 +263,10 @@ function Panel({ t }: { t: (k: string) => string }) {
         </p>
         <div className="flex flex-col items-stretch gap-1.5 sm:items-end">
           <button
-            onClick={() => setVista({ modo: 'nuevo' })}
+            onClick={() => {
+              anotarContratosExistentes(datos.contratos.map((c) => c.id));
+              setVista({ modo: 'nuevo' });
+            }}
             className="gradient-btn min-h-[44px] rounded-xl px-5 text-sm font-bold text-grad-contrast"
           >
             {t('contratos.nuevo')}

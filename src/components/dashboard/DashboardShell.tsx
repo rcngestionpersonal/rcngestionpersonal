@@ -24,6 +24,11 @@ const ADMIN_TABS: DashboardTab[] = ['resumen', 'ranking', 'inmuebles', 'pedidos'
 // superior, invisible en el menu) entra a su lado.
 const CUENTA_TABS: DashboardTab[] = ['suscripcion'];
 
+// Las pestañas que ve cada rol: sirve para validar la que llega en la URL.
+export function pestanasDelRol(isAdmin: boolean): DashboardTab[] {
+  return [...(isAdmin ? ADMIN_TABS : AGENT_TABS), ...CUENTA_TABS];
+}
+
 function IconMetricas(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" {...props}>

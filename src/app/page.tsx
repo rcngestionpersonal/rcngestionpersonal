@@ -3,7 +3,7 @@
 import type { ConsumoIA } from '@/lib/real-estate/cartas/cuota';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import DashboardShell from '@/components/dashboard/DashboardShell';
+import DashboardShell, { pestanasDelRol } from '@/components/dashboard/DashboardShell';
 import GestionTab from '@/components/dashboard/tabs/GestionTab';
 import RankingTab from '@/components/dashboard/tabs/RankingTab';
 import SuscripcionTab from '@/components/dashboard/tabs/SuscripcionTab';
@@ -91,6 +91,34 @@ function DashboardPage() {
 
   const isAdmin = user?.role === 'admin';
   const isAgent = user?.role === 'agent';
+
+  // La pestaña vive también en la URL (?tab=). Así "← Volver" desde una
+  // pantalla secundaria, un enlace directo o una recarga llegan a la misma
+  // pestaña y no siempre a Gestión. Se lee una vez al abrir (después de
+  // hidratar, para no chocar con el HTML del servidor) y desde ahí la URL
+  // sigue a la pestaña, sin crear entradas nuevas en el historial.
+  const [pestanaDeUrlLeida, setPestanaDeUrlLeida] = useState(false);
+  useEffect(() => {
+    const pedida = new URLSearchParams(window.location.search).get('tab') as DashboardTab | null;
+    if (pedida && [...pestanasDelRol(true), ...pestanasDelRol(false)].includes(pedida)) setActiveTab(pedida);
+    setPestanaDeUrlLeida(true);
+  }, []);
+  // Una pestaña que no es del rol (enlace viejo, otra cuenta) cae en Gestión.
+  useEffect(() => {
+    if (user && !pestanasDelRol(user.role === 'admin').includes(activeTab)) setActiveTab('resumen');
+  }, [user, activeTab]);
+  useEffect(() => {
+    if (!pestanaDeUrlLeida) return;
+    const url = new URL(window.location.href);
+    if (activeTab === 'resumen') url.searchParams.delete('tab');
+    else url.searchParams.set('tab', activeTab);
+    // El contrato abierto solo tiene sentido dentro de Contratos.
+    if (activeTab !== 'contratos') {
+      url.searchParams.delete('contrato');
+      url.searchParams.delete('vista');
+    }
+    if (url.href !== window.location.href) window.history.replaceState(null, '', url);
+  }, [activeTab, pestanaDeUrlLeida]);
   const myAgent = useMemo(() => agents.find((a) => a.id === user?.agentId), [agents, user]);
   const displayName = isAdmin ? t('shell.role.admin') : myAgent?.fullName ?? t('shell.role.agent');
   const myEffectiveStatus = myAgent ? resolveEffectiveSubscriptionStatus(myAgent) : undefined;
