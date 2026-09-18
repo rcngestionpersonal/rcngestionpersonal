@@ -250,6 +250,31 @@ describe('plantillas de contrato', () => {
       expect(cierre.toLowerCase()).not.toContain('consignación');
     });
 
+    // "Portador" no concuerda con una propietaria; "titular" sirve para
+    // cualquier persona, sin preguntar ni suponer el género de nadie.
+    it('la comparecencia no depende del género de las partes', () => {
+      const comparecencia = (extra: Record<string, string>) => clausula('CORRETAJE', 'COMPARECIENTES', extra);
+      const natural = comparecencia({ propietario_nombre: 'Propietaria Ficticia', propietario_tipoDocumento: 'CEDULA', propietario_cedula: '1700000002' });
+      expect(natural).toContain('Propietaria Ficticia, titular de la cédula N.º 1700000002');
+      expect(natural).toContain(`${AGENTE.nombre}, titular de la cédula N.º ${AGENTE.cedula}`);
+      const pasaporte = comparecencia({ propietario_tipoDocumento: 'PASAPORTE', propietario_cedula: 'AB123456' });
+      expect(pasaporte).toContain('titular del pasaporte N.º AB123456');
+      const compania = comparecencia({
+        propietario_tipoPersona: 'JURIDICA',
+        propietario_representante: 'Representante Ficticia',
+        propietario_representanteCedula: '1700000003',
+      });
+      expect(compania).toContain('debidamente representada por Representante Ficticia, titular de la cédula N.º 1700000003');
+      const dos = comparecencia({ propietario_personas: '2', propietario_2_nombre: 'Segunda Ficticia', propietario_2_cedula: '1700000004' });
+      expect(dos).toContain('Segunda Ficticia, titular de la cédula N.º 1700000004');
+      for (const texto of [natural, pasaporte, compania, dos]) expect(texto).not.toMatch(/portador/);
+    });
+
+    it('las versiones ya publicadas conservan su redacción', () => {
+      const v3 = prepararDocumento({ ...entradaDe('CORRETAJE'), version: 'corretaje-v3-2026-09' }).texto;
+      expect(v3).toContain('portador de la cédula');
+    });
+
     describe('jurisdicción y controversias', () => {
       const conVia = (via: string, extra: Record<string, string> = {}) =>
         clausula('CORRETAJE', 'LEY APLICABLE Y SOLUCIÓN DE CONTROVERSIAS', { controversiasVia: via, ...extra });

@@ -18,7 +18,7 @@
 // La v3 sigue registrada: nunca se edita una versión publicada.
 // ===========================================================================
 
-import { comparecenciaParte, jurisdiccionDe, opcional, textoControversias, type BloqueDocumento, type DatosDocumento } from './base';
+import { comparecenciaParteNeutra, jurisdiccionDe, opcional, textoControversias, type BloqueDocumento, type DatosDocumento } from './base';
 
 export const PLANTILLA_VERSION = 'corretaje-v4-2026-09';
 export const PLANTILLA_REVISADA_POR_ABOGADO = true;
@@ -46,12 +46,12 @@ export function construirBloques(d: DatosDocumento): BloqueDocumento[] {
       tipo: 'clausula',
       clave: 'comparecientes',
       titulo: 'COMPARECIENTES',
-      texto: `Comparecen a la celebración del presente contrato, por una parte, ${comparecenciaParte(
+      texto: `Comparecen a la celebración del presente contrato, por una parte, ${comparecenciaParteNeutra(
         d,
         'corredor',
         'el Corredor',
         licencia,
-      )}; y, por otra, ${comparecenciaParte(
+      )}; y, por otra, ${comparecenciaParteNeutra(
         d,
         'propietario',
         'el Propietario',
