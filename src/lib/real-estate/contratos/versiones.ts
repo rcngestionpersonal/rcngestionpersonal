@@ -993,7 +993,7 @@ export function textoCerrado(motivo: MotivoCerrado): string {
     case 'cancelado':
       return 'Quien le envió este documento canceló el proceso. No se requiere ninguna acción de su parte.';
     case 'no_disponible':
-      return 'Este documento todavía no está disponible para su revisión. Quien se lo envió le hará llegar el enlace cuando esté listo.';
+      return 'Este documento aún está en revisión. Recibirá el enlace cuando esté listo.';
     case 'reemplazada':
       return 'Hay una versión más reciente de este documento. Esta versión ya no se aprueba: espere el enlace de la versión nueva.';
     case 'rechazada_por_otra_parte':

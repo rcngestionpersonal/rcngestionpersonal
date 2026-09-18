@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 const TITULOS: Record<string, string> = {
   firma_retirada: 'Enlace de un proceso retirado',
   cancelado: 'Documento cancelado',
-  no_disponible: 'Documento aún no disponible',
+  no_disponible: 'Documento en revisión',
   reemplazada: 'Hay una versión más reciente',
   rechazada_por_otra_parte: 'Esta versión se está corrigiendo',
   ya_aprobo: 'Usted ya aprobó esta versión',
