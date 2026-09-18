@@ -1013,6 +1013,7 @@ function Campo({
   // las alternativas visibles a la vez, cada una con su consecuencia práctica
   // al lado. Un desplegable escondería justo lo que hay que leer.
   if (campo.tipo === 'opcionExplicada') {
+    const nota = campo.opciones?.find((o) => o.valor === valor)?.nota;
     return (
       <div className="sm:col-span-2">
         {etiqueta}
@@ -1035,6 +1036,11 @@ function Campo({
             );
           })}
         </div>
+        {nota ? (
+          <p role="note" className="mt-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 py-2.5 text-[13px] leading-relaxed text-text">
+            {nota}
+          </p>
+        ) : null}
         {ayuda}
       </div>
     );

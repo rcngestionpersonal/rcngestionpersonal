@@ -283,6 +283,9 @@ export type CampoOpcion = {
   etiqueta: string;
   // Qué pasa de verdad si se elige esto. Obligatorio de hecho en 'opcionExplicada'.
   consecuencia?: string;
+  // Advertencia que aparece solo cuando esta opción está elegida. Es para el
+  // agente, en la pantalla: nunca va al documento.
+  nota?: string;
 };
 
 export type CampoDefinicion = {
@@ -623,6 +626,7 @@ function jurisdiccionYControversias(): CampoDefinicion[] {
           valor: VIA_ARBITRAJE,
           etiqueta: 'Arbitraje y mediación',
           consecuencia: 'El arbitraje excluye la vía judicial ordinaria y tiene costos del centro.',
+          nota: 'El arbitraje suele tener costos altos; para montos pequeños conviene mediación y jueces.',
         },
         {
           valor: VIA_JUECES,

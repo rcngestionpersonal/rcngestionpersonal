@@ -361,6 +361,13 @@ describe('plantillas de contrato', () => {
         expect(textoDe('CORRETAJE', { controversiasVia: 'ARBITRAJE' })).not.toContain('costos del centro');
       });
 
+      it('al elegir arbitraje, la pantalla advierte de sus costos; el documento no', () => {
+        const campo = CONTRATO_DEFINICION.CORRETAJE.secciones.flatMap((x) => x.campos).find((c) => c.clave === 'controversiasVia');
+        const notas = (campo?.opciones ?? []).filter((o) => o.nota).map((o) => [o.valor, o.nota]);
+        expect(notas).toEqual([['ARBITRAJE', 'El arbitraje suele tener costos altos; para montos pequeños conviene mediación y jueces.']]);
+        expect(textoDe('CORRETAJE', { controversiasVia: 'ARBITRAJE' })).not.toContain('costos altos');
+      });
+
       it('queda anotada en los pendientes legales, no en el PDF', () => {
         const pendiente = PENDIENTES_REVISION_LEGAL.find((p) => p.tipo === 'CORRETAJE' && p.clausula === 'controversias');
         expect(pendiente).toBeDefined();
