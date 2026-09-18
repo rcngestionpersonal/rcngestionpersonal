@@ -97,6 +97,8 @@ function parteResumen(contrato: ContratoCompleto, p: ParteFila) {
     rechazadoAt: p.rechazadoAt,
     motivoRechazo: p.motivoRechazo,
     expiraAt: p.expiraAt,
+    intentosFallidos: p.intentosFallidos,
+    bloqueado: Boolean(p.bloqueadoAt),
   };
 }
 
@@ -150,7 +152,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         cambios: doc && previa ? compararVersiones(previa.bloques, doc.bloques) : null,
         partes: partesVersion.map((p) => {
           const vigenteYPendiente = v.id === vigente?.id && v.estado === 'EN_APROBACION' && estaPendiente(p) && parteHabilitada(p, v, partesVersion);
-          const token = vigenteYPendiente ? descifrarToken(p.tokenCifrado) : null;
+          const token = vigenteYPendiente && !p.bloqueadoAt ? descifrarToken(p.tokenCifrado) : null;
           const url = token ? `${baseUrl()}/aprobar/${token}` : null;
           const mensaje = url ? mensajeParaCompartir({ nombre: p.nombre, tipoDocumento, referencia, enlace: url }) : null;
           return {

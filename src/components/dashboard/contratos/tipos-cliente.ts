@@ -27,6 +27,10 @@ export type ParteResumen = {
   // Enlace vigente para compartirlo otra vez, si aún no decidió.
   enlace?: EnlaceCompartir | null;
   puedeRegenerar?: boolean;
+  // Intentos con los últimos 4 dígitos de la cédula que no coincidieron, y si
+  // el enlace quedó bloqueado por llegar al límite.
+  intentosFallidos?: number;
+  bloqueado?: boolean;
 };
 
 export type EtiquetasEtapas = Record<Etapa, string | null>;
@@ -176,7 +180,7 @@ export type PlantillaVigente = { tipo: ContratoTipo; version: string; revisada: 
 
 export type AlertaContrato = {
   contratoId: string;
-  tipo: 'enviar_contraparte' | 'cambios_pedidos' | 'por_vencer' | 'vencido';
+  tipo: 'enviar_contraparte' | 'cambios_pedidos' | 'por_vencer' | 'vencido' | 'enlace_bloqueado';
   tipoEtiqueta: string;
   quien: string;
   etapa: string | null;

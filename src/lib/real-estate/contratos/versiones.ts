@@ -11,6 +11,8 @@ import {
   fechaExpiracion,
   generarToken,
   huellaTexto,
+  mensajeDigitosIncorrectos,
+  MAX_INTENTOS_CEDULA,
   ultimos4,
   type DocumentoCongelado,
 } from './aprobacion';
@@ -83,7 +85,17 @@ export type OpcionesEnvio = {
   vigenciaHoras: number;
 };
 
-type Error = { ok: false; status: number; error: string; code: string; faltantes?: string[] };
+type Error = {
+  ok: false;
+  status: number;
+  error: string;
+  code: string;
+  faltantes?: string[];
+  // Dígitos de la cédula que no coinciden: intentos que le quedan a la parte.
+  restantes?: number;
+  // Este intento fue el que bloqueó el enlace: hay que avisar al agente.
+  recienBloqueado?: boolean;
+};
 
 export type ResultadoEnvio =
   | {
@@ -633,7 +645,8 @@ export async function regenerarEnlace(
   const estado = await prisma.$transaction(async (tx) => {
     await tx.contratoParte.update({
       where: { id: parte.id },
-      data: { tokenHash: hash, tokenCifrado: cifrarToken(token), expiraAt, estado: 'ENVIADO', enviadoAt: ahora, abiertoAt: null },
+      // El enlace nuevo empieza sin intentos fallidos ni bloqueo.
+      data: { tokenHash: hash, tokenCifrado: cifrarToken(token), expiraAt, estado: 'ENVIADO', enviadoAt: ahora, abiertoAt: null, intentosFallidos: 0, bloqueadoAt: null },
     });
     const partes = await tx.contratoParte.findMany({ where: { versionId: version.id } });
     const nuevo = estadoDelContrato(version, partes);
@@ -666,6 +679,9 @@ export async function registrarReenvio(
   const encontrado = partePendiente(contrato, parteId);
   if ('ok' in encontrado) return encontrado;
   const { parte, version } = encontrado;
+  if (parte.bloqueadoAt) {
+    return fallo(423, 'enlace_bloqueado', 'El enlace se bloqueó por intentos fallidos. Genera uno nuevo para compartirlo.');
+  }
   if (parte.expiraAt.getTime() < Date.now()) {
     return fallo(410, 'enlace_vencido', 'El enlace venció. Regenéralo para enviar uno nuevo.');
   }
@@ -740,6 +756,7 @@ export type MotivoCerrado =
   | 'rechazada_por_otra_parte'
   | 'ya_aprobo'
   | 'ya_rechazo'
+  | 'bloqueado'
   | 'vencido';
 
 // Por qué un enlace no admite ver ni decidir, o null si lo admite. Una sola
@@ -755,8 +772,64 @@ export function motivoCerrado(p: ParteConContexto, ahora = Date.now()): MotivoCe
   if (p.estado === 'RECHAZADO') return 'ya_rechazo';
   if (p.version.estado === 'REEMPLAZADA') return 'reemplazada';
   if (p.version.estado === 'RECHAZADA') return 'rechazada_por_otra_parte';
+  if (p.bloqueadoAt) return 'bloqueado';
   if (p.expiraAt.getTime() < ahora) return 'vencido';
   return null;
+}
+
+// El código HTTP de cada motivo, igual para la API y el PDF.
+export function statusDeMotivo(motivo: MotivoCerrado): number {
+  if (motivo === 'vencido') return 410;
+  if (motivo === 'no_disponible') return 403;
+  if (motivo === 'bloqueado') return 423;
+  return 409;
+}
+
+// Unos dígitos que no coinciden: el intento se cuenta y queda en el historial
+// con IP, navegador y fecha. Al llegar a MAX_INTENTOS_CEDULA el enlace se
+// bloquea. La cuenta vive en la misma fila y se suma con una condición: aunque
+// lleguen muchos intentos a la vez, nunca se cuentan más del límite.
+async function registrarIntentoFallido(
+  p: ParteConContexto,
+  version: NonNullable<ParteConContexto['version']>,
+  solicitud: Solicitud,
+): Promise<{ bloqueado: boolean; recienBloqueado: boolean; restantes: number }> {
+  const ahora = new Date();
+  const base = {
+    contratoId: p.contratoId,
+    parteId: p.id,
+    rol: p.rol,
+    etapa: p.etapa,
+    versionNumero: version.numero,
+    huella: version.huella,
+    fecha: ahora,
+  };
+  return prisma.$transaction(async (tx) => {
+    const sumado = await tx.contratoParte.updateMany({
+      where: { id: p.id, bloqueadoAt: null, intentosFallidos: { lt: MAX_INTENTOS_CEDULA } },
+      data: { intentosFallidos: { increment: 1 } },
+    });
+    // Ya estaba bloqueado: otro intento llegó primero al límite.
+    if (sumado.count === 0) return { bloqueado: true, recienBloqueado: false, restantes: 0 };
+    const fila = await tx.contratoParte.findUnique({ where: { id: p.id }, select: { intentosFallidos: true } });
+    const intentos = fila?.intentosFallidos ?? MAX_INTENTOS_CEDULA;
+    await registrarEvento(tx, {
+      ...base,
+      tipo: 'INTENTO_FALLIDO',
+      actor: 'PARTE',
+      solicitud,
+      detalle: { nombre: p.nombre, nota: `Intento ${intentos} de ${MAX_INTENTOS_CEDULA}` },
+    });
+    if (intentos < MAX_INTENTOS_CEDULA) return { bloqueado: false, recienBloqueado: false, restantes: MAX_INTENTOS_CEDULA - intentos };
+    await tx.contratoParte.update({ where: { id: p.id }, data: { bloqueadoAt: ahora } });
+    await registrarEvento(tx, {
+      ...base,
+      tipo: 'BLOQUEO',
+      actor: 'SISTEMA',
+      detalle: { nombre: p.nombre, nota: `${MAX_INTENTOS_CEDULA} intentos fallidos con los últimos 4 dígitos de la cédula` },
+    });
+    return { bloqueado: true, recienBloqueado: true, restantes: 0 };
+  });
 }
 
 // Primer acceso de una parte a su enlace: queda en la constancia y en el
@@ -793,19 +866,32 @@ export type ResultadoDecision =
   | { ok: true; estado: 'RECHAZADO'; numero: number; etapa: Etapa; contrato: ContratoEstado }
   | Error;
 
+// La decisión solo se registra si el enlace no está bloqueado EN ESE MOMENTO:
+// un intento correcto que llega a la par de los fallidos no se cuela.
+const NO_BLOQUEADA = { bloqueadoAt: null, intentosFallidos: { lt: MAX_INTENTOS_CEDULA } };
+
+async function bloqueadaAhora(tx: Prisma.TransactionClient, id: string): Promise<boolean> {
+  const fila = await tx.contratoParte.findUnique({ where: { id }, select: { bloqueadoAt: true } });
+  return Boolean(fila?.bloqueadoAt);
+}
+
 export async function registrarDecision(p: ParteConContexto, decision: Decision, solicitud: Solicitud): Promise<ResultadoDecision> {
   const cerrado = motivoCerrado(p);
   if (cerrado || !p.version) {
     const motivo = cerrado ?? 'firma_retirada';
-    const status = motivo === 'vencido' ? 410 : motivo === 'no_disponible' ? 403 : 409;
-    return fallo(status, motivo, textoCerrado(motivo));
+    return fallo(statusDeMotivo(motivo), motivo, textoCerrado(motivo));
   }
   const version = p.version;
 
   // Quien decide se identifica con los últimos 4 dígitos de su cédula. Vale
-  // también para pedir cambios: el comentario queda con su nombre.
+  // también para pedir cambios: el comentario queda con su nombre. Cada fallo
+  // se cuenta; al llegar al límite, el enlace se bloquea.
   if (!coincidenUltimos4(decision.ultimos4, p.cedulaUlt4)) {
-    return fallo(403, 'cedula_no_coincide', 'Los últimos 4 dígitos no coinciden con los registrados.');
+    const intento = await registrarIntentoFallido(p, version, solicitud);
+    if (intento.bloqueado) {
+      return fallo(statusDeMotivo('bloqueado'), 'bloqueado', textoCerrado('bloqueado'), { recienBloqueado: intento.recienBloqueado });
+    }
+    return fallo(403, 'cedula_no_coincide', mensajeDigitosIncorrectos(intento.restantes), { restantes: intento.restantes });
   }
   if (!decision.leyoCompleto) return fallo(400, 'sin_leer', 'Desplace el documento hasta el final antes de decidir.');
   if (decision.accion === 'aprobar' && !decision.declaracion) {
@@ -837,10 +923,10 @@ export async function registrarDecision(p: ParteConContexto, decision: Decision,
   if (decision.accion === 'rechazar') {
     const estado = await prisma.$transaction(async (tx) => {
       const marcada = await tx.contratoParte.updateMany({
-        where: { id: p.id, estado: { in: ['ENVIADO', 'ABIERTO'] } },
+        where: { id: p.id, estado: { in: ['ENVIADO', 'ABIERTO'] }, ...NO_BLOQUEADA },
         data: { estado: 'RECHAZADO', rechazadoAt: ahora, motivoRechazo: decision.motivo, evidenciaCifrada: evidencia },
       });
-      if (marcada.count === 0) return null;
+      if (marcada.count === 0) return (await bloqueadaAhora(tx, p.id)) ? 'bloqueado' : null;
       await tx.contratoVersion.updateMany({ where: { id: version.id, estado: 'EN_APROBACION' }, data: { estado: 'RECHAZADA', cerradaAt: ahora } });
       // Una versión en la que alguien pide cambios ya no se aprueba: los
       // enlaces de las demás personas dejan de admitir decisión.
@@ -854,16 +940,17 @@ export async function registrarDecision(p: ParteConContexto, decision: Decision,
       });
       return nuevo;
     });
+    if (estado === 'bloqueado') return fallo(statusDeMotivo('bloqueado'), 'bloqueado', textoCerrado('bloqueado'));
     if (!estado) return fallo(409, 'ya_decidio', textoCerrado('ya_rechazo'));
     return { ok: true, estado: 'RECHAZADO', numero: version.numero, etapa: p.etapa, contrato: estado };
   }
 
   const resultado = await prisma.$transaction(async (tx) => {
     const marcada = await tx.contratoParte.updateMany({
-      where: { id: p.id, estado: { in: ['ENVIADO', 'ABIERTO'] } },
+      where: { id: p.id, estado: { in: ['ENVIADO', 'ABIERTO'] }, ...NO_BLOQUEADA },
       data: { estado: 'APROBADO', aprobadoAt: ahora, evidenciaCifrada: evidencia },
     });
-    if (marcada.count === 0) return null;
+    if (marcada.count === 0) return (await bloqueadaAhora(tx, p.id)) ? 'bloqueado' : null;
     await registrarEvento(tx, {
       ...evento,
       tipo: 'APROBACION',
@@ -886,6 +973,7 @@ export async function registrarDecision(p: ParteConContexto, decision: Decision,
     });
     return { etapaLista, nuevo };
   });
+  if (resultado === 'bloqueado') return fallo(statusDeMotivo('bloqueado'), 'bloqueado', textoCerrado('bloqueado'));
   if (!resultado) return fallo(409, 'ya_decidio', textoCerrado('ya_aprobo'));
   return {
     ok: true,
@@ -914,6 +1002,8 @@ export function textoCerrado(motivo: MotivoCerrado): string {
       return 'Usted ya aprobó esta versión.';
     case 'ya_rechazo':
       return 'Usted ya indicó que no aprueba esta versión.';
+    case 'bloqueado':
+      return 'Este enlace se bloqueó por seguridad después de varios intentos con dígitos de la cédula que no coinciden. Pida a quien se lo envió que le haga llegar un enlace nuevo.';
     case 'vencido':
       return 'El enlace venció. Pida a quien se lo envió que le haga llegar uno nuevo: el documento sigue disponible.';
   }

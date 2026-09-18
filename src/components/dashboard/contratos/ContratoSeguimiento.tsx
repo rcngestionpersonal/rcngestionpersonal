@@ -6,6 +6,7 @@ import type { ContratoCompleto, EventoResumen, ParteResumen, VersionResumen } fr
 import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
 import BotonCerrar, { useCerrarConEscape } from '@/components/navegacion/BotonCerrar';
 import Superpuesto from '@/components/navegacion/Superpuesto';
+import { tCantidad } from '@/lib/i18n/plural';
 
 // El recorrido de la negociación, etapa por etapa: primero revisa el cliente
 // del agente y, cuando aprueba y el agente lo decide, la contraparte.
@@ -494,6 +495,7 @@ function EnlacePendiente({
   onRegenerar: () => void;
 }) {
   const vencido = new Date(p.expiraAt).getTime() < Date.now();
+  const intentos = p.intentosFallidos ?? 0;
   const boton = 'min-h-[44px] rounded-xl border px-3 text-[13px] font-semibold transition disabled:opacity-50';
   return (
     <li className="rounded-xl border border-line p-3">
@@ -506,12 +508,19 @@ function EnlacePendiente({
             {p.nombreParte && p.nombreParte !== p.nombre ? ` · p. ${p.nombre}` : ''}
           </p>
         </div>
-        <span className={`shrink-0 text-xs font-semibold ${vencido ? 'text-danger' : 'text-text-3'}`}>
-          {vencido ? t('contratos.enlaceVencido') : `${t('contratos.parte.' + p.estado)} · ${t('contratos.venceEl').replace('{fecha}', fecha(p.expiraAt))}`}
+        <span className={`shrink-0 text-xs font-semibold ${vencido || p.bloqueado ? 'text-danger' : 'text-text-3'}`}>
+          {p.bloqueado
+            ? t('contratos.enlaceBloqueado').replace('{n}', String(intentos))
+            : vencido
+              ? t('contratos.enlaceVencido')
+              : `${t('contratos.parte.' + p.estado)} · ${t('contratos.venceEl').replace('{fecha}', fecha(p.expiraAt))}`}
         </span>
       </div>
+      {!p.bloqueado && intentos > 0 ? (
+        <p className="mt-1 text-xs font-semibold text-danger">{tCantidad(t, 'contratos.intentosFallidos', intentos)}</p>
+      ) : null}
       <div className="mt-2.5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-        {!vencido && p.enlace ? (
+        {!vencido && !p.bloqueado && p.enlace ? (
           <>
             <button onClick={onWhatsApp} className={`${boton} col-span-2 border-accent-line bg-accent-dim text-accent sm:col-span-1`}>
               {t('contratos.compartir.whatsapp')}

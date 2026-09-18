@@ -50,6 +50,15 @@ export function generarCodigoVerificacion(): string {
   return `${salida.slice(0, 5)}-${salida.slice(5)}`;
 }
 
+// Intentos con los últimos 4 dígitos antes de bloquear el enlace. Con el
+// enlace en la mano, 4 dígitos sin límite se adivinan probando.
+export const MAX_INTENTOS_CEDULA = 5;
+
+export function mensajeDigitosIncorrectos(restantes: number): string {
+  const quedan = restantes === 1 ? 'Le queda 1 intento' : `Le quedan ${restantes} intentos`;
+  return `Los últimos 4 dígitos no coinciden con los registrados. ${quedan}; después, el enlace se bloquea por seguridad.`;
+}
+
 export function ultimos4(cedula: string): string {
   const digitos = cedula.replace(/\D/g, '');
   return digitos.slice(-4);

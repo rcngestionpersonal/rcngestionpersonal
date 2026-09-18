@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isEmailConfigured, sendEmailNotification } from '@/lib/real-estate/email';
-import { hashToken } from '@/lib/real-estate/contratos/aprobacion';
-import { correoAprobacionPrincipal, correoVersionAprobada, correoVersionNoAprobada } from '@/lib/real-estate/contratos/correos';
+import { hashToken, MAX_INTENTOS_CEDULA } from '@/lib/real-estate/contratos/aprobacion';
+import {
+  correoAprobacionPrincipal,
+  correoEnlaceBloqueado,
+  correoVersionAprobada,
+  correoVersionNoAprobada,
+} from '@/lib/real-estate/contratos/correos';
 import { solicitudDe } from '@/lib/real-estate/contratos/eventos';
 import {
   aprobacionesDeVersion,
@@ -23,8 +28,9 @@ import { CONTRATO_DEFINICION, etiquetasEtapas, type ContratoTipo } from '@/lib/r
 // enlace personal. El token se busca por su hash.
 //
 // Lo que se notifica sale SOLO hacia el agente (su cliente aprobó, alguien
-// pidió cambios, la versión quedó aprobada). A los clientes no se les manda
-// nada automático: el agente decide cuándo y cómo seguir.
+// pidió cambios, la versión quedó aprobada, un enlace se bloqueó por intentos
+// fallidos). A los clientes no se les manda nada automático: el agente decide
+// cuándo y cómo seguir.
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -56,10 +62,33 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const resultado = await registrarDecision(parte, parsed.data, solicitudDe(request.headers));
-  if (!resultado.ok) return NextResponse.json({ error: resultado.error, code: resultado.code }, { status: resultado.status });
-
   const tipo = parte.contrato.tipo as ContratoTipo;
   const nombreDocumento = CONTRATO_DEFINICION[tipo].nombreDocumento;
+  if (!resultado.ok) {
+    // El intento que bloqueó el enlace avisa al agente, una sola vez.
+    if (resultado.recienBloqueado && isEmailConfigured()) {
+      try {
+        const perfil = await perfilAgente(parte.contrato.agentId);
+        if (perfil.correo) {
+          const correo = correoEnlaceBloqueado({
+            nombreAgente: perfil.nombre,
+            nombreDocumento,
+            numero: parte.version?.numero ?? parte.contrato.versionActual,
+            quien: `${parte.nombre} (${etiquetaRol(tipo, parte.rol)})`,
+            intentos: MAX_INTENTOS_CEDULA,
+            urlSeguimiento: `${baseUrl()}/?tab=contratos&vista=seguimiento&contrato=${parte.contratoId}`,
+          });
+          await sendEmailNotification({ to: perfil.correo, ...correo });
+        }
+      } catch (error) {
+        logContratos('el enlace se bloqueó pero falló el aviso por correo', { contratoId: parte.contratoId, error });
+      }
+    }
+    return NextResponse.json(
+      { error: resultado.error, code: resultado.code, ...(resultado.restantes !== undefined ? { restantes: resultado.restantes } : {}) },
+      { status: resultado.status },
+    );
+  }
 
   if (isEmailConfigured()) {
     try {

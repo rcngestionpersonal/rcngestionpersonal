@@ -237,6 +237,40 @@ export function correoAprobacionPrincipal(input: {
   return { subject, text, html };
 }
 
+// Al agente: el enlace de una parte se bloqueó tras varios intentos con los
+// últimos 4 dígitos de la cédula que no coincidieron. Puede ser un error de la
+// persona o alguien que no debía tener el enlace: el agente decide.
+export function correoEnlaceBloqueado(input: {
+  nombreAgente: string;
+  nombreDocumento: string;
+  numero: number;
+  quien: string;
+  intentos: number;
+  urlSeguimiento: string;
+}): { subject: string; text: string; html: string } {
+  const subject = `Se bloqueó el enlace de ${input.quien}: ${input.nombreDocumento}`;
+  const html = MARCO(
+    'Un enlace se bloqueó por seguridad',
+    `<p style="${P}">Hola ${esc(input.nombreAgente)}:</p>
+     <p style="${P}">
+       El enlace de <strong style="${FUERTE}">${esc(input.quien)}</strong> para revisar la versión ${input.numero} de
+       <strong style="${FUERTE}">${esc(input.nombreDocumento)}</strong> se bloqueó después de ${input.intentos} intentos con los
+       últimos 4 dígitos de la cédula que no coincidieron.
+     </p>
+     <p style="${P}">Si fue un error, confirma sus datos y genera un enlace nuevo desde el seguimiento del contrato. Si esa persona no reconoce los intentos, el enlace pudo llegar a alguien más: el nuevo deja sin efecto el anterior.</p>
+     ${BOTON(input.urlSeguimiento, 'Abrir el seguimiento')}`,
+  );
+  const text = [
+    `Hola ${input.nombreAgente}:`,
+    '',
+    `El enlace de ${input.quien} para revisar la versión ${input.numero} de "${input.nombreDocumento}" se bloqueó después de ${input.intentos} intentos con los últimos 4 dígitos de la cédula que no coincidieron.`,
+    'Si fue un error, confirma sus datos y genera un enlace nuevo desde el seguimiento del contrato. Si esa persona no reconoce los intentos, el enlace pudo llegar a alguien más: el nuevo deja sin efecto el anterior.',
+    '',
+    input.urlSeguimiento,
+  ].join('\n');
+  return { subject, text, html };
+}
+
 // A la parte principal: el agente corrigió solo datos de la contraparte. Su
 // aprobación se conserva porque las condiciones no cambiaron, pero tiene
 // derecho a saberlo.

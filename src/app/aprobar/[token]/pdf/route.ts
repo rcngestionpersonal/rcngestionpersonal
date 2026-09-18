@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hashToken } from '@/lib/real-estate/contratos/aprobacion';
 import { contratoDelAgente, nombreArchivoContrato, pdfDeVersion } from '@/lib/real-estate/contratos/servidor';
-import { motivoCerrado, parteDeToken, textoCerrado } from '@/lib/real-estate/contratos/versiones';
+import { motivoCerrado, parteDeToken, statusDeMotivo, textoCerrado } from '@/lib/real-estate/contratos/versiones';
 import type { ContratoTipo } from '@/lib/real-estate/contratos/tipos';
 
 // PDF de la versión que una parte tiene que revisar, o sobre la que ya decidió.
@@ -20,8 +20,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   // copia). Nadie más.
   const motivo = motivoCerrado(parte);
   if (motivo && motivo !== 'ya_aprobo' && motivo !== 'ya_rechazo') {
-    const status = motivo === 'no_disponible' ? 403 : motivo === 'vencido' ? 410 : 409;
-    return NextResponse.json({ error: textoCerrado(motivo), code: motivo }, { status });
+    return NextResponse.json({ error: textoCerrado(motivo), code: motivo }, { status: statusDeMotivo(motivo) });
   }
 
   const contrato = await contratoDelAgente(parte.contratoId, parte.contrato.agentId);

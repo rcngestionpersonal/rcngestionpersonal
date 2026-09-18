@@ -32,6 +32,7 @@ const TITULOS: Record<string, string> = {
   rechazada_por_otra_parte: 'Esta versión se está corrigiendo',
   ya_aprobo: 'Usted ya aprobó esta versión',
   ya_rechazo: 'Usted pidió cambios en esta versión',
+  bloqueado: 'Enlace bloqueado por seguridad',
   vencido: 'El enlace venció',
 };
 

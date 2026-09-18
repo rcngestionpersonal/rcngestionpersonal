@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 // nada a los clientes: el agente decide qué hacer con cada uno.
 type Alerta = {
   contratoId: string;
-  tipo: 'enviar_contraparte' | 'cambios_pedidos' | 'por_vencer' | 'vencido';
+  tipo: 'enviar_contraparte' | 'cambios_pedidos' | 'por_vencer' | 'vencido' | 'enlace_bloqueado';
   tipoEtiqueta: string;
   quien: string;
   etapa: string | null;
@@ -77,7 +77,7 @@ async function leerContratos(agentId: string) {
       partes: {
         select: {
           id: true, versionId: true, rol: true, etapa: true, nombre: true, correo: true, estado: true, enviadoAt: true, abiertoAt: true,
-          aprobadoAt: true, firmadoAt: true, rechazadoAt: true, motivoRechazo: true, expiraAt: true,
+          aprobadoAt: true, firmadoAt: true, rechazadoAt: true, motivoRechazo: true, expiraAt: true, bloqueadoAt: true,
         },
       },
     },
@@ -88,7 +88,23 @@ function alertasDe(c: FilaListado): Alerta[] {
   const tipo = c.tipo as ContratoTipo;
   const vigente = c.versiones.find((v) => v.numero === c.versionActual);
   if (!vigente || esContratoDeFirmaLegado(c)) return [];
-  const partes = c.partes.filter((p) => p.versionId === vigente.id);
+  const etiquetasVigentes = etiquetasEtapas(tipo, vigente.representa);
+  const tipoEtiqueta = CONTRATO_DEFINICION[tipo]?.titulo ?? 'Documento';
+  // Un enlace bloqueado por intentos fallidos se avisa aparte y antes que todo:
+  // hasta que el agente genere uno nuevo, esa persona no puede decidir.
+  const bloqueadas: Alerta[] =
+    vigente.estado === 'EN_APROBACION'
+      ? c.partes
+          .filter((p) => p.versionId === vigente.id && p.bloqueadoAt && estaPendiente(p))
+          .map((p) => ({ contratoId: c.id, tipoEtiqueta, tipo: 'enlace_bloqueado', quien: p.nombre, etapa: etiquetasVigentes[p.etapa] }))
+      : [];
+  return [...bloqueadas, ...alertasDelEstado(c, vigente)];
+}
+
+function alertasDelEstado(c: FilaListado, vigente: FilaListado['versiones'][number]): Alerta[] {
+  const tipo = c.tipo as ContratoTipo;
+  // Los enlaces bloqueados ya tienen su propia alerta.
+  const partes = c.partes.filter((p) => p.versionId === vigente.id && !p.bloqueadoAt);
   const etiquetas = etiquetasEtapas(tipo, vigente.representa);
   const base = { contratoId: c.id, tipoEtiqueta: CONTRATO_DEFINICION[tipo]?.titulo ?? 'Documento' };
   const ahora = Date.now();

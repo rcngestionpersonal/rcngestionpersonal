@@ -72,6 +72,9 @@ export default function PanelAprobacion({
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState('');
   const [resultado, setResultado] = useState<Resultado | null>(null);
+  // El enlace se bloqueó por intentos fallidos con la cédula: el texto viene
+  // del servidor, igual que el de la página si se vuelve a abrir.
+  const [bloqueo, setBloqueo] = useState<string | null>(null);
   const centinela = useRef<HTMLDivElement | null>(null);
   useCerrarConEscape(() => setPaso(null), paso !== null);
 
@@ -110,7 +113,8 @@ export default function PanelAprobacion({
         });
         const d = await r.json().catch(() => ({}));
         if (!r.ok) {
-          setError(d.error ?? 'No se pudo completar la operación. Intente de nuevo.');
+          if (d.code === 'bloqueado') setBloqueo(d.error ?? 'Este enlace se bloqueó por seguridad.');
+          else setError(d.error ?? 'No se pudo completar la operación. Intente de nuevo.');
           return null;
         }
         return d as { estado: string; final?: boolean; etapaCompleta?: boolean };
@@ -132,6 +136,20 @@ export default function PanelAprobacion({
   async function pedirCambios() {
     const d = await enviar({ accion: 'rechazar', ultimos4: digitos, leyoCompleto: llegoAlFinal, motivo: motivo.trim() });
     if (d) setResultado({ estado: 'RECHAZADO' });
+  }
+
+  if (bloqueo) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-bg px-4 py-12 text-text">
+        <div className="w-full max-w-md text-center">
+          <h1 className="text-xl font-bold">Enlace bloqueado por seguridad</h1>
+          <p className="mt-2 text-[15px] leading-relaxed text-text-2">{bloqueo}</p>
+          <p className="mt-4 text-xs text-text-3">
+            Identificador: <span className="font-semibold text-text-2">{codigo}</span>
+          </p>
+        </div>
+      </main>
+    );
   }
 
   if (resultado) {

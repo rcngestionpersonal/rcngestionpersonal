@@ -963,6 +963,10 @@ enum ContratoEventoTipo {
   CORRECCION_MENOR
   VENCIMIENTO
   ANULACION
+  // Alguien tecleó mal los últimos 4 dígitos de la cédula en un enlace, y el
+  // bloqueo del enlace al llegar al límite de intentos.
+  INTENTO_FALLIDO
+  BLOQUEO
 }
 
 enum ParteEstado {
@@ -1135,6 +1139,13 @@ model ContratoParte {
   rechazadoAt    DateTime?
   motivoRechazo  String?
   recordatorioAt DateTime?
+
+  // Intentos con los ultimos 4 digitos de la cedula que no coincidieron. Al
+  // llegar al limite (MAX_INTENTOS_CEDULA) el enlace se bloquea: ya no admite
+  // ver, descargar ni decidir hasta que el agente genere uno nuevo, que vuelve
+  // a cero.
+  intentosFallidos Int       @default(0)
+  bloqueadoAt      DateTime?
 
   // Registro cifrado de la decision: IP, navegador y dispositivo, confirmacion
   // de que desplazo el documento completo y huella de la version que tenia a
