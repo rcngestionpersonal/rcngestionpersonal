@@ -16,7 +16,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
-  themeColor: "#7c5cff",
+  themeColor: "#7C3AED",
 };
 
 const DEFAULT_TITLE = "Redinmo.io | El hub que conecta colegas inmobiliarios";
@@ -38,16 +38,20 @@ export const metadata: Metadata = {
     locale: "es_ES",
     type: "website",
   },
+  // Los genera `npm run icons` desde public/brand. El manifest lo publica
+  // src/app/manifest.ts, y Next agrega su <link> solo.
   icons: {
     icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico" },
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/favicon.ico", sizes: "16x16 32x32 48x48" },
+      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/favicon-16.png", sizes: "16x16", type: "image/png" },
     ],
-    apple: "/apple-touch-icon.png",
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
-  manifest: "/site.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Redinmo",
+  },
 };
 
 export default function RootLayout({
