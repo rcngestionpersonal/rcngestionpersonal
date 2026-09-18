@@ -247,7 +247,7 @@ export default function PanelAprobacion({
         ) : null}
 
         {/* El documento completo, no un resumen. */}
-        <article className="mt-3 rounded-2xl border border-line bg-surface p-4 sm:p-7">
+        <article lang="es" className="mt-3 rounded-2xl border border-line bg-surface p-4 sm:p-7">
           {bloques.map((b, i) => (
             <Bloque key={i} bloque={b} marca={comparacion?.bloques[i] ?? null} filas={comparacion?.filas[i] ?? null} ciudad={ciudad} fechaLarga={fechaLarga} />
           ))}
@@ -507,11 +507,11 @@ function Bloque({
           </p>
         ) : null}
         {marca?.estado === 'modificado' && marca.tramos.length > 0 ? (
-          <p className="mt-1.5 whitespace-pre-line break-words text-[15px] leading-relaxed text-text-2">
+          <p className="mt-1.5 hyphens-auto whitespace-pre-line break-words text-justify text-[15px] leading-relaxed text-text-2">
             <Tramos tramos={marca.tramos} />
           </p>
         ) : (
-          <Parrafos texto={b.texto} className="mt-1.5 break-words text-[15px] leading-relaxed text-text-2" />
+          <Parrafos texto={b.texto} className="mt-1.5 hyphens-auto break-words text-justify text-[15px] leading-relaxed text-text-2" />
         )}
       </div>
     );
@@ -539,7 +539,7 @@ function Bloque({
   return (
     <div className={`mb-3 ${resalte}`}>
       {etiqueta}
-      <p className="break-words text-[15px] leading-relaxed text-text-2">
+      <p className="hyphens-auto break-words text-justify text-[15px] leading-relaxed text-text-2">
         {marca?.estado === 'modificado' ? <Tramos tramos={marca.tramos} /> : b.texto}
       </p>
     </div>

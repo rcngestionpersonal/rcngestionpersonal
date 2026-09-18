@@ -137,6 +137,8 @@ async function listar(agentId: string) {
       select: {
         id: true, title: true, propertyType: true, operationType: true, city: true, zone: true, address: true,
         price: true, ownerName: true, ownerPhone: true,
+        // Para prellenar la descripción del inmueble en el corretaje.
+        areaM2: true, bedrooms: true, bathrooms: true, parkingSpaces: true,
       },
     }),
     prisma.agent.findUnique({

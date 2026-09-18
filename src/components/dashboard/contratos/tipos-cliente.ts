@@ -164,6 +164,10 @@ export type ListingOpcion = {
   price: number;
   ownerName: string | null;
   ownerPhone: string | null;
+  areaM2: number | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  parkingSpaces: number | null;
 };
 
 // Cada documento versiona su plantilla por separado: el módulo no tiene "una

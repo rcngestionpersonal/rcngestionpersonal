@@ -10,12 +10,15 @@ import {
   ENLACE_REVISION_ABOGADO_ETIQUETA,
   campoVisible,
   camposFaltantes,
+  centroPorDefecto,
+  ciudadDeJurisdiccion,
   ladosDelTipo,
   type CampoDefinicion,
   type ContratoTipo,
   type Etapa,
 } from '@/lib/real-estate/contratos/tipos';
 import type { CambiosEntreVersiones } from '@/lib/real-estate/contratos/clausulas';
+import { propertyTypeLabelEs } from '@/lib/real-estate/labels';
 import ContratoClausulas from './ContratoClausulas';
 import { Dialogo, reemplazar as rellenar, textoVigencia } from './ContratoSeguimiento';
 import VistaDocumento from './VistaDocumento';
@@ -66,6 +69,27 @@ function autocompletar(tipo: ContratoTipo, datos: Record<string, string>, listin
     if (claves.has(clave) && valor && !(salida[clave] ?? '').trim()) salida[clave] = valor;
   }
   return salida;
+}
+
+// Lo que el inventario sabe del inmueble, redactado para que el agente lo
+// complete: es un punto de partida, no la descripción final.
+export function descripcionDesdeInmueble(l: ListingOpcion, tipoLegible: string): string {
+  const ubicacion = [l.address, l.zone, l.city].filter(Boolean).join(', ');
+  const rasgos = [
+    l.areaM2 ? `${l.areaM2} m² de área` : null,
+    l.bedrooms ? `${l.bedrooms} ${l.bedrooms === 1 ? 'dormitorio' : 'dormitorios'}` : null,
+    l.bathrooms ? `${l.bathrooms} ${l.bathrooms === 1 ? 'baño' : 'baños'}` : null,
+    l.parkingSpaces ? `${l.parkingSpaces} ${l.parkingSpaces === 1 ? 'parqueadero' : 'parqueaderos'}` : null,
+  ].filter(Boolean);
+  // Un punto de partida, no el texto final: el título del anuncio es de venta y
+  // no entra. El agente completa lo que falte (pisos, bodega, estado).
+  const inicio = tipoLegible.trim();
+  return [
+    `${inicio.charAt(0).toUpperCase()}${inicio.slice(1)}${ubicacion ? ` en ${ubicacion}` : ''}.`,
+    rasgos.length > 0 ? `Cuenta con ${rasgos.join(', ')}.` : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
 export default function ContratoFormulario({
@@ -198,6 +222,14 @@ export default function ContratoFormulario({
 
   function editar(clave: string, valor: string) {
     let siguientes = { ...datos, [clave]: valor };
+    // El centro de mediación sigue a la ciudad elegida hasta que el agente
+    // escriba uno propio: ahí deja de tocarse.
+    if (clave === 'jurisdiccionCiudad' || clave === 'jurisdiccionCiudadOtra' || clave === 'propiedadCiudad') {
+      const escrito = (datos.centroMediacion ?? '').trim();
+      if (!escrito || escrito === centroPorDefecto(ciudadDeJurisdiccion(datos))) {
+        siguientes = { ...siguientes, centroMediacion: centroPorDefecto(ciudadDeJurisdiccion(siguientes)) };
+      }
+    }
     // Si comparece por su empresa, la razón social del perfil entra sola.
     if (clave === 'corredor_tipoPersona' && valor === 'JURIDICA' && empresaAgente && !(siguientes.corredor_razonSocial ?? '').trim()) {
       siguientes = { ...siguientes, corredor_razonSocial: empresaAgente };
@@ -388,7 +420,13 @@ export default function ContratoFormulario({
                 {seccion.descripcion ? <p className="mt-1 text-xs leading-relaxed text-text-3">{seccion.descripcion}</p> : null}
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   {visibles.map((campo) => (
-                    <Campo key={campo.clave} campo={campo} valor={datos[campo.clave] ?? ''} onChange={editar} />
+                    <Campo
+                      key={campo.clave}
+                      campo={campo}
+                      valor={datos[campo.clave] ?? ''}
+                      onChange={editar}
+                      listings={campo.desdeInmueble ? listings : []}
+                    />
                   ))}
                 </div>
               </section>
@@ -812,6 +850,41 @@ function Revisar({
   );
 }
 
+// Prellena una descripción con los datos de un inmueble del inventario. Queda
+// editable: el agente la completa con lo que solo él sabe.
+function TraerDelInmueble({ listings, onElegir }: { listings: ListingOpcion[]; onElegir: (texto: string) => void }) {
+  const [abierto, setAbierto] = useState(false);
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={() => setAbierto((v) => !v)}
+        className="min-h-[40px] rounded-lg border border-line-strong px-3 text-xs font-semibold text-text transition hover:bg-surface-2"
+      >
+        Traer datos del inmueble
+      </button>
+      {abierto ? (
+        <ul className="mt-2 space-y-1.5">
+          {listings.map((l) => (
+            <li key={l.id}>
+              <button
+                type="button"
+                onClick={() => {
+                  onElegir(descripcionDesdeInmueble(l, propertyTypeLabelEs(l.propertyType)));
+                  setAbierto(false);
+                }}
+                className="min-h-[44px] w-full rounded-xl border border-line px-3 py-2 text-left text-[13px] text-text-2 transition hover:bg-surface-2"
+              >
+                <span className="font-semibold text-text">{l.title}</span> · {[l.zone, l.city].filter(Boolean).join(', ')}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Nivel 1: un campo del formulario
 // ---------------------------------------------------------------------------
@@ -820,10 +893,12 @@ function Campo({
   campo,
   valor,
   onChange,
+  listings = [],
 }: {
   campo: CampoDefinicion;
   valor: string;
   onChange: (clave: string, valor: string) => void;
+  listings?: ListingOpcion[];
 }) {
   const etiqueta = (
     <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.1em] text-text-2">
@@ -943,12 +1018,27 @@ function Campo({
   }
 
   if (campo.tipo === 'area') {
+    const largo = valor.trim().length;
+    const corto = Boolean(campo.minimo && largo > 0 && largo < campo.minimo);
     return (
-      <label className="block sm:col-span-2">
-        {etiqueta}
-        <textarea value={valor} onChange={(e) => onChange(campo.clave, e.target.value)} rows={3} className={`${campoClase} py-3`} />
+      <div className="sm:col-span-2">
+        <label className="block">
+          {etiqueta}
+          <textarea
+            value={valor}
+            onChange={(e) => onChange(campo.clave, e.target.value)}
+            rows={campo.minimo ? 7 : 3}
+            className={`${campoClase} py-3`}
+          />
+        </label>
+        {campo.minimo ? (
+          <p className={`mt-1 text-[11.5px] ${corto ? 'text-danger' : 'text-text-3'}`}>
+            {largo} caracteres{largo < campo.minimo ? ` · mínimo ${campo.minimo}` : ''}
+          </p>
+        ) : null}
+        {listings.length > 0 ? <TraerDelInmueble listings={listings} onElegir={(texto) => onChange(campo.clave, texto)} /> : null}
         {ayuda}
-      </label>
+      </div>
     );
   }
 

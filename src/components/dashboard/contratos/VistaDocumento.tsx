@@ -4,7 +4,9 @@ import type { BloqueFinal } from '@/lib/real-estate/contratos/clausulas';
 // marca, con sus cláusulas numeradas, la ficha y quiénes firmarán.
 export default function VistaDocumento({ bloques, ciudad, fechaLarga }: { bloques: BloqueFinal[]; ciudad: string; fechaLarga: string }) {
   return (
-    <article className="rounded-xl border border-line bg-surface-2 p-4 sm:p-6">
+    // lang="es" y hyphens-auto: el navegador parte las palabras en español, que
+    // es lo que evita huecos entre palabras al justificar.
+    <article lang="es" className="rounded-xl border border-line bg-surface-2 p-4 sm:p-6">
       {bloques.map((b, i) => {
         if (b.tipo === 'titulo') {
           return (
@@ -31,7 +33,7 @@ export default function VistaDocumento({ bloques, ciudad, fechaLarga }: { bloque
                 .split(/\n+/)
                 .filter((t) => t.trim())
                 .map((t, j) => (
-                  <p key={j} className="mt-1 break-words text-[13.5px] leading-relaxed text-text-2">
+                  <p key={j} className="mt-1 hyphens-auto break-words text-justify text-[13.5px] leading-relaxed text-text-2">
                     {t}
                   </p>
                 ))}
@@ -84,7 +86,7 @@ export default function VistaDocumento({ bloques, ciudad, fechaLarga }: { bloque
           );
         }
         return (
-          <p key={i} className="mb-3 break-words text-[13.5px] leading-relaxed text-text-2">
+          <p key={i} className="mb-3 hyphens-auto break-words text-justify text-[13.5px] leading-relaxed text-text-2">
             {b.texto}
           </p>
         );
