@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useCambiosSinGuardar } from '@/lib/navegacion/cambios-sin-guardar';
 
 const SUPPORT_WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP;
 const WHATSAPP_MESSAGE = 'Hola, necesito recuperar el acceso a mi cuenta de Redinmo.io. Mi teléfono registrado es: ';
@@ -9,6 +10,7 @@ export default function ForgotAccessForm() {
   const [identifier, setIdentifier] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  useCambiosSinGuardar(identifier.trim() !== '' && !submitted);
 
   async function submit() {
     if (!identifier.trim() || loading) return;

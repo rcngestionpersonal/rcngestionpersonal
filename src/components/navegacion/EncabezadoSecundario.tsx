@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { confirmarSalida } from '@/lib/navegacion/cambios-sin-guardar';
 import { volverSeguro } from '@/lib/navegacion/volver';
 
 // Encabezado de toda pantalla que no es una principal del menú: "← Volver"
@@ -27,7 +28,13 @@ type Props = Base & ({ padre: string; onVolver?: never; enPanel?: never } | { on
 export default function EncabezadoSecundario(props: Props) {
   const router = useRouter();
   const { titulo, etiquetaVolver = 'Volver', acciones } = props;
-  const volver = () => (props.onVolver ? props.onVolver() : volverSeguro(router, props.padre ?? '/'));
+  const volver = () => {
+    // Si la pantalla tiene un formulario con cambios sin guardar, se pregunta
+    // antes de descartarlos (ver lib/navegacion/cambios-sin-guardar).
+    if (!confirmarSalida()) return;
+    if (props.onVolver) props.onVolver();
+    else volverSeguro(router, props.padre ?? '/');
+  };
 
   const boton = (
     <button

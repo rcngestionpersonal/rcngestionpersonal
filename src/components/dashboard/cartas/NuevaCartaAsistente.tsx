@@ -5,6 +5,7 @@ import { CARTA_DESTINATARIOS, type CartaDestinatarioTipo, type CartaImagenTipo, 
 import { cropImageToSquare } from '@/lib/real-estate/image-compress';
 import type { CartaCompleta, DatosPantallaCartas } from './tipos-cliente';
 import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
+import { confirmarSalida, useCambiosSinGuardar } from '@/lib/navegacion/cambios-sin-guardar';
 
 // Pasos 1 a 4 del flujo (destinatario, sus datos, imagen del encabezado y
 // generacion). Mobile-first: un paso por pantalla, con el avance abajo, para
@@ -40,6 +41,19 @@ export default function NuevaCartaAsistente({
   const [subiendoLogo, setSubiendoLogo] = useState(false);
   const [generando, setGenerando] = useState(false);
   const [error, setError] = useState('');
+
+  // Lo escrito (y las elecciones de estilo) se pierde al salir del asistente,
+  // que solo pasa con "Volver" en el primer paso: en los demás, "Volver"
+  // regresa al paso anterior sin perder nada. Elegir el tipo de destinatario,
+  // solo, no cuenta como cambio.
+  const [inicial] = useState(() => ({ imagenTipo, logoUrl }));
+  const hayDatos =
+    [nombre, cargo, contexto].some((v) => v.trim() !== '') ||
+    imagenTipo !== inicial.imagenTipo ||
+    paleta !== 'clara' ||
+    !incluirMiniSitio ||
+    logoUrl !== inicial.logoUrl;
+  useCambiosSinGuardar(paso === 1 && hayDatos, t('nav.cambiosSinGuardar'));
   const logoInput = useRef<HTMLInputElement | null>(null);
 
   const sinCuota = datos.cuota.restantes <= 0;
@@ -321,7 +335,9 @@ export default function NuevaCartaAsistente({
           </button>
         )}
         <button
-          onClick={volver}
+          onClick={() => {
+            if (confirmarSalida()) volver();
+          }}
           className="min-h-[44px] rounded-xl border border-line px-6 text-sm font-semibold text-text-2 transition hover:bg-surface-2"
         >
           {paso === 1 ? t('common.cancelar') : t('cartas.volver')}

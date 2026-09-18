@@ -8,6 +8,7 @@ import { buildPhoneE164 } from '@/lib/real-estate/phone';
 import { ECUADOR_PROVINCES } from '@/lib/real-estate/ecuador-provinces';
 import { TRIAL_DAYS } from '@/lib/real-estate/subscription-config';
 import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
+import { useCambiosSinGuardar } from '@/lib/navegacion/cambios-sin-guardar';
 
 const PROPERTY_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'HOUSE', label: 'Casas' },
@@ -72,6 +73,18 @@ function AgentRegisterForm() {
   const [error, setError] = useState('');
   const [touched, setTouched] = useState<Set<FieldName>>(new Set());
   const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  // Todavía no hay cuenta: lo escrito solo vive en esta pantalla.
+  const hayCambios =
+    [fullName, phoneLocal, email, password, company, idNumber, licenseNumber, direccion, referenciaDireccion, ciudad, provincia, codigoPostal, zonesText].some(
+      (v) => v.trim() !== '',
+    ) ||
+    propertyTypesInterest.length > 0 ||
+    specialty !== 'BOTH' ||
+    countryCode !== '+593' ||
+    photoFile !== null ||
+    acceptedTerms;
+  useCambiosSinGuardar(hayCambios && !loading);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
 
   const fullNameRef = useRef<HTMLInputElement>(null);

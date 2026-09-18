@@ -11,6 +11,7 @@ import {
 } from '@/lib/real-estate/reportes/tipos';
 import type { BorradorGestion, GestionCompleta, InmuebleReporte } from './tipos-cliente';
 import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
+import { useCambiosSinGuardar } from '@/lib/navegacion/cambios-sin-guardar';
 
 // Reporte de gestion (punto 2.4): en menos de dos minutos. Lo automatico ya
 // viene calculado y no se toca; la difusion y las observaciones vienen del
@@ -42,6 +43,13 @@ export default function GestionFormulario({
   const [cargando, setCargando] = useState(false);
   const [emitiendo, setEmitiendo] = useState(false);
   const [error, setError] = useState('');
+
+  // La difusión y las observaciones llegan precargadas del borrador: cuenta
+  // como cambio lo que el agente edita sobre eso, no lo precargado.
+  const hayCambios =
+    borrador !== null &&
+    (JSON.stringify(difusion) !== JSON.stringify(borrador.difusion) || observaciones !== (borrador.observaciones ?? ''));
+  useCambiosSinGuardar(hayCambios, t('nav.cambiosSinGuardar'));
 
   const preparar = useCallback(
     async (id: string, per: Periodicidad | null, conservarEdicion: boolean) => {

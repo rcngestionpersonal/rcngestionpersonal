@@ -148,6 +148,7 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'nav.misitio': 'Mi Sitio',
     'nav.perfil': 'Mi perfil',
     'nav.volver': 'Volver',
+    'nav.cambiosSinGuardar': 'Tienes cambios sin guardar. ¿Salir sin guardar?',
 
     'misitio.title': 'Mi Sitio',
     'misitio.subtitle': 'Tu página pública: tu carnet verificado, tu inventario y un formulario para recibir pedidos.',
@@ -1509,6 +1510,7 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     'nav.misitio': 'My Site',
     'nav.perfil': 'My profile',
     'nav.volver': 'Back',
+    'nav.cambiosSinGuardar': 'You have unsaved changes. Leave without saving?',
 
     'misitio.title': 'My Site',
     'misitio.subtitle': 'Your public page: your verified agent card, your listings, and a form to receive requests.',

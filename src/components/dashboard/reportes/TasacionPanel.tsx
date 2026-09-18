@@ -10,6 +10,7 @@ import { ADVERTENCIA_TASACION } from '@/lib/real-estate/reportes/tipos';
 import CompartirReporte from './CompartirReporte';
 import type { DocumentoEnviado, InmuebleReporte, TasacionResumen } from './tipos-cliente';
 import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
+import { useCambiosSinGuardar } from '@/lib/navegacion/cambios-sin-guardar';
 
 // Reporte de tasacion (punto 1). ESTADO: en construccion. La pantalla funciona
 // completa, pero con el volumen actual del Mapa de Cierres casi siempre va a
@@ -17,6 +18,9 @@ import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
 // servidor, no esta pantalla.
 
 type Origen = 'inventario' | 'manual';
+
+// Datos del inmueble cuando no está en el inventario y se escriben a mano.
+const MANUAL_INICIAL = { tipo: 'APARTMENT', operacion: 'SALE', zona: 'CENTRO_NORTE', metraje: '', antiguedad: '', dormitorios: '', banos: '', parqueaderos: '' };
 
 export default function TasacionPanel({
   inmuebles,
@@ -40,7 +44,7 @@ export default function TasacionPanel({
   const { lang } = useLanguage();
   const [origen, setOrigen] = useState<Origen>(inmuebles.length > 0 ? 'inventario' : 'manual');
   const [listingId, setListingId] = useState(inmuebleInicial ?? inmuebles[0]?.id ?? '');
-  const [manual, setManual] = useState({ tipo: 'APARTMENT', operacion: 'SALE', zona: 'CENTRO_NORTE', metraje: '', antiguedad: '', dormitorios: '', banos: '', parqueaderos: '' });
+  const [manual, setManual] = useState(MANUAL_INICIAL);
   const [analizando, setAnalizando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoTasacion | null>(null);
   const [telefono, setTelefono] = useState<string | null>(null);
@@ -49,6 +53,11 @@ export default function TasacionPanel({
   // Tras el primer envio la tasacion queda guardada: desde ahi se descarga y se
   // reenvia la guardada, no una recalculada.
   const [guardada, setGuardada] = useState<{ id: string; documento: DocumentoEnviado } | null>(null);
+
+  // Lo escrito a mano sobre el inmueble se pierde al volver (el análisis se
+  // puede repetir; lo escrito, no), salvo que ya se haya guardado la tasación.
+  const hayCambios = origen === 'manual' && guardada === null && JSON.stringify(manual) !== JSON.stringify(MANUAL_INICIAL);
+  useCambiosSinGuardar(hayCambios, t('nav.cambiosSinGuardar'));
 
   const parametros = useMemo<Record<string, string>>(() => {
     if (origen === 'inventario') return listingId ? { listingId } : {};

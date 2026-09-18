@@ -6,6 +6,7 @@ import { Camera } from 'lucide-react';
 import { cropImageToSquare } from '@/lib/real-estate/image-compress';
 import { ECUADOR_PROVINCES } from '@/lib/real-estate/ecuador-provinces';
 import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
+import { useCambiosSinGuardar } from '@/lib/navegacion/cambios-sin-guardar';
 
 const PROPERTY_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'HOUSE', label: 'Casas' },
@@ -91,6 +92,23 @@ export default function EditarPerfilPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saved, setSaved] = useState(false);
+
+  // Nada se guarda hasta "Guardar cambios": si algo difiere de lo que se
+  // cargó (o hay foto o correo nuevo sin enviar), "Volver" pregunta.
+  const firma = JSON.stringify([
+    fullName, company, countryCode, phoneLocal, zonesText, specialty, propertyTypesInterest, licenseNumber,
+    direccion, referenciaDireccion, ciudad, provincia, codigoPostal, carnetMessage,
+  ]);
+  const [firmaCargada, setFirmaCargada] = useState<string | null>(null);
+  useEffect(() => {
+    // Solo al cargar el perfil: desde ahí, lo que difiera es un cambio.
+    if (agent) setFirmaCargada(firma);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agent]);
+  const hayCambios =
+    !saved &&
+    ((firmaCargada !== null && firma !== firmaCargada) || photoBlob !== null || (newEmail.trim() !== '' && emailStatus !== 'sent'));
+  useCambiosSinGuardar(hayCambios);
 
   useEffect(() => {
     void load();

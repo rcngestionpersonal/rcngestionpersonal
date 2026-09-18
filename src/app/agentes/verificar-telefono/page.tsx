@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
+import { useCambiosSinGuardar } from '@/lib/navegacion/cambios-sin-guardar';
 
 type MeAgent = {
   id: string;
@@ -20,6 +21,7 @@ export default function VerificarTelefonoPage() {
   const [requesting, setRequesting] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState('');
+  useCambiosSinGuardar(code.trim() !== '' && !confirming);
 
   useEffect(() => {
     void load();

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useCambiosSinGuardar } from '@/lib/navegacion/cambios-sin-guardar';
 
 const inputClass =
   'h-11 w-full rounded-lg border border-line-strong bg-input-bg px-3.5 text-[13.5px] font-medium text-text outline-none transition placeholder:font-normal placeholder:text-text-3 focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-dim)]';
@@ -13,6 +14,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  useCambiosSinGuardar((password !== '' || confirm !== '') && !loading);
 
   // El token nunca debe quedar visible en la barra de direcciones (ni terminar en
   // un referer de una navegacion posterior) - se limpia apenas monta la pantalla,

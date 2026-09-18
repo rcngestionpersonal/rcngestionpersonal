@@ -11,6 +11,7 @@ import {
 } from '@/lib/real-estate/reportes/tipos';
 import type { InmuebleReporte, VisitaCompleta } from './tipos-cliente';
 import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
+import { useCambiosSinGuardar } from '@/lib/navegacion/cambios-sin-guardar';
 
 // Reporte de visita desde el celular (punto 3.1). Pensado para llenarse de pie,
 // en el inmueble, en menos de un minuto:
@@ -63,6 +64,20 @@ export default function VisitaFormulario({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
 
+  // Nada de esto está guardado hasta "Guardar reporte de visita": si el
+  // agente escribió o eligió algo, "Volver" pregunta antes de descartarlo.
+  const [inicial, setInicial] = useState(() => ({ listingId, visitadaAt }));
+  const hayCambios =
+    listingId !== inicial.listingId ||
+    visitadaAt !== inicial.visitadaAt ||
+    [nombre, cedula, acompanantes, observaciones, objeciones, proximoPaso].some((v) => v.trim() !== '') ||
+    duracion !== null ||
+    reaccion !== null ||
+    foto !== null ||
+    respaldo ||
+    redes;
+  useCambiosSinGuardar(hayCambios, t('nav.cambiosSinGuardar'));
+
   // El inmueble de la ultima visita queda preseleccionado: un agente muestra el
   // mismo inmueble varias veces en la semana.
   useEffect(() => {
@@ -74,7 +89,11 @@ export default function VisitaFormulario({
       ultimo = null;
     }
     const valido = opciones.find((i) => i.id === ultimo) ?? opciones[0];
-    if (valido) setListingId(valido.id);
+    if (valido) {
+      setListingId(valido.id);
+      // Lo preseleccionado es el punto de partida, no un cambio del agente.
+      setInicial((i) => ({ ...i, listingId: valido.id }));
+    }
   }, [listingId, opciones]);
 
   useEffect(() => () => {

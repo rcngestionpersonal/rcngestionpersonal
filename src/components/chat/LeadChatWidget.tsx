@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
+import { useCambiosSinGuardar } from '@/lib/navegacion/cambios-sin-guardar';
 
 type OperationType = 'SALE' | 'RENT' | 'BOTH';
 type PropertyType = 'HOUSE' | 'APARTMENT' | 'SUITE' | 'OFFICE' | 'LAND' | 'COMMERCIAL' | 'OTHER';
@@ -50,6 +51,7 @@ export default function LeadChatWidget() {
   const [contactEmail, setContactEmail] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [matched, setMatched] = useState(false);
+  useCambiosSinGuardar(answers.length > 0 && step !== 'submitting' && step !== 'done');
 
   function pushAnswer(question: string, answer: string) {
     setAnswers((prev) => [...prev, { question, answer }]);
