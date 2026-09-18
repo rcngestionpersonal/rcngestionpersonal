@@ -150,6 +150,7 @@ export function construirDocumento(input: EntradaDocumento): {
   avisoSinRevisar: string;
   estilo: EstiloNumeracion;
   admiteEdicion: boolean;
+  lugar: string;
 } {
   const plantilla = obtenerPlantilla(input.tipo, input.version);
 
@@ -195,6 +196,7 @@ export function construirDocumento(input: EntradaDocumento): {
     avisoSinRevisar: plantilla.avisoSinRevisar,
     estilo: plantilla.estilo,
     admiteEdicion: plantilla.admiteEdicion,
+    lugar: plantilla.lugar?.(contexto) || contexto.ciudad,
   };
 }
 
@@ -225,6 +227,8 @@ export type DocumentoPreparado = {
   revisadaPorAbogado: boolean;
   avisoSinRevisar: string;
   admiteEdicion: boolean;
+  // La ciudad del encabezado: la misma que dice el cierre de la plantilla.
+  lugar: string;
 };
 
 // El documento completo, tal como se lee y se imprime: la plantilla con las
@@ -251,5 +255,6 @@ export function prepararDocumento(
     revisadaPorAbogado: base.revisadaPorAbogado,
     avisoSinRevisar: base.avisoSinRevisar,
     admiteEdicion: base.admiteEdicion && !esTipoArchivado(input.tipo),
+    lugar: base.lugar,
   };
 }

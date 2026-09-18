@@ -24,6 +24,13 @@ export const PLANTILLA_VERSION = 'corretaje-v4-2026-09';
 export const PLANTILLA_REVISADA_POR_ABOGADO = true;
 export const AVISO_PLANTILLA_SIN_REVISAR = '';
 
+// Dónde se suscribe: la ciudad del inmueble y, si todavía no se escribió, la
+// del perfil del agente. Es la ciudad del encabezado y la del cierre; la de
+// jurisdicción es otra cosa y puede ser distinta.
+export function lugarDeSuscripcion(d: DatosDocumento): string {
+  return d.campo('propiedadCiudad').trim() || d.ciudad;
+}
+
 export function construirBloques(d: DatosDocumento): BloqueDocumento[] {
   const conExclusividad = d.campo('exclusividad') === 'CON';
   const rotulo = d.campo('rotuloAutorizado') !== 'NO';
@@ -140,7 +147,7 @@ export function construirBloques(d: DatosDocumento): BloqueDocumento[] {
       tipo: 'clausula',
       clave: 'aceptacion',
       titulo: 'ACEPTACIÓN Y SUSCRIPCIÓN',
-      texto: `Las partes declaran que han leído íntegramente este contrato, que entienden su contenido y que lo aceptan en todas sus partes. En constancia, lo suscriben en ${jurisdiccion.ciudad}, en dos ejemplares de igual valor, en la fecha indicada al inicio.`,
+      texto: `Las partes declaran que han leído íntegramente este contrato, que entienden su contenido y que lo aceptan en todas sus partes. En constancia, lo suscriben en ${lugarDeSuscripcion(d)}, en dos ejemplares de igual valor, en la fecha indicada al inicio.`,
     },
 
     { tipo: 'firmas' },

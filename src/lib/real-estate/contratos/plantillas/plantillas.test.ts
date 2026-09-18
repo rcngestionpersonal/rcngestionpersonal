@@ -252,6 +252,19 @@ describe('plantillas de contrato', () => {
       expect(cierre.toLowerCase()).not.toContain('consignación');
     });
 
+    // Una sola ciudad de suscripción: la del encabezado es la del cierre. Sale
+    // del contrato (la ciudad del inmueble), no de la jurisdicción elegida.
+    it('el encabezado y el cierre dicen la misma ciudad, la del inmueble', () => {
+      const extra = { propiedadCiudad: 'Cuenca', jurisdiccionCiudad: 'GUAYAQUIL', controversiasVia: 'ARBITRAJE' };
+      expect(prepararDocumento(entradaDe('CORRETAJE', extra)).lugar).toBe('Cuenca');
+      expect(clausula('CORRETAJE', 'ACEPTACIÓN Y SUSCRIPCIÓN', extra)).toContain('lo suscriben en Cuenca, en dos ejemplares');
+      // Sin la ciudad del inmueble todavía, la del perfil del agente.
+      const sinCiudad = prepararDocumento(entradaDe('CORRETAJE', { propiedadCiudad: '' }));
+      expect(sinCiudad.lugar).toBe(AGENTE.ciudad);
+      // Las demás plantillas siguen con la del perfil, como siempre.
+      expect(prepararDocumento(entradaDe('RESERVA_COMPRAVENTA', { propiedadCiudad: 'Cuenca' })).lugar).toBe(AGENTE.ciudad);
+    });
+
     // "Portador" no concuerda con una propietaria; "titular" sirve para
     // cualquier persona, sin preguntar ni suponer el género de nadie.
     it('la comparecencia no depende del género de las partes', () => {

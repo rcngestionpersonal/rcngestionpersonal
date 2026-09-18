@@ -207,11 +207,13 @@ export type DocumentoDeTrabajo = {
 export async function documentoDeTrabajo(contrato: ContratoCompleto, perfil?: PerfilAgente): Promise<DocumentoDeTrabajo> {
   const datos = descifrarDatos(contrato.datosCifrados);
   const p = perfil ?? (await perfilAgente(contrato.agentId));
+  const preparado = prepararDocumento(entradaDocumento(contrato, datos, p));
   return {
-    preparado: prepararDocumento(entradaDocumento(contrato, datos, p)),
+    preparado,
     datos,
     perfil: p,
-    ciudad: p.documento.ciudad,
+    // La del perfil del agente, salvo que la plantilla la tome del contrato.
+    ciudad: preparado.lugar,
     fechaLarga: fechaLarga(contrato.createdAt),
   };
 }

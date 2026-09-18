@@ -38,6 +38,11 @@ export type Plantilla = {
   // Sus cláusulas tienen clave y admiten el editor. Las anteriores no.
   admiteEdicion: boolean;
   construirBloques: (tipo: ContratoTipo, datos: DatosDocumento) => BloqueDocumento[];
+  // Dónde se suscribe: la ciudad del encabezado ("Quito, 18 de septiembre…").
+  // Las plantillas que no la definen usan la del perfil del agente, como
+  // siempre; las que sí, la sacan de los datos del contrato para que el
+  // encabezado y el cierre digan la misma ciudad.
+  lugar?: (datos: DatosDocumento) => string;
 };
 
 // Adaptador para las plantillas de un solo documento, que ya no reciben el tipo.
@@ -47,6 +52,7 @@ function deUnTipo(
     PLANTILLA_REVISADA_POR_ABOGADO: boolean;
     AVISO_PLANTILLA_SIN_REVISAR: string;
     construirBloques: (d: DatosDocumento) => BloqueDocumento[];
+    lugarDeSuscripcion?: (d: DatosDocumento) => string;
   },
   conEditor = false,
 ): Plantilla {
@@ -57,6 +63,7 @@ function deUnTipo(
     estilo: conEditor ? 'ordinal' : 'romano',
     admiteEdicion: conEditor,
     construirBloques: (_tipo, datos) => modulo.construirBloques(datos),
+    lugar: modulo.lugarDeSuscripcion,
   };
 }
 
