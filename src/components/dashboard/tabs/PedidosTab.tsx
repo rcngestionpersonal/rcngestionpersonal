@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, Lock, Pencil, Trash2 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import { PointsBanner } from '../PointsWidgets';
@@ -9,6 +9,7 @@ import { Card, Chip, DataBlock, IconActionButton, MatchLink, ModuleHeader, Regis
 import { POINT_ACTIONS } from '@/lib/real-estate/points';
 import { listingFieldsFor } from '@/lib/real-estate/listing-fields';
 import type { AgentItem, AuthUser, OpportunityItem } from '../types';
+import { confirmarSalida, useCambiosSinGuardar } from '@/lib/navegacion/cambios-sin-guardar';
 
 const OPERATION_VALUES = ['SALE', 'RENT', 'BOTH'] as const;
 const PROPERTY_VALUES = ['HOUSE', 'APARTMENT', 'SUITE', 'OFFICE', 'LAND', 'COMMERCIAL', 'WAREHOUSE', 'FARM', 'OTHER'];
@@ -127,6 +128,20 @@ export default function PedidosTab({
 
   const fieldFlags = listingFieldsFor(propertyType, operationType);
 
+  // Cambios sin guardar del formulario: se anota cómo estaba al abrirlo (vacío,
+  // o con los datos del que se empieza a editar) y cuenta lo que difiera.
+  const firmaFormulario = JSON.stringify([
+    operationType, propertyType, city, zone, budgetMin, budgetMax, contactName, contactPhone, areaM2, bedrooms, bathrooms,
+    parkingSpaces, prefAreaVerdeAmplia, prefAreasComunales, prefAscensor, prefAmoblado, prefTodosLosServicios, aceptaEspaciosAdicionales,
+  ]);
+  const [firmaAlAbrir, setFirmaAlAbrir] = useState<string | null>(null);
+  useEffect(() => {
+    setFirmaAlAbrir(formOpen ? firmaFormulario : null);
+    // Solo al abrir o al pasar a editar otro: desde ahí, lo que difiera es un cambio.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formOpen, editingId]);
+  useCambiosSinGuardar(formOpen && firmaAlAbrir !== null && firmaFormulario !== firmaAlAbrir, t('nav.cambiosSinGuardar'));
+
   function resetDetailFields() {
     setAreaM2('');
     setBedrooms('');
@@ -177,6 +192,16 @@ export default function PedidosTab({
   function cancelEdit() {
     resetForm();
     setFormOpen(false);
+  }
+
+  // "Cancelar", cerrar el bloque del formulario o empezar a editar otro
+  // descartan lo escrito: con cambios, primero se pregunta.
+  function cancelarFormulario() {
+    if (confirmarSalida()) cancelEdit();
+  }
+  function editarConfirmando(item: OpportunityItem) {
+    if (formOpen && !confirmarSalida()) return;
+    startEdit(item);
   }
 
   async function submitOpportunity() {
@@ -237,7 +262,7 @@ export default function PedidosTab({
           points={POINT_ACTIONS.PEDIDO_CREATED.points}
           subtitle={t('pedidos.form.subtitle')}
           open={formOpen}
-          onToggle={() => (formOpen ? cancelEdit() : setFormOpen(true))}
+          onToggle={() => (formOpen ? cancelarFormulario() : setFormOpen(true))}
         >
             <div>
               <div className="flex flex-wrap gap-2">
@@ -388,7 +413,7 @@ export default function PedidosTab({
                 </button>
                 {editingId ? (
                   <button
-                    onClick={cancelEdit}
+                    onClick={cancelarFormulario}
                     className="rounded-full border border-line-strong px-4 py-2.5 text-sm font-semibold text-text-2 transition-colors duration-200 hover:bg-surface-2"
                   >
                     {t('pedidos.cancelar')}
@@ -530,7 +555,7 @@ export default function PedidosTab({
                 {presupuestoIncompleto ? (
                   <button
                     type="button"
-                    onClick={() => startEdit(op)}
+                    onClick={() => editarConfirmando(op)}
                     className="mt-3.5 flex w-full min-h-[44px] items-center gap-2 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2.5 text-left text-xs text-amber-200 transition-colors hover:bg-amber-500/15"
                   >
                     <span className="flex-1">{t('pedidos.presupuestoIncompleto')}</span>
@@ -554,7 +579,7 @@ export default function PedidosTab({
                       {withinEditWindow ? (
                         <IconActionButton
                           icon={<Pencil className="h-[14px] w-[14px]" strokeWidth={2} />}
-                          onClick={() => startEdit(op)}
+                          onClick={() => editarConfirmando(op)}
                           ariaLabel={t('pedidos.editar')}
                           tone="edit"
                         />

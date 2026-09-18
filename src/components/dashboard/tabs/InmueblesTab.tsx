@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Building2, Download, Home, ImagesIcon, Lock, Pencil, Trash2, Upload, Warehouse } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageProvider';
@@ -31,6 +31,7 @@ import {
   type OptionDef,
 } from '@/lib/real-estate/listing-fields';
 import type { AgentItem, ListingItem } from '../types';
+import { confirmarSalida, useCambiosSinGuardar } from '@/lib/navegacion/cambios-sin-guardar';
 
 const PROPERTY_VALUES = ['HOUSE', 'APARTMENT', 'SUITE', 'OFFICE', 'LAND', 'COMMERCIAL', 'WAREHOUSE', 'FARM', 'OTHER'];
 const OPERATION_VALUES = ['SALE', 'RENT', 'BOTH'] as const;
@@ -344,6 +345,23 @@ export default function InmueblesTab({
   const [lightboxListingId, setLightboxListingId] = useState<string | null>(null);
   const cardFileInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  // Cambios sin guardar del formulario: se anota cómo estaba al abrirlo (vacío,
+  // o con los datos del que se empieza a editar) y cuenta lo que difiera.
+  const firmaFormulario = JSON.stringify([
+    title, operationType, propertyType, city, zone, price, ownerName, ownerPhone, commissionSharePercent, managingAgentId,
+    areaM2, bedrooms, bathrooms, parkingSpaces, esIndependiente, antiguedad, amoblado, alicuotaMensual, piso, tieneAscensor,
+    areasComunales, esquineroOMedianero, usoSueloTerreno, pisosPermitidos, serviciosBasicos, frenteM, nivelLocal,
+    distribucionLocal, estadoOcupacion, canonMensualActual, alturaLibreM, accesoCamion, terrenoTotalM2, areaLibrePropiaM2,
+    terrenoLibreExclusivoM2, espaciosAdicionales, mediosBanos, balconOTerraza, pendingPhotos.length,
+  ]);
+  const [firmaAlAbrir, setFirmaAlAbrir] = useState<string | null>(null);
+  useEffect(() => {
+    setFirmaAlAbrir(formOpen ? firmaFormulario : null);
+    // Solo al abrir o al pasar a editar otro: desde ahí, lo que difiera es un cambio.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formOpen, editingId]);
+  useCambiosSinGuardar(formOpen && firmaAlAbrir !== null && firmaFormulario !== firmaAlAbrir, t('nav.cambiosSinGuardar'));
+
   const visibleListings = isAdmin ? listings : listings.filter((l) => l.managingAgentId === myAgentId || l.referredByAgentId === myAgentId);
 
   function resetForm() {
@@ -410,6 +428,16 @@ export default function InmueblesTab({
   function cancelEdit() {
     resetForm();
     setFormOpen(false);
+  }
+
+  // "Cancelar", cerrar el bloque del formulario o empezar a editar otro
+  // descartan lo escrito: con cambios, primero se pregunta.
+  function cancelarFormulario() {
+    if (confirmarSalida()) cancelEdit();
+  }
+  function editarConfirmando(item: ListingItem) {
+    if (formOpen && !confirmarSalida()) return;
+    startEdit(item);
   }
 
   // Galeria del formulario (Fase 4): agregar N fotos de una - a un inmueble
@@ -541,7 +569,7 @@ export default function InmueblesTab({
           points={POINT_ACTIONS.LISTING_CREATED.points}
           subtitle={t('inmuebles.form.subtitle')}
           open={formOpen}
-          onToggle={() => (formOpen ? cancelEdit() : setFormOpen(true))}
+          onToggle={() => (formOpen ? cancelarFormulario() : setFormOpen(true))}
         >
             <div>
               <p className="mb-2.5 text-xs font-bold uppercase tracking-[0.12em] text-text-3">{t('inmuebles.form.seccionUbicacion')}</p>
@@ -865,7 +893,7 @@ export default function InmueblesTab({
                 </button>
                 {editingId ? (
                   <button
-                    onClick={cancelEdit}
+                    onClick={cancelarFormulario}
                     className="rounded-full border border-line-strong px-4 py-2.5 text-sm font-semibold text-text-2 transition-colors duration-200 hover:bg-surface-2"
                   >
                     {t('inmuebles.cancelar')}
@@ -1026,7 +1054,7 @@ export default function InmueblesTab({
                 {canEdit && !listing.coverPhotoUrl ? (
                   <button
                     type="button"
-                    onClick={() => startEdit(listing)}
+                    onClick={() => editarConfirmando(listing)}
                     className="mt-3.5 flex w-full min-h-[44px] items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-2.5 text-left text-xs text-emerald-200 transition-colors hover:bg-emerald-500/15"
                   >
                     <span className="flex-1">{t('inmuebles.fotos.avisoVacio')}</span>
@@ -1038,7 +1066,7 @@ export default function InmueblesTab({
                 {detailIncomplete ? (
                   <button
                     type="button"
-                    onClick={() => startEdit(listing)}
+                    onClick={() => editarConfirmando(listing)}
                     className="mt-3.5 flex w-full min-h-[44px] items-center gap-2 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2.5 text-left text-xs text-amber-200 transition-colors hover:bg-amber-500/15"
                   >
                     <span className="flex-1">{t('inmuebles.detalleIncompleto')}</span>
@@ -1066,7 +1094,7 @@ export default function InmueblesTab({
                       {withinEditWindow ? (
                         <IconActionButton
                           icon={<Pencil className="h-[14px] w-[14px]" strokeWidth={2} />}
-                          onClick={() => startEdit(listing)}
+                          onClick={() => editarConfirmando(listing)}
                           ariaLabel={t('inmuebles.editar')}
                           tone="edit"
                         />

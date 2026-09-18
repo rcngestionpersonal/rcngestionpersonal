@@ -26,6 +26,7 @@ import { LanguageProvider, useLanguage } from '@/lib/i18n/LanguageProvider';
 import type { NextPlayInput } from '@/lib/real-estate/next-play';
 import { daysRemaining, resolveEffectiveSubscriptionStatus } from '@/lib/real-estate/subscription-status';
 import type { AccesoInput } from '@/lib/real-estate/access';
+import { confirmarSalida } from '@/lib/navegacion/cambios-sin-guardar';
 import {
   isAgentVerified,
   type AgentDashboardBreakdown,
@@ -840,8 +841,18 @@ function DashboardPage() {
   // Ranking y le piden que se desplace (o ademas abra el modal de compartir)
   // apenas monte - RankingTab consume esta senal una sola vez via un efecto.
   function goToCarnet(action: 'scroll' | 'share') {
-    setActiveTab('ranking');
+    if (!irAPestana('ranking')) return;
     setPendingCarnetAction(action);
+  }
+
+  // Todo cambio de pestaña que pide el usuario (menú, atajos entre módulos)
+  // desmonta la pantalla actual: si un formulario tiene cambios sin guardar,
+  // primero se pregunta. Los cambios automáticos (leer la URL, corregir una
+  // pestaña que no es del rol) usan setActiveTab directo y no preguntan.
+  function irAPestana(tab: DashboardTab): boolean {
+    if (tab !== activeTab && !confirmarSalida()) return false;
+    setActiveTab(tab);
+    return true;
   }
 
   async function dismissLevelUp() {
@@ -880,12 +891,14 @@ function DashboardPage() {
       ) : null}
       <DashboardShell
       activeTab={activeTab}
-      onTabChange={setActiveTab}
+      onTabChange={irAPestana}
       isAdmin={isAdmin}
       displayName={displayName}
       isVerified={myAgentVerified}
       photoUrl={myAgent?.photoUrl}
-      onLogout={logout}
+      onLogout={() => {
+        if (confirmarSalida()) void logout();
+      }}
       trialInfo={trialInfo}
     >
       {isAgent && myAgent && !myAgent.email && user?.agentId ? (
@@ -911,7 +924,7 @@ function DashboardPage() {
           recentClosedDeals={recentClosedDeals}
           pointsRanking={pointsRanking}
           nextPlayInput={nextPlayInput}
-          onNavigateTab={setActiveTab}
+          onNavigateTab={irAPestana}
           onGoToCarnet={() => goToCarnet('scroll')}
         />
       )}
@@ -957,7 +970,7 @@ function DashboardPage() {
           onDeletePhoto={deleteListingPhoto}
           onSetCoverPhoto={setListingPhotoCover}
           onReorderPhotos={reorderListingPhotos}
-          onGoToMatches={() => setActiveTab('matches')}
+          onGoToMatches={() => irAPestana('matches')}
         />
       )}
       {activeTab === 'pedidos' && (
@@ -971,7 +984,7 @@ function DashboardPage() {
           creatingOpportunity={creatingOpportunity}
           onUpdateOpportunity={updateOpportunity}
           onDeleteOpportunity={deleteOpportunity}
-          onGoToMatches={() => setActiveTab('matches')}
+          onGoToMatches={() => irAPestana('matches')}
         />
       )}
       {activeTab === 'matches' && (
@@ -1000,7 +1013,7 @@ function DashboardPage() {
       )}
       {activeTab === 'misitio' && isAgent && <MiSitioTab suscripcion={accesoInput} />}
       {activeTab === 'cartas' && isAgent && (
-        <CartasTab suscripcion={accesoInput} onIrAMiSitio={() => setActiveTab('misitio')} />
+        <CartasTab suscripcion={accesoInput} onIrAMiSitio={() => irAPestana('misitio')} />
       )}
       {activeTab === 'contratos' && isAgent && <ContratosTab suscripcion={accesoInput} />}
       {activeTab === 'reportes' && isAgent && <ReportesTab suscripcion={accesoInput} />}

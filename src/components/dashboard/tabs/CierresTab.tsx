@@ -16,6 +16,7 @@ import {
 import { MIN_SAMPLE_SIZE, QUITO_ZONES, zoneLabel } from '@/lib/real-estate/quito-zones';
 import type { MapFilters } from '../CierresMapa';
 import type { ClosedDealItem } from '../types';
+import { confirmarSalida } from '@/lib/navegacion/cambios-sin-guardar';
 
 const CierresMapa = dynamic(() => import('../CierresMapa'), { ssr: false, loading: () => <div className="h-[420px] w-full animate-pulse rounded-2xl bg-surface-2 sm:h-[560px]" /> });
 
@@ -116,6 +117,12 @@ export default function CierresTab({
   function closeForm() {
     setShowForm(false);
     setEditingDeal(null);
+  }
+
+  // La X del panel, tocar fuera o Escape: con cambios sin guardar, primero se
+  // pregunta. (Después de guardar, el formulario cierra por closeForm directo.)
+  function cerrarPanelConfirmando() {
+    if (confirmarSalida()) closeForm();
   }
 
   function handleSaved(result: SavedDealResult) {
@@ -394,7 +401,7 @@ export default function CierresTab({
         </button>
       ) : null}
 
-      <SlideOverPanel open={showForm} onClose={closeForm} title={editingDeal ? t('cierres.editando') : t('cierres.form.title')}>
+      <SlideOverPanel open={showForm} onClose={cerrarPanelConfirmando} title={editingDeal ? t('cierres.editando') : t('cierres.form.title')}>
         <CierreFormPanel
           deals={deals}
           editingDeal={editingDeal}

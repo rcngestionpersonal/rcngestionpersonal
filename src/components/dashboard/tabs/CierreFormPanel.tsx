@@ -22,6 +22,7 @@ import {
 } from '@/lib/real-estate/closed-deals-config';
 import { MIN_SAMPLE_SIZE, nearestZoneForCoordinates, zoneLabel } from '@/lib/real-estate/quito-zones';
 import type { ClosedDealItem } from '../types';
+import { useCambiosSinGuardar } from '@/lib/navegacion/cambios-sin-guardar';
 
 const ClosedDealsMap = dynamic(() => import('../ClosedDealsMap'), { ssr: false, loading: () => <div className="h-56 w-full animate-pulse rounded-2xl bg-surface-2 sm:h-64" /> });
 
@@ -149,6 +150,24 @@ export default function CierreFormPanel({
     );
     setOptionalOpen(hasEnrichment);
   }, [editingDeal]);
+
+  // Cambios sin guardar: cuenta lo que difiera de cómo se abrió el formulario
+  // (vacío, o con el cierre que se edita). Al editar, los datos se cargan en el
+  // efecto de arriba, después del primer render: la foto se toma recién en el
+  // render siguiente, cuando ya están.
+  const firmaFormulario = JSON.stringify([
+    propertyType, pickedLat, pickedLng, metraje, antiguedad, price, closedMonth, operationType, publicationPrice,
+    paymentMethod, financialEntity, approvalDelayed, timeOnMarket, bedrooms, bathrooms, parkingSpaces, estadoInmueble, declaredAccurate,
+  ]);
+  const [listoParaFirmar, setListoParaFirmar] = useState(!editingDeal);
+  const [firmaInicial, setFirmaInicial] = useState<string | null>(null);
+  useEffect(() => {
+    if (editingDeal) setListoParaFirmar(true);
+  }, [editingDeal]);
+  useEffect(() => {
+    if (listoParaFirmar && firmaInicial === null) setFirmaInicial(firmaFormulario);
+  }, [listoParaFirmar, firmaInicial, firmaFormulario]);
+  useCambiosSinGuardar(firmaInicial !== null && firmaFormulario !== firmaInicial && successInsight === null, t('nav.cambiosSinGuardar'));
 
   const metrajeLabel = t(metrajeLabelKeyFor(propertyType));
 

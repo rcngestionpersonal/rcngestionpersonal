@@ -11,6 +11,7 @@ import type { CartaCompleta, EstadoCuotaCliente } from './tipos-cliente';
 import EncabezadoSecundario from '@/components/navegacion/EncabezadoSecundario';
 import BotonCerrar, { useCerrarConEscape } from '@/components/navegacion/BotonCerrar';
 import Superpuesto from '@/components/navegacion/Superpuesto';
+import { useCambiosSinGuardar } from '@/lib/navegacion/cambios-sin-guardar';
 
 // Pasos 5 a 7: revision por bloques, vista previa en vivo del PDF y salida
 // (descarga o envio).
@@ -47,8 +48,13 @@ export default function CartaEditor({
   const [error, setError] = useState('');
   const [previaUrl, setPreviaUrl] = useState<string | null>(null);
   const [envio, setEnvio] = useState<Envio>({ abierto: false, para: '', asunto: '', mensaje: '' });
+  // Cerrar el diálogo (X, tocar fuera, Escape, Cancelar) solo lo oculta: lo
+  // escrito queda y reaparece al abrirlo de nuevo, así que no se pregunta.
   const cerrarEnvio = () => setEnvio((e) => ({ ...e, abierto: false }));
   useCerrarConEscape(cerrarEnvio, envio.abierto);
+  // Lo que sí lo pierde es salir del editor ("Volver", cambiar de pestaña) con
+  // un correo escrito y sin enviar: eso cuenta como cambio sin guardar.
+  useCambiosSinGuardar([envio.para, envio.asunto, envio.mensaje].some((v) => v.trim() !== ''), t('nav.cambiosSinGuardar'));
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState('');
   const guardadoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -411,7 +417,7 @@ export default function CartaEditor({
                   {enviando ? t('cartas.enviando') : t('cartas.envio.confirmar')}
                 </button>
                 <button
-                  onClick={() => setEnvio((e) => ({ ...e, abierto: false }))}
+                  onClick={cerrarEnvio}
                   className="min-h-[44px] rounded-xl border border-line px-6 text-sm font-semibold text-text-2 transition hover:bg-surface-2"
                 >
                   {t('common.cancelar')}

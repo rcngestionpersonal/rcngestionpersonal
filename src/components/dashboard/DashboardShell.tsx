@@ -6,7 +6,14 @@ import { useLanguage } from '@/lib/i18n/LanguageProvider';
 import { AvatarInitials } from './CardKit';
 import { IconClipboard, IconContract, IconGlobe, IconGrid, IconHouse, IconInvite, IconLetter, IconMapPin, IconPodium, IconReport, IconStar, IconSubscription, IconUser } from './icons';
 import ThemeSwitch from './ThemeSwitch';
+import { confirmarSalida } from '@/lib/navegacion/cambios-sin-guardar';
 import type { DashboardTab } from './types';
+
+// Enlaces que salen del panel (perfil, pagar): con cambios sin guardar en la
+// pantalla, primero se pregunta; si no se acepta, el enlace no navega.
+function siSePuedeSalir(e: { preventDefault: () => void }) {
+  if (!confirmarSalida()) e.preventDefault();
+}
 
 // Invitar (agora "Invita a un Colega") va primero para agentes: es la accion
 // que hace crecer la Red, y el pedido explicito fue darle prioridad visual.
@@ -192,7 +199,7 @@ export default function DashboardShell({
             {/* Grupo de cuenta, separado por una linea de los modulos de trabajo. */}
             <div className="!mt-3 space-y-1 border-t border-line pt-3">
               {!isAdmin ? (
-                <Link href="/agentes/perfil" className={navItemClass('desktop', false, false)}>
+                <Link href="/agentes/perfil" onClick={siSePuedeSalir} className={navItemClass('desktop', false, false)}>
                   <IconUser className="h-[18px] w-[18px] shrink-0 transition-transform duration-200 group-hover:scale-110" />
                   <span className="truncate">{t('nav.perfil')}</span>
                 </Link>
@@ -243,6 +250,7 @@ export default function DashboardShell({
                 {!isAdmin ? (
                   <Link
                     href="/agentes/perfil"
+                    onClick={siSePuedeSalir}
                     className="inline-flex h-10 items-center rounded-full border border-line bg-surface-2 px-4 text-xs font-semibold text-text-2 transition-all duration-200 hover:scale-[1.03] hover:bg-surface"
                   >
                     {t('shell.editarPerfil')}
@@ -286,7 +294,15 @@ export default function DashboardShell({
                 {/* Mismo grupo de cuenta que en escritorio, con la misma separacion. */}
                 <div className="space-y-1 border-t border-line pt-3">
                   {!isAdmin ? (
-                    <Link href="/agentes/perfil" className={navItemClass('mobile', false, false)}>
+                    <Link
+                      href="/agentes/perfil"
+                      onClick={(e) => {
+                        // Si se elige quedarse, el menú se cierra igual: se vuelve al formulario.
+                        siSePuedeSalir(e);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={navItemClass('mobile', false, false)}
+                    >
                       <IconUser className="h-[18px] w-[18px] shrink-0" />
                       <span className="truncate">{t('nav.perfil')}</span>
                     </Link>
@@ -344,6 +360,7 @@ function TrialBanner({ trialInfo }: { trialInfo: { daysRemaining: number; expire
   return (
     <Link
       href="/agentes/suscripcion/pagar"
+      onClick={siSePuedeSalir}
       className={`fade-up flex w-full items-center justify-between gap-2 rounded-2xl border px-4 py-2.5 text-left text-[13px] font-semibold transition-colors duration-200 ${
         urgent ? 'border-accent-line bg-accent-dim text-accent hover:brightness-125' : 'border-line bg-surface-2 text-text-2 hover:text-text'
       }`}
